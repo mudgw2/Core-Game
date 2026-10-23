@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Core\Modules\Characters;
 
 use Core\Storage\JsonStorage;
+use Core\Modules\Universe\NavigationGraph;
 use RuntimeException;
 
 /** Development-stage character records linked to a persisted universe. */
@@ -31,24 +32,37 @@ final class CharacterService
             throw new RuntimeException('The selected universe does not exist.');
         }
         $id = 'chr_' . bin2hex(random_bytes(12));
+        $firstSystem = $universe['baseline']['systems'][0] ?? null;
+        if (!is_array($firstSystem) || !isset($firstSystem['id'])) {
+            throw new RuntimeException('The selected universe has no valid starting system.');
+        }
+        $now = gmdate('c');
         $record = [
             'id' => $id,
             'schema_version' => 1,
             'universe_id' => $universeId,
             'name' => $name,
             'role' => $role,
-            'current_system_id' => (string)($universe['baseline']['systems'][0]['id'] ?? ''),
+            'current_system_id' => (string)$firstSystem['id'],
             'location' => [
-                'system_id' => (string)($universe['baseline']['systems'][0]['id'] ?? ''),
-                'updated_at' => gmdate('c'),
+                'system_id' => (string)$firstSystem['id'],
+                'updated_at' => $now,
             ],
-            'created_at' => gmdate('c'),
+            'exploration' => [
+                'explored_systems' => [[
+                    'system_id' => (string)$firstSystem['id'],
+                    'name' => (string)($firstSystem['name'] ?? $firstSystem['id']),
+                    'first_visited_at' => $now,
+                    'first_visited_revision' => 0,
+                ]],
+            ],
+            'created_at' => $now,
             'revision' => 0,
         ];
         return $this->storage->createIfAbsent('characters', $id, $record);
     }
 
-    /** Move a character to a system in its own universe using an optimistic revision check. */
+    /** Move a character within its universe. Repeated same-destination requests are idempotent. */
     public function move(string $universeId, string $characterId, string $systemId, int $expectedRevision): array
     {
         $universeId = trim($universeId);
@@ -65,13 +79,15 @@ final class CharacterService
         }
         $systems = $universe['baseline']['systems'] ?? null;
         if (!is_array($systems)) throw new RuntimeException('The selected universe has no valid system list.');
-        $target = null;
+        $systemsById = [];
         foreach ($systems as $system) {
-            if (is_array($system) && ($system['id'] ?? null) === $systemId) { $target = $system; break; }
+            if (is_array($system) && isset($system['id'])) $systemsById[(string)$system['id']] = $system;
         }
-        if ($target === null) throw new RuntimeException('Target system does not belong to the selected universe.');
-
-        return $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $systemId, $expectedRevision): array {
+        $target = $systemsById[$systemId] ?? null;
+        if (!is_array($target)) throw new RuntimeException('Target system does not belong to the selected universe.');
+        $navigation = NavigationGraph::build($systems);
+        $movementStatus = 'moved';
+        $result = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $systemId, $expectedRevision, $target, $systemsById, $navigation, &$movementStatus): array {
             if (($character['universe_id'] ?? null) !== $universeId) {
                 throw new RuntimeException('Character does not belong to the selected universe.');
             }
@@ -79,11 +95,65 @@ final class CharacterService
             if ($actualRevision !== $expectedRevision) {
                 throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
             }
-            $character['current_system_id'] = $systemId;
-            $character['location'] = ['system_id' => $systemId, 'updated_at' => gmdate('c')];
-            $character['revision'] = $actualRevision + 1;
+
+            $now = gmdate('c');
+            $currentSystemId = (string)($character['current_system_id'] ?? $character['location']['system_id'] ?? '');
+            $exploration = $character['exploration'] ?? [];
+            if (!is_array($exploration)) $exploration = [];
+            $visited = $exploration['explored_systems'] ?? [];
+            if (!is_array($visited)) $visited = [];
+
+            // Backfill the current location for older character records without exploration data.
+            if ($visited === [] && $currentSystemId !== '' && isset($systemsById[$currentSystemId])) {
+                $currentSystem = $systemsById[$currentSystemId];
+                $visited[] = [
+                    'system_id' => $currentSystemId,
+                    'name' => (string)($currentSystem['name'] ?? $currentSystemId),
+                    'first_visited_at' => (string)($character['location']['updated_at'] ?? $character['created_at'] ?? $now),
+                    'first_visited_revision' => $actualRevision,
+                ];
+            }
+
+            $alreadyVisited = false;
+            foreach ($visited as $entry) {
+                if (is_array($entry) && ($entry['system_id'] ?? null) === $systemId) { $alreadyVisited = true; break; }
+            }
+            $alreadyAtDestination = $currentSystemId === $systemId;
+            if (!$alreadyAtDestination && !in_array($systemId, $navigation['neighbors'][$currentSystemId] ?? [], true)) {
+                throw new RuntimeException('Target system is not directly reachable from the character current system.');
+            }
+            if (!$alreadyAtDestination) {
+                $character['current_system_id'] = $systemId;
+                $character['location'] = ['system_id' => $systemId, 'updated_at' => $now];
+                $character['revision'] = $actualRevision + 1;
+            }
+            if (!$alreadyVisited) {
+                $visited[] = [
+                    'system_id' => $systemId,
+                    'name' => (string)($target['name'] ?? $systemId),
+                    'first_visited_at' => $now,
+                    'first_visited_revision' => $alreadyAtDestination ? $actualRevision : $actualRevision + 1,
+                ];
+            }
+            $exploration['explored_systems'] = array_values($visited);
+            $character['exploration'] = $exploration;
+            $movementStatus = $alreadyAtDestination ? 'already_at_destination' : 'moved';
             return $character;
         });
+
+        $result['_movement_status'] = $movementStatus;
+        return $result;
+    }
+
+    public function navigationForUniverse(string $universeId): array
+    {
+        $universeId = trim($universeId);
+        if ($universeId === '') throw new RuntimeException('A universe_id is required.');
+        $universe = $this->storage->read('universes', $universeId);
+        if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
+            throw new RuntimeException('The selected universe does not exist.');
+        }
+        return NavigationGraph::build($universe['baseline']['systems'] ?? []);
     }
 
     public function listForUniverse(string $universeId): array

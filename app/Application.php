@@ -36,7 +36,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.15',
+            'version' => '0.1.17',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -122,6 +122,22 @@ final class Application
             }
         });
 
+        $this->router->get('/api/navigation', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Navigation API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'navigation_api_disabled', 'message' => 'Navigation data is available only in development mode from a local/private network.']], 403);
+            }
+            $universeId = $request->query('universe_id', '');
+            if (!is_string($universeId) || trim($universeId) === '') return Response::json(['ok' => false, 'error' => ['code' => 'missing_universe_id', 'message' => 'Provide a universe_id query parameter.']], 400);
+            try {
+                return Response::json(['ok' => true, 'universe_id' => trim($universeId), 'navigation' => $characterService->navigationForUniverse($universeId)]);
+            } catch (Throwable $e) {
+                if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
+                Logger::error('Navigation graph generation failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'navigation_failed', 'message' => 'Navigation data could not be generated. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->get('/api/characters', static function (Request $request) use ($characterService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
@@ -156,8 +172,14 @@ final class Application
             }
             try {
                 $character = $characterService->move($universeId, $characterId, $systemId, $expectedRevision);
-                Logger::info('Character location updated', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'revision' => $character['revision']]);
-                return Response::json(['ok' => true, 'character' => $character]);
+                $movementStatus = (string)($character['_movement_status'] ?? 'moved');
+                unset($character['_movement_status']);
+                if ($movementStatus === 'already_at_destination') {
+                    Logger::info('Character already at destination', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'revision' => $character['revision']]);
+                } else {
+                    Logger::info('Character location updated', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'revision' => $character['revision']]);
+                }
+                return Response::json(['ok' => true, 'movement_status' => $movementStatus, 'character' => $character]);
             } catch (Throwable $e) {
                 $message = $e->getMessage();
                 if (str_contains($message, 'revision conflict')) {
@@ -165,7 +187,7 @@ final class Application
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'do not belong') || str_contains($message, 'does not belong')) {
+                if (str_contains($message, 'do not belong') || str_contains($message, 'does not belong') || str_contains($message, 'not directly reachable')) {
                     Logger::warning('Character location target rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_location', 'message' => $message]], 400);
                 }
@@ -215,6 +237,7 @@ final class Application
                 'GET /api/universe/preview?seed=your-seed',
                 'POST /api/universe with JSON {"seed":"your-seed"}',
                 'GET /api/characters?universe_id=... (development/private network only)',
+                'GET /api/navigation?universe_id=... (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

@@ -34,6 +34,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Universe\UniverseService;
+use Core\Modules\Universe\NavigationGraph;
 use Core\Storage\JsonStorage;
 
 $results = [];
@@ -446,12 +447,14 @@ $run('Character can move to another system in its universe', static function () 
         $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-move');
         $service = new CharacterService($storage);
         $character = $service->create($universe['id'], 'Mover');
-        $target = $universe['baseline']['systems'][1]['id'];
+        $graph = NavigationGraph::build($universe['baseline']['systems']);
+        $target = $graph['neighbors'][$character['current_system_id']][0];
         $moved = $service->move($universe['id'], $character['id'], $target, 0);
         $equal($target, $moved['current_system_id'] ?? null, 'Current system was not updated.');
         $equal($target, $moved['location']['system_id'] ?? null, 'Location projection was not updated.');
         $equal(1, $moved['revision'], 'Character revision did not increment.');
-        $equal($moved, $storage->read('characters', $character['id']), 'Moved character was not persisted.');
+        $persisted = $moved; unset($persisted['_movement_status']);
+        $equal($persisted, $storage->read('characters', $character['id']), 'Moved character was not persisted.');
         return 'Location persisted and character revision advanced from 0 to 1.';
     } finally { $cleanup($dir); }
 });
@@ -485,12 +488,14 @@ $run('Character movement rejects stale revisions', static function () use ($asse
         $service = new CharacterService($storage);
         $character = $service->create($universe['id'], 'Revision Test');
         $systems = $universe['baseline']['systems'];
-        $service->move($universe['id'], $character['id'], $systems[1]['id'], 0);
+        $graph = NavigationGraph::build($systems);
+        $firstDestination = $graph['neighbors'][$character['current_system_id']][0];
+        $service->move($universe['id'], $character['id'], $firstDestination, 0);
         try { $service->move($universe['id'], $character['id'], $systems[2]['id'], 0); }
         catch (RuntimeException $e) {
             $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error.');
             $saved = $storage->read('characters', $character['id']);
-            $equal($systems[1]['id'], $saved['current_system_id'], 'Stale move changed the current system.');
+            $equal($firstDestination, $saved['current_system_id'], 'Stale move changed the current system.');
             $equal(1, $saved['revision'], 'Stale move changed the revision.');
             return 'Stale character movement rejected without overwriting the newer location.';
         }
@@ -498,7 +503,112 @@ $run('Character movement rejects stale revisions', static function () use ($asse
     } finally { $cleanup($dir); }
 });
 
+
+$run('Repeating a move to the current system is idempotent', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-idempotent-move');
+        $service = new CharacterService($storage);
+        $character = $service->create($universe['id'], 'Idempotent Mover');
+        $systemId = $character['current_system_id'];
+        $result = $service->move($universe['id'], $character['id'], $systemId, 0);
+        $equal('already_at_destination', $result['_movement_status'] ?? null, 'Same-system movement status was not explicit.');
+        $equal(0, $result['revision'], 'Same-system movement incremented the revision.');
+        $saved = $storage->read('characters', $character['id']);
+        $equal(0, $saved['revision'], 'Same-system movement changed the saved revision.');
+        $assert(!array_key_exists('_movement_status', $saved), 'Internal movement metadata was persisted.');
+        return 'Repeated same-destination move returns already_at_destination and leaves revision unchanged.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character creation records its starting system as explored', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-start-exploration');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Starting Explorer');
+        $visited = $character['exploration']['explored_systems'] ?? [];
+        $equal(1, count($visited), 'Starting system was not recorded exactly once.');
+        $equal($character['current_system_id'], $visited[0]['system_id'] ?? null, 'Starting explored system does not match current location.');
+        $assert(isset($visited[0]['first_visited_at'], $visited[0]['first_visited_revision']), 'Starting visit metadata is incomplete.');
+        return 'Starting system appears once in character-specific exploration history.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Moving to a new system adds it to character exploration history', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-exploration-history');
+        $service = new CharacterService($storage);
+        $character = $service->create($universe['id'], 'History Explorer');
+        $graph = NavigationGraph::build($universe['baseline']['systems']);
+        $targetId = $graph['neighbors'][$character['current_system_id']][0];
+        $target = array_values(array_filter($universe['baseline']['systems'], static fn(array $system): bool => $system['id'] === $targetId))[0];
+        $moved = $service->move($universe['id'], $character['id'], $target['id'], 0);
+        $visited = $moved['exploration']['explored_systems'] ?? [];
+        $equal(2, count($visited), 'Exploration history should contain the start and destination systems.');
+        $equal($target['id'], $visited[1]['system_id'] ?? null, 'Destination was not added to exploration history.');
+        $equal($target['name'], $visited[1]['name'] ?? null, 'Exploration entry did not capture the system name.');
+        $equal(1, $visited[1]['first_visited_revision'] ?? null, 'Exploration entry has incorrect first-visit revision.');
+        return 'Moving to a new system records its ID, name, timestamp, and first-visit revision.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Returning to an explored system does not duplicate exploration history', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-exploration-dedup');
+        $service = new CharacterService($storage);
+        $character = $service->create($universe['id'], 'Returning Explorer');
+        $systems = $universe['baseline']['systems'];
+        $graph = NavigationGraph::build($systems);
+        $startId = $character['current_system_id'];
+        $neighborId = $graph['neighbors'][$startId][0];
+        $firstMove = $service->move($universe['id'], $character['id'], $neighborId, 0);
+        $back = $service->move($universe['id'], $character['id'], $startId, 1);
+        $equal(2, count($back['exploration']['explored_systems'] ?? []), 'Returning to the starting system created a duplicate entry.');
+        $equal(2, $back['revision'], 'Returning to a previously explored system did not advance movement revision.');
+        $equal($firstMove['exploration']['explored_systems'][0]['first_visited_at'], $back['exploration']['explored_systems'][0]['first_visited_at'], 'Original first-visit timestamp changed.');
+        return 'Returning to a known system changes location but keeps one stable first-visit record per system.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Navigation graph connects every generated system', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $universe = (new UniverseService(new JsonStorage($dir)))->createOrLoad('core-ui-qa-navigation-connected');
+        $systems = $universe['baseline']['systems'];
+        $graph = NavigationGraph::build($systems);
+        $equal(count($systems) - 1, count($graph['routes']), 'MST should contain N-1 routes.');
+        $seen = []; $queue = [$systems[0]['id']];
+        while ($queue) { $id = array_shift($queue); if (isset($seen[$id])) continue; $seen[$id] = true; foreach ($graph['neighbors'][$id] ?? [] as $next) if (!isset($seen[$next])) $queue[] = $next; }
+        $equal(count($systems), count($seen), 'Navigation graph is not fully connected.');
+        return count($systems) . ' systems connected by ' . count($graph['routes']) . ' deterministic routes.';
+    } finally { $cleanup($dir); }
+});
+$run('Navigation graph generation is deterministic', static function () use ($equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try { $universe = (new UniverseService(new JsonStorage($dir)))->createOrLoad('core-ui-qa-navigation-deterministic'); $systems = $universe['baseline']['systems']; $equal(NavigationGraph::build($systems), NavigationGraph::build($systems), 'Graph output changed for same systems.'); return 'Repeated graph generation matched exactly.'; }
+    finally { $cleanup($dir); }
+});
+$run('Character can move to a directly connected system only', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-navigation-move'); $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Route Mover'); $graph = NavigationGraph::build($universe['baseline']['systems']); $neighbor = $graph['neighbors'][$character['current_system_id']][0]; $moved = $service->move($universe['id'], $character['id'], $neighbor, 0); $equal($neighbor, $moved['current_system_id'], 'Connected movement failed.'); $equal(1, $moved['revision'], 'Connected movement revision incorrect.'); return 'Connected neighbor accepted and revision advanced.';
+    } finally { $cleanup($dir); }
+});
+$run('Character cannot jump across a route without a direct connection', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-navigation-block'); $service = new CharacterService($storage); $character = $service->create($universe['id'], 'No Jump'); $graph = NavigationGraph::build($universe['baseline']['systems']); $neighbors = $graph['neighbors'][$character['current_system_id']]; $nonNeighbor = null; foreach ($universe['baseline']['systems'] as $system) if ($system['id'] !== $character['current_system_id'] && !in_array($system['id'], $neighbors, true)) { $nonNeighbor = $system['id']; break; } if ($nonNeighbor === null) throw new RuntimeException('Fixture unexpectedly has no non-neighbor system.');
+        try { $service->move($universe['id'], $character['id'], $nonNeighbor, 0); } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not directly reachable'), 'Unexpected route validation error.'); $saved = $storage->read('characters', $character['id']); $equal($character['current_system_id'], $saved['current_system_id'], 'Rejected jump changed location.'); $equal(0, $saved['revision'], 'Rejected jump advanced revision.'); return 'Unconnected destination rejected without changing character state.'; } throw new RuntimeException('Unconnected destination was accepted.');
+    } finally { $cleanup($dir); }
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.15', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.17', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

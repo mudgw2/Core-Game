@@ -38,7 +38,7 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.15</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.17</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -93,7 +93,8 @@ declare(strict_types=1);
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
-            <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Choose another system to move them.</p>
+            <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Only directly connected systems are valid destinations. Repeating a move to the current system will not increment the revision.</p>
+            <p id="characterExplorationStatus" class="status" aria-live="polite">Select a character to view its location and exploration history.</p>
             <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
         </section>
         <section style="grid-column:1/-1">
@@ -133,6 +134,7 @@ declare(strict_types=1);
     const universeStatus = document.getElementById('universeStatus');
     const seedInput = document.getElementById('seed');
     let currentUniverseBaseline = null;
+    let currentNavigation = null;
     const activityLog = document.getElementById('activityLog');
     let loadedCharacters = [];
     function populateSystemChoices() {
@@ -142,12 +144,31 @@ declare(strict_types=1);
         if (!systems.length) {
             const option = document.createElement('option'); option.value = ''; option.textContent = 'Create / load a universe first'; select.append(option); return;
         }
+        const characterId = document.getElementById('characterSelect').value;
+        const character = loadedCharacters.find(item => item.id === characterId);
+        const currentId = character?.current_system_id || character?.location?.system_id || '';
+        const reachable = new Set(currentNavigation?.neighbors?.[currentId] || []);
         for (const system of systems) {
             const option = document.createElement('option');
             option.value = system.id;
-            option.textContent = system.name + ' — ' + system.id + ' (' + system.classification + ')';
+            const isCurrent = system.id === currentId;
+            const isReachable = !character || isCurrent || reachable.has(system.id);
+            option.textContent = system.name + ' — ' + system.id + ' (' + system.classification + ')' + (isCurrent ? ' [current]' : isReachable ? ' [reachable]' : ' [not connected]');
+            option.disabled = !isReachable;
             select.append(option);
         }
+    }
+    function updateCharacterDetails() {
+        const characterId = document.getElementById('characterSelect').value;
+        const character = loadedCharacters.find(item => item.id === characterId);
+        const status = document.getElementById('characterExplorationStatus');
+        if (!character) { status.textContent = 'Select a character to view its location and exploration history.'; return; }
+        const systems = currentUniverseBaseline?.systems || [];
+        const names = new Map(systems.map(system => [system.id, system.name]));
+        const currentId = character.current_system_id || character.location?.system_id || '';
+        const visited = character.exploration?.explored_systems || [];
+        const visitedNames = visited.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).filter(Boolean);
+        status.textContent = 'Current system: ' + (names.get(currentId) || currentId || 'Unknown') + ' (' + currentId + '). Explored systems (' + visited.length + '): ' + (visitedNames.length ? visitedNames.join(', ') : 'none recorded');
     }
     function populateCharacterChoices() {
         const select = document.getElementById('characterSelect');
@@ -164,9 +185,12 @@ declare(strict_types=1);
         }
         if (loadedCharacters.some(character => character.id === prior)) select.value = prior;
         document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
+        updateCharacterDetails();
+        populateSystemChoices();
     }
     document.getElementById('characterSelect').addEventListener('change', () => {
         document.getElementById('characterRevision').value = document.getElementById('characterSelect').selectedOptions[0]?.dataset.revision ?? '0';
+        updateCharacterDetails();
     });
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
@@ -311,6 +335,7 @@ declare(strict_types=1);
         }
     }
     document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
+    document.getElementById('characterSelect').addEventListener('change', () => { updateCharacterDetails(); populateSystemChoices(); });
     document.getElementById('moveCharacterButton').addEventListener('click', async () => {
         const universeId = document.getElementById('characterUniverseId').value.trim();
         const characterId = document.getElementById('characterSelect').value;
@@ -326,11 +351,13 @@ declare(strict_types=1);
             try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
             document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
             if (response.ok && data.ok) {
-                status.textContent = 'Character is now in ' + systemId + '. Revision: ' + data.character.revision + '.';
+                status.textContent = data.movement_status === 'already_at_destination'
+                    ? 'Character is already at this destination. Revision unchanged: ' + data.character.revision + '.'
+                    : 'Character moved to ' + systemId + '. Revision: ' + data.character.revision + '.';
                 await refreshCharacters();
                 document.getElementById('characterSelect').value = characterId;
                 document.getElementById('characterRevision').value = String(data.character.revision);
-                logActivity('info', 'Character moved', characterId + ' → ' + systemId + ' (revision ' + data.character.revision + ')');
+                logActivity('info', data.movement_status === 'already_at_destination' ? 'Character already at destination' : 'Character moved', characterId + ' → ' + systemId + ' (revision ' + data.character.revision + ')');
             } else {
                 status.textContent = (data.error?.code || 'request_failed') + ': ' + (data.error?.message || 'Character move failed.');
                 logActivity('error', 'Character move failed', JSON.stringify(data));
@@ -385,6 +412,13 @@ declare(strict_types=1);
                 document.getElementById('characterStatus').textContent = 'Universe selected. You can create or list its characters.';
                 document.getElementById('stateRevision').value = result.data.universe.state?.revision ?? 0;
                 document.getElementById('stateStatus').textContent = 'Universe selected. Confirm the ID and expected revision before updating.';
+                currentNavigation = null;
+                try {
+                    const navResponse = await fetch('api/navigation.php?universe_id=' + encodeURIComponent(result.data.universe.id), { headers: { 'Accept': 'application/json' } });
+                    const navData = await navResponse.json();
+                    if (navResponse.ok && navData.ok) currentNavigation = navData.navigation;
+                    else logActivity('error', 'Navigation graph', JSON.stringify(navData));
+                } catch (navError) { logActivity('error', 'Navigation graph request failed', String(navError)); }
                 populateSystemChoices();
                 await refreshCharacters();
             }

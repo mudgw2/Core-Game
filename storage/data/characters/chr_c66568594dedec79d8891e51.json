@@ -1,0 +1,30 @@
+{
+    "id": "chr_c66568594dedec79d8891e51",
+    "schema_version": 1,
+    "universe_id": "uni_d6aaf47504110dc50b183443",
+    "name": "Dave",
+    "role": "Explorer",
+    "current_system_id": "sys_da0a436f57a9a273",
+    "location": {
+        "system_id": "sys_da0a436f57a9a273",
+        "updated_at": "2026-10-23T23:57:54+00:00"
+    },
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_3a9a93b845899e87",
+                "name": "System 01",
+                "first_visited_at": "2026-10-23T23:57:37+00:00",
+                "first_visited_revision": 0
+            },
+            {
+                "system_id": "sys_da0a436f57a9a273",
+                "name": "System 15",
+                "first_visited_at": "2026-10-23T23:57:54+00:00",
+                "first_visited_revision": 1
+            }
+        ]
+    },
+    "created_at": "2026-10-23T23:57:37+00:00",
+    "revision": 1
+}

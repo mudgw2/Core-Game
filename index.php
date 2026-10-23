@@ -37,9 +37,9 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.5</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.8</div>
     <h1>CORE</h1>
-    <p class="lead">The development workbench for a seed-driven universe. This is the first browser page for the PHP foundation; use it to check the server and preview or create a universe.</p>
+    <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
     <div class="grid">
         <section>
@@ -67,6 +67,13 @@ declare(strict_types=1);
             <p>Browser-side actions and failures appear here. Server-side PHP errors are written to <code>storage/logs/core.log</code>.</p>
             <pre id="activityLog" aria-live="polite">Workbench initialized.</pre>
             <div class="actions"><button id="clearLogButton" class="secondary" type="button">Clear activity log</button></div>
+        </section>
+        <section style="grid-column:1/-1">
+            <h2>Automated QA</h2>
+            <p>Run safe, isolated tests from the browser. Persistence tests use temporary data and do not modify your saved universes.</p>
+            <div class="actions"><button id="qaButton" type="button">Run automated tests</button></div>
+            <p id="qaStatus" class="status" aria-live="polite">Not run yet.</p>
+            <pre id="qaOutput" aria-live="polite">Ready to run QA.</pre>
         </section>
         <section style="grid-column:1/-1">
             <h2>Current foundation</h2>
@@ -135,6 +142,30 @@ declare(strict_types=1);
         } catch (error) {
             universeStatus.textContent = 'Request failed. Check Apache/PHP and the browser console.';
             output.textContent = String(error);
+        }
+    });
+
+    document.getElementById('qaButton').addEventListener('click', async () => {
+        const button = document.getElementById('qaButton');
+        const status = document.getElementById('qaStatus');
+        const qaOutput = document.getElementById('qaOutput');
+        button.disabled = true;
+        status.textContent = 'Running isolated tests…';
+        qaOutput.textContent = 'Please wait…';
+        try {
+            const response = await fetch('api/qa.php', { method: 'POST', headers: { 'Accept': 'application/json' } });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            logActivity(response.ok && data.ok ? 'info' : 'error', 'Automated QA', (data.passed ?? 0) + ' passed, ' + (data.failed ?? 0) + ' failed');
+            qaOutput.textContent = JSON.stringify(data, null, 2);
+            status.textContent = data.ok ? 'PASS — ' + data.passed + ' tests passed.' : 'FAIL — ' + (data.passed ?? 0) + ' passed, ' + (data.failed ?? 0) + ' failed. See results below.';
+        } catch (error) {
+            status.textContent = 'QA request failed.';
+            qaOutput.textContent = String(error);
+            logActivity('error', 'Automated QA request failed', String(error));
+        } finally {
+            button.disabled = false;
         }
     });
 

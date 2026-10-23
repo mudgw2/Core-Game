@@ -38,7 +38,7 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.12</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.15</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -71,8 +71,30 @@ declare(strict_types=1);
   "type": "note_added",
   "value": "Workbench test event"
 }</textarea>
-            <div class="actions"><button id="stateUpdateButton" type="button">Append state change</button></div>
+            <div class="actions"><button id="stateUpdateButton" type="button">Append state change</button><button id="explorationExampleButton" class="secondary" type="button">Use first system as exploration event</button></div>
             <p id="stateStatus" class="status" aria-live="polite">No state update submitted.</p>
+        </section>
+        <section style="grid-column:1/-1">
+            <h2>Player characters (development only)</h2>
+            <p>Create a basic character record linked to the currently selected universe. This is a prototype registry, not an account-owned character system; do not expose it publicly.</p>
+            <label for="characterUniverseId">Universe ID</label>
+            <input id="characterUniverseId" autocomplete="off" placeholder="Filled after Create / Load">
+            <label for="characterName">Character name</label>
+            <input id="characterName" maxlength="40" autocomplete="off" placeholder="e.g. Mira Voss">
+            <label for="characterRole">Role / starting concept</label>
+            <input id="characterRole" maxlength="40" value="Explorer" autocomplete="off">
+            <div class="actions"><button id="createCharacterButton" type="button">Create character</button><button id="refreshCharactersButton" class="secondary" type="button">Refresh character list</button></div>
+            <p id="characterStatus" class="status" aria-live="polite">Select a universe before creating a character.</p>
+            <h3>Character location</h3>
+            <label for="characterSelect">Character</label>
+            <select id="characterSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Load characters first</option></select>
+            <label for="characterSystemSelect">Destination system</label>
+            <select id="characterSystemSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Create / load a universe first</option></select>
+            <label for="characterRevision">Expected character revision</label>
+            <input id="characterRevision" type="number" min="0" step="1" value="0">
+            <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
+            <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Choose another system to move them.</p>
+            <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
         </section>
         <section style="grid-column:1/-1">
             <h2>Response</h2>
@@ -99,7 +121,7 @@ declare(strict_types=1);
                 <li>JSON file persistence for created universes</li>
                 <li>Structured application logging</li>
             </ul>
-            <p class="status">This is an early development scaffold, not a finished game. Accounts, characters, gameplay systems, and access control are not implemented yet.</p>
+            <p class="status">This is an early development scaffold, not a finished game. Accounts, character ownership, gameplay progression, and access control are not implemented yet.</p>
         </section>
     </div>
     <footer>CORE · Local development workbench · Do not expose publicly until authentication and access controls are implemented.</footer>
@@ -110,7 +132,42 @@ declare(strict_types=1);
     const healthStatus = document.getElementById('healthStatus');
     const universeStatus = document.getElementById('universeStatus');
     const seedInput = document.getElementById('seed');
+    let currentUniverseBaseline = null;
     const activityLog = document.getElementById('activityLog');
+    let loadedCharacters = [];
+    function populateSystemChoices() {
+        const select = document.getElementById('characterSystemSelect');
+        const systems = currentUniverseBaseline?.systems || [];
+        select.replaceChildren();
+        if (!systems.length) {
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'Create / load a universe first'; select.append(option); return;
+        }
+        for (const system of systems) {
+            const option = document.createElement('option');
+            option.value = system.id;
+            option.textContent = system.name + ' — ' + system.id + ' (' + system.classification + ')';
+            select.append(option);
+        }
+    }
+    function populateCharacterChoices() {
+        const select = document.getElementById('characterSelect');
+        const prior = select.value;
+        select.replaceChildren();
+        if (!loadedCharacters.length) {
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'No characters in this universe'; select.append(option); return;
+        }
+        for (const character of loadedCharacters) {
+            const option = document.createElement('option'); option.value = character.id;
+            option.textContent = character.name + ' — ' + character.id;
+            option.dataset.revision = String(character.revision ?? 0);
+            select.append(option);
+        }
+        if (loadedCharacters.some(character => character.id === prior)) select.value = prior;
+        document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
+    }
+    document.getElementById('characterSelect').addEventListener('change', () => {
+        document.getElementById('characterRevision').value = document.getElementById('characterSelect').selectedOptions[0]?.dataset.revision ?? '0';
+    });
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
         const line = '[' + stamp + '] ' + level.toUpperCase() + ' — ' + message + (details ? ' — ' + details : '');
@@ -185,6 +242,18 @@ declare(strict_types=1);
         }
     });
 
+    document.getElementById('explorationExampleButton').addEventListener('click', () => {
+        const firstSystem = currentUniverseBaseline?.systems?.[0];
+        if (!firstSystem || !firstSystem.id) {
+            document.getElementById('stateStatus').textContent = 'Create / load a universe first so CORE knows its generated systems.';
+            logActivity('error', 'Could not prepare exploration event', 'No loaded universe baseline is available');
+            return;
+        }
+        document.getElementById('stateChange').value = JSON.stringify({ type: 'system_explored', system_id: firstSystem.id }, null, 2);
+        document.getElementById('stateStatus').textContent = 'Prepared exploration event for ' + firstSystem.name + '. Confirm revision and append when ready.';
+        logActivity('info', 'Exploration event prepared', firstSystem.name + ' (' + firstSystem.id + ')');
+    });
+
     document.getElementById('stateUpdateButton').addEventListener('click', async () => {
         const status = document.getElementById('stateStatus');
         const universeId = document.getElementById('stateUniverseId').value.trim();
@@ -221,6 +290,83 @@ declare(strict_types=1);
         } finally { button.disabled = false; }
     });
 
+    async function refreshCharacters() {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const status = document.getElementById('characterStatus');
+        if (!universeId) { status.textContent = 'Create / load a universe first.'; return; }
+        try {
+            const response = await fetch('api/characters.php?universe_id=' + encodeURIComponent(universeId), { headers: { 'Accept': 'application/json' } });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            loadedCharacters = response.ok && data.ok ? data.characters : [];
+            populateCharacterChoices();
+            status.textContent = response.ok && data.ok ? data.characters.length + ' character(s) linked to this universe.' : (data.error?.message || 'Could not load characters.');
+            logActivity(response.ok && data.ok ? 'info' : 'error', 'Character list', status.textContent);
+        } catch (error) {
+            status.textContent = 'Character request failed.';
+            document.getElementById('characterOutput').textContent = String(error);
+            logActivity('error', 'Character list request failed', String(error));
+        }
+    }
+    document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
+    document.getElementById('moveCharacterButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const systemId = document.getElementById('characterSystemSelect').value;
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('characterLocationStatus');
+        if (!universeId || !characterId || !systemId) { status.textContent = 'Select a universe, character, and destination system first.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        const button = document.getElementById('moveCharacterButton'); button.disabled = true; status.textContent = 'Updating character location…';
+        try {
+            const response = await fetch('api/character-location.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, system_id: systemId, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                status.textContent = 'Character is now in ' + systemId + '. Revision: ' + data.character.revision + '.';
+                await refreshCharacters();
+                document.getElementById('characterSelect').value = characterId;
+                document.getElementById('characterRevision').value = String(data.character.revision);
+                logActivity('info', 'Character moved', characterId + ' → ' + systemId + ' (revision ' + data.character.revision + ')');
+            } else {
+                status.textContent = (data.error?.code || 'request_failed') + ': ' + (data.error?.message || 'Character move failed.');
+                logActivity('error', 'Character move failed', JSON.stringify(data));
+            }
+        } catch (error) { status.textContent = 'Character move request failed.'; logActivity('error', 'Character move request failed', String(error)); }
+        finally { button.disabled = false; }
+    });
+    document.getElementById('createCharacterButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const name = document.getElementById('characterName').value.trim();
+        const role = document.getElementById('characterRole').value.trim() || 'Explorer';
+        const status = document.getElementById('characterStatus');
+        if (!universeId) { status.textContent = 'Create / load a universe first.'; return; }
+        if (!name) { status.textContent = 'Enter a character name.'; return; }
+        const button = document.getElementById('createCharacterButton');
+        button.disabled = true;
+        status.textContent = 'Creating character…';
+        try {
+            const response = await fetch('api/characters.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ universe_id: universeId, name, role })
+            });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            status.textContent = response.ok && data.ok ? 'Character created: ' + data.character.name + ' (' + data.character.id + ').' : (data.error?.message || 'Character creation failed.');
+            logActivity(response.ok && data.ok ? 'info' : 'error', 'Character creation', status.textContent);
+            if (response.ok && data.ok) { await refreshCharacters(); document.getElementById('characterSelect').value = data.character.id; document.getElementById('characterRevision').value = String(data.character.revision ?? 0); }
+        } catch (error) {
+            status.textContent = 'Character request failed.';
+            document.getElementById('characterOutput').textContent = String(error);
+            logActivity('error', 'Character creation request failed', String(error));
+        } finally { button.disabled = false; }
+    });
+
     document.getElementById('createButton').addEventListener('click', async () => {
         const seed = seedInput.value.trim();
         if (!seed) { universeStatus.textContent = 'Enter a seed first.'; return; }
@@ -233,9 +379,14 @@ declare(strict_types=1);
             }));
             universeStatus.textContent = result.response.ok ? 'Universe created or loaded.' : 'Create/load request failed.';
             if (result.response.ok && result.data.universe) {
+                currentUniverseBaseline = result.data.universe.baseline || null;
                 document.getElementById('stateUniverseId').value = result.data.universe.id || '';
+                document.getElementById('characterUniverseId').value = result.data.universe.id || '';
+                document.getElementById('characterStatus').textContent = 'Universe selected. You can create or list its characters.';
                 document.getElementById('stateRevision').value = result.data.universe.state?.revision ?? 0;
                 document.getElementById('stateStatus').textContent = 'Universe selected. Confirm the ID and expected revision before updating.';
+                populateSystemChoices();
+                await refreshCharacters();
             }
             if (!result.response.ok || !result.data.ok) logActivity('error', 'Create/load failed', JSON.stringify(result.data));
         } catch (error) {

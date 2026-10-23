@@ -70,7 +70,8 @@ final class UniverseService
             $event = UniverseEvent::fromChange($change, $actualRevision + 1);
             // Validate/apply event effects before committing history and revision. A handler failure
             // aborts the storage transaction, leaving the prior universe state unchanged.
-            $state = $eventProcessor->process($event, $state);
+            $baseline = is_array($record['baseline'] ?? null) ? $record['baseline'] : [];
+            $state = $eventProcessor->process($event, $state, $baseline);
             $state['changes'][] = $event;
             $state['revision'] = $actualRevision + 1;
             $record['state'] = $state;

@@ -1,0 +1,14 @@
+{
+    "id": "chr_520b7fc1e3df23a7e43dd558",
+    "schema_version": 1,
+    "universe_id": "uni_d6aaf47504110dc50b183443",
+    "name": "David",
+    "role": "Explorer",
+    "current_system_id": "sys_3a9a93b845899e87",
+    "location": {
+        "system_id": "sys_3a9a93b845899e87",
+        "updated_at": "2026-10-23T23:50:11+00:00"
+    },
+    "created_at": "2026-10-23T23:50:04+00:00",
+    "revision": 4
+}

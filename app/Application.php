@@ -8,6 +8,7 @@ use Core\Http\Request;
 use Core\Http\Response;
 use Core\Http\Router;
 use Core\Modules\Universe\UniverseService;
+use Core\Modules\Characters\CharacterService;
 use Core\Storage\JsonStorage;
 use Throwable;
 
@@ -30,11 +31,12 @@ final class Application
         $config = require CORE_ROOT . '/config/app.php';
         $storage = new JsonStorage((string)$config['storage']['path']);
         $universeService = new UniverseService($storage);
+        $characterService = new CharacterService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.12',
+            'version' => '0.1.15',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -120,6 +122,91 @@ final class Application
             }
         });
 
+        $this->router->get('/api/characters', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character API is available only in development mode from a local/private network.']], 403);
+            }
+            $universeId = $request->query('universe_id', '');
+            if (!is_string($universeId) || trim($universeId) === '') {
+                return Response::json(['ok' => false, 'error' => ['code' => 'missing_universe_id', 'message' => 'Provide a universe_id query parameter.']], 400);
+            }
+            try {
+                return Response::json(['ok' => true, 'universe_id' => trim($universeId), 'characters' => $characterService->listForUniverse($universeId)]);
+            } catch (Throwable $e) {
+                if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
+                Logger::error('Character list failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_list_failed', 'message' => 'Characters could not be loaded. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->post('/api/characters/location', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character location API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character location updates are available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $systemId = isset($body['system_id']) && is_string($body['system_id']) ? trim($body['system_id']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || $systemId === '' || !is_int($expectedRevision)) {
+                Logger::warning('Character location validation failed', ['error_code' => 'invalid_character_location_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_location_request', 'message' => 'Provide universe_id, character_id, system_id, and integer expected_revision.']], 400);
+            }
+            try {
+                $character = $characterService->move($universeId, $characterId, $systemId, $expectedRevision);
+                Logger::info('Character location updated', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'revision' => $character['revision']]);
+                return Response::json(['ok' => true, 'character' => $character]);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character location revision conflict', ['character_id' => $characterId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'do not belong') || str_contains($message, 'does not belong')) {
+                    Logger::warning('Character location target rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_location', 'message' => $message]], 400);
+                }
+                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list')) {
+                    Logger::warning('Character location request rejected', ['character_id' => $characterId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_location', 'message' => $message]], 400);
+                }
+                Logger::error('Character location update failed', ['character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_location_failed', 'message' => 'Character location could not be updated. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->post('/api/characters', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character API is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $name = isset($body['name']) && is_string($body['name']) ? $body['name'] : '';
+            $role = isset($body['role']) && is_string($body['role']) ? $body['role'] : 'Explorer';
+            if ($universeId === '' || trim($name) === '') {
+                Logger::warning('Character creation validation failed', ['error_code' => 'invalid_character_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_request', 'message' => 'Provide universe_id and a non-empty character name.']], 400);
+            }
+            try {
+                $character = $characterService->create($universeId, $name, $role);
+                Logger::info('Character created', ['character_id' => $character['id'], 'universe_id' => $universeId]);
+                return Response::json(['ok' => true, 'character' => $character], 201);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'required') || str_contains($message, 'cannot be empty') || str_contains($message, 'must be between') || str_contains($message, 'must be a non-empty')) {
+                    Logger::warning('Character creation rejected', ['universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character', 'message' => $message]], 400);
+                }
+                Logger::error('Character creation failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_create_failed', 'message' => 'Character could not be saved. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->get('/', static fn(): Response => Response::json([
             'name' => 'CORE',
             'message' => 'CORE foundation is running.',
@@ -127,8 +214,20 @@ final class Application
                 'GET /api/health',
                 'GET /api/universe/preview?seed=your-seed',
                 'POST /api/universe with JSON {"seed":"your-seed"}',
+                'GET /api/characters?universe_id=... (development/private network only)',
+                'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],
         ]));
+    }
+
+    private static function developmentRequestAllowed(array $config): bool
+    {
+        $environment = (string)($config['app']['environment'] ?? 'production');
+        $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $isPrivate = $remote === '127.0.0.1' || $remote === '::1'
+            || preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/', $remote) === 1
+            || preg_match('/^(fc|fd)[0-9a-f:]*$/i', $remote) === 1;
+        return $environment === 'development' && $isPrivate;
     }
 }

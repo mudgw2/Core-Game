@@ -32,6 +32,29 @@ final class JsonStorage
         });
     }
 
+    /** Returns decoded records from a validated collection, ignoring lock files. */
+    public function all(string $collection): array
+    {
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $collection)) {
+            Logger::warning('Unsafe storage collection rejected', ['collection' => $collection]);
+            throw new RuntimeException('Invalid storage path segment.');
+        }
+        $directory = $this->root . '/' . $collection;
+        if (!is_dir($directory)) return [];
+        $records = [];
+        $files = @glob($directory . '/*.json');
+        if ($files === false) {
+            Logger::error('Storage collection could not be listed', ['collection' => $collection]);
+            throw new RuntimeException('Unable to list storage collection.');
+        }
+        sort($files, SORT_STRING);
+        foreach ($files as $file) {
+            $id = basename($file, '.json');
+            $records[] = $this->decodeFile($file, $collection, $id);
+        }
+        return $records;
+    }
+
     /** Atomically creates a record only if no record already exists. Returns the stored record. */
     public function createIfAbsent(string $collection, string $id, array $record): array
     {

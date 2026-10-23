@@ -32,6 +32,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 use Core\Modules\Universe\UniverseGenerator;
+use Core\Modules\Characters\CharacterService;
 use Core\Modules\Universe\UniverseService;
 use Core\Storage\JsonStorage;
 
@@ -297,7 +298,207 @@ $run('Unknown event types are recorded as unhandled', static function () use ($a
     } finally { $cleanup($dir); }
 });
 
+
+$run('system_explored events add a validated system to the exploration projection', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-exploration-valid');
+        $system = $universe['baseline']['systems'][0];
+        $updated = $service->updateState($universe['id'], 0, ['type' => 'system_explored', 'system_id' => $system['id']]);
+        $explored = $updated['state']['projections']['explored_systems'] ?? [];
+        $equal(1, count($explored), 'Exploration projection should contain one system.');
+        $equal($system['id'], $explored[0]['system_id'] ?? null, 'Explored system ID did not match.');
+        $equal($system['name'], $explored[0]['name'] ?? null, 'Explored system name did not match baseline.');
+        $equal('applied', $updated['state']['event_processing'][0]['status'] ?? null, 'Exploration event was not applied.');
+        return 'A valid generated system was added to explored_systems with baseline details.';
+    } finally { $cleanup($dir); }
+});
+
+$run('system_explored rejects system IDs outside the universe without mutation', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-exploration-invalid');
+        try { $service->updateState($universe['id'], 0, ['type' => 'system_explored', 'system_id' => 'sys_not_in_this_universe']); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'does not belong to this universe'), 'Unexpected invalid-system error.');
+            $saved = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $equal(0, $saved['state']['revision'], 'Rejected exploration advanced revision.');
+            $equal([], $saved['state']['changes'], 'Rejected exploration was appended to history.');
+            $assert(!isset($saved['state']['projections']['explored_systems']), 'Rejected exploration changed projection.');
+            return 'Foreign system ID rejected and transaction left the universe unchanged.';
+        }
+        throw new RuntimeException('Foreign system ID was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('re-exploring a system does not duplicate its exploration projection', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-exploration-duplicate');
+        $systemId = $universe['baseline']['systems'][0]['id'];
+        $first = $service->updateState($universe['id'], 0, ['type' => 'system_explored', 'system_id' => $systemId]);
+        $second = $service->updateState($universe['id'], 1, ['type' => 'system_explored', 'system_id' => $systemId]);
+        $equal(1, count($second['state']['projections']['explored_systems'] ?? []), 'Duplicate exploration created duplicate projection entries.');
+        $equal(2, count($second['state']['changes'] ?? []), 'Both submitted events should remain in event history.');
+        $equal('already_explored', $second['state']['event_processing'][1]['status'] ?? null, 'Repeat exploration status was not explicit.');
+        $equal(1, $first['state']['revision'], 'First exploration revision incorrect.');
+        $equal(2, $second['state']['revision'], 'Second exploration revision incorrect.');
+        return 'Repeated exploration remains in history but does not duplicate the explored-system projection.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character creation links a valid character to its universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-create');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Mira Voss', 'Explorer');
+        $equal($universe['id'], $character['universe_id'], 'Character linked to the wrong universe.');
+        $equal('Mira Voss', $character['name'], 'Character name was not preserved.');
+        $equal('Explorer', $character['role'], 'Character role was not preserved.');
+        $assert(preg_match('/^chr_[a-f0-9]{24}$/', $character['id']) === 1, 'Character ID format is invalid.');
+        $equal(0, $character['revision'], 'New character revision must start at zero.');
+        return 'Character record contains a unique ID and valid universe link.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character records persist and list only within their universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universes = new UniverseService($storage);
+        $one = $universes->createOrLoad('core-ui-qa-character-list-one');
+        $two = $universes->createOrLoad('core-ui-qa-character-list-two');
+        $service = new CharacterService($storage);
+        $created = $service->create($one['id'], 'Aster Vale', 'Scout');
+        $service->create($two['id'], 'Niko Renn', 'Engineer');
+        $listed = $service->listForUniverse($one['id']);
+        $equal(1, count($listed), 'Universe character list contains an unexpected number of records.');
+        $equal($created['id'], $listed[0]['id'], 'Persisted character ID changed.');
+        $equal($one['id'], $listed[0]['universe_id'], 'Character from another universe leaked into the list.');
+        return 'Character persists and universe-scoped listing excludes other universes.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character creation rejects a nonexistent universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        try { (new CharacterService($storage))->create('uni_missing', 'Mira Voss'); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'universe does not exist'), 'Unexpected missing-universe error.');
+            $equal([], $storage->all('characters'), 'Invalid character was persisted.');
+            return 'Unknown universe rejected without creating a character record.';
+        }
+        throw new RuntimeException('Character was created for a nonexistent universe.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Character name and role validation rejects invalid records', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-validation');
+        $service = new CharacterService($storage);
+        foreach ([['A', 'Explorer'], ['Valid Name', str_repeat('x', 41)]] as [$name, $role]) {
+            try { $service->create($universe['id'], $name, $role); }
+            catch (RuntimeException $e) { continue; }
+            throw new RuntimeException('Invalid character fields were accepted.');
+        }
+        $equal([], $storage->all('characters'), 'Invalid character records were persisted.');
+        return 'Too-short names and oversized roles are rejected without persistence.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character listing rejects an unknown universe', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new CharacterService(new JsonStorage($dir));
+        try { $service->listForUniverse('uni_missing'); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'universe does not exist'), 'Unexpected missing-universe error.');
+            return 'Character listing requires an existing universe.';
+        }
+        throw new RuntimeException('Unknown universe listing was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('New characters start in the universe first system', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-start');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Location Test');
+        $firstSystemId = $universe['baseline']['systems'][0]['id'];
+        $equal($firstSystemId, $character['current_system_id'] ?? null, 'Character did not start in the first system.');
+        $equal($firstSystemId, $character['location']['system_id'] ?? null, 'Location model does not match current system.');
+        return 'Character starts in the first generated system with a location timestamp.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character can move to another system in its universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-move');
+        $service = new CharacterService($storage);
+        $character = $service->create($universe['id'], 'Mover');
+        $target = $universe['baseline']['systems'][1]['id'];
+        $moved = $service->move($universe['id'], $character['id'], $target, 0);
+        $equal($target, $moved['current_system_id'] ?? null, 'Current system was not updated.');
+        $equal($target, $moved['location']['system_id'] ?? null, 'Location projection was not updated.');
+        $equal(1, $moved['revision'], 'Character revision did not increment.');
+        $equal($moved, $storage->read('characters', $character['id']), 'Moved character was not persisted.');
+        return 'Location persisted and character revision advanced from 0 to 1.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character cannot move to a system from another universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universes = new UniverseService($storage);
+        $first = $universes->createOrLoad('core-ui-qa-character-universe-a');
+        $second = $universes->createOrLoad('core-ui-qa-character-universe-b');
+        $service = new CharacterService($storage);
+        $character = $service->create($first['id'], 'Boundary Test');
+        try { $service->move($first['id'], $character['id'], $second['baseline']['systems'][0]['id'], 0); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'does not belong'), 'Unexpected cross-universe validation error.');
+            $saved = $storage->read('characters', $character['id']);
+            $equal($character['current_system_id'], $saved['current_system_id'], 'Rejected move changed character location.');
+            $equal(0, $saved['revision'], 'Rejected move advanced character revision.');
+            return 'Cross-universe destination rejected without modifying the character.';
+        }
+        throw new RuntimeException('Cross-universe system was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Character movement rejects stale revisions', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-stale');
+        $service = new CharacterService($storage);
+        $character = $service->create($universe['id'], 'Revision Test');
+        $systems = $universe['baseline']['systems'];
+        $service->move($universe['id'], $character['id'], $systems[1]['id'], 0);
+        try { $service->move($universe['id'], $character['id'], $systems[2]['id'], 0); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error.');
+            $saved = $storage->read('characters', $character['id']);
+            $equal($systems[1]['id'], $saved['current_system_id'], 'Stale move changed the current system.');
+            $equal(1, $saved['revision'], 'Stale move changed the revision.');
+            return 'Stale character movement rejected without overwriting the newer location.';
+        }
+        throw new RuntimeException('Stale character movement was accepted.');
+    } finally { $cleanup($dir); }
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.12', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.15', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

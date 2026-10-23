@@ -1,10 +1,31 @@
-{"time":"2026-10-23T23:36:39+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:36:39+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:41:01+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:41:01+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:42:52+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:42:52+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:42:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:42:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:43:34+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:43:34+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:46:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:46:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:46:57+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $equal","file":"/mnt/data/CORE-PHP-Foundation-0.1.14/api/qa.php","line":393}}
+{"time":"2026-10-23T23:46:57+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $equal","file":"/mnt/data/CORE-PHP-Foundation-0.1.14/api/qa.php","line":411}}
+{"time":"2026-10-23T23:47:02+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:47:02+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:47:08+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-23T23:47:08+00:00","level":"INFO","message":"Character created","context":{"character_id":"chr_37ca26fe92c99e9a9c8b0688","universe_id":"uni_07c59392ef6e803574da56a3"}}
+{"time":"2026-10-23T23:47:08+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters"}}
+{"time":"2026-10-23T23:47:08+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:48:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:48:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:49:45+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:49:45+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:49:50+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-23T23:49:50+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:04+00:00","level":"INFO","message":"Character created","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443"}}
+{"time":"2026-10-23T23:50:04+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:04+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:07+00:00","level":"INFO","message":"Character location updated","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":1}}
+{"time":"2026-10-23T23:50:07+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-23T23:50:07+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:09+00:00","level":"INFO","message":"Character location updated","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":2}}
+{"time":"2026-10-23T23:50:09+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-23T23:50:09+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:10+00:00","level":"INFO","message":"Character location updated","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":3}}
+{"time":"2026-10-23T23:50:10+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-23T23:50:10+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-23T23:50:11+00:00","level":"INFO","message":"Character location updated","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":4}}
+{"time":"2026-10-23T23:50:11+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-23T23:50:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}

@@ -10,7 +10,7 @@ final class UniverseEventProcessor
 {
     public const HANDLER_VERSION = 1;
 
-    public function process(array $event, array $state): array
+    public function process(array $event, array $state, array $baseline = []): array
     {
         $state['projections'] = is_array($state['projections'] ?? null) ? $state['projections'] : [];
         $state['event_processing'] = is_array($state['event_processing'] ?? null) ? $state['event_processing'] : [];
@@ -40,6 +40,54 @@ final class UniverseEventProcessor
             ];
             $state['projections']['notes'] = $notes;
             $status = 'applied';
+        } elseif (($event['type'] ?? '') === 'system_explored') {
+            $payload = is_array($event['payload'] ?? null) ? $event['payload'] : [];
+            $systemId = $payload['system_id'] ?? null;
+            if (!is_string($systemId) || trim($systemId) === '') {
+                throw new RuntimeException('system_explored event requires a non-empty system_id string.');
+            }
+            $systemId = trim($systemId);
+            $systems = $baseline['systems'] ?? null;
+            if (!is_array($systems)) {
+                throw new RuntimeException('Universe baseline systems are unavailable for exploration validation.');
+            }
+            $target = null;
+            foreach ($systems as $system) {
+                if (is_array($system) && ($system['id'] ?? null) === $systemId) {
+                    $target = $system;
+                    break;
+                }
+            }
+            if ($target === null) {
+                throw new RuntimeException('system_explored system_id does not belong to this universe.');
+            }
+
+            $explored = $state['projections']['explored_systems'] ?? [];
+            if (!is_array($explored)) {
+                throw new RuntimeException('Universe explored_systems projection structure is invalid.');
+            }
+            $alreadyExplored = false;
+            foreach ($explored as $entry) {
+                if (is_array($entry) && ($entry['system_id'] ?? null) === $systemId) {
+                    $alreadyExplored = true;
+                    break;
+                }
+            }
+            if ($alreadyExplored) {
+                $status = 'already_explored';
+            } else {
+                $explored[] = [
+                    'system_id' => $systemId,
+                    'name' => (string)($target['name'] ?? $systemId),
+                    'classification' => (string)($target['classification'] ?? 'unknown'),
+                    'x' => (int)($target['x'] ?? 0),
+                    'y' => (int)($target['y'] ?? 0),
+                    'first_explored_revision' => (int)$event['revision'],
+                    'first_explored_at' => (string)$event['recorded_at'],
+                ];
+                $state['projections']['explored_systems'] = $explored;
+                $status = 'applied';
+            }
         }
 
         $state['event_processing'][] = [

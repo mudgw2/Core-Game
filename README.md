@@ -1,24 +1,38 @@
-# CORE PHP Foundation 0.1.8
+# CORE PHP Foundation 0.1.10
 
-This release strengthens JSON persistence while preserving the CORE Workbench and universe generation behavior.
+This release exposes the revision-checked universe-state operation through the Workbench and a development-only API endpoint.
 
 ## Install
-Copy the contents of this folder into the existing CORE project directory, overwriting matching foundation files. Preserve unrelated files. **Do not replace or delete existing `storage/data/` or `storage/logs/` contents.** Back up the project before upgrading.
+Copy the contents of this folder into the existing CORE project directory, overwriting matching application files. Preserve unrelated files. **Do not replace or delete existing `storage/data/` or `storage/logs/` contents.** Back up the project before upgrading.
 
 ## Workbench
-Use Check Server, Preview Universe, Create / Load, and **Run automated tests** in the browser. The Workbench activity log records browser actions and client-side failures.
+Use Check Server, Preview Universe, Create / Load, and **Run automated tests** in the browser. After Create / Load, the Workbench fills in the universe ID and current state revision. The Universe State API panel can append a JSON change event and updates the displayed revision after a successful commit.
 
-## Persistence and logging changes
-- Writes serialize to a temporary file in the target directory and replace the JSON record with a same-directory rename.
-- Writes to the same record are serialized with a per-record lock file (`<record>.json.lock`). Lock files are expected and should not be manually removed while CORE is running.
-- The writer checks complete writes, flushes the file, and calls `fsync()` when supported by the PHP runtime.
-- Corrupt JSON, failed reads, and storage write failures raise explicit errors; storage errors are logged where possible.
-- Existing centralized PHP runtime, exception, fatal-error, and validation logging remains enabled.
+**State changes modify the saved universe.** Use a test universe when experimenting. A change must be a JSON object with a non-empty string `type`, must be no larger than 16 KB, and must include the expected current revision. Stale revisions return a conflict and do not modify state.
+
+## State API
+`POST /api/universe/state` (explicit wrapper: `api/universe-state.php`) accepts JSON:
+
+```json
+{
+  "universe_id": "universe-id",
+  "expected_revision": 0,
+  "change": { "type": "note_added", "value": "Example" }
+}
+```
+
+Successful responses return the saved state and new revision. Stale revisions return HTTP 409 with `revision_conflict`; invalid input returns HTTP 400. All API errors are logged.
+
+**Security restriction:** this endpoint is enabled only when `config/app.php` sets `app.environment` to `development` and the request comes from a loopback or private-network address. This is a development interface, not authentication. Do not expose CORE publicly; disable development mode and add real authentication/authorization before any public deployment.
 
 ## Automated QA
-The browser QA panel now runs nine tests, including complete JSON round-trips, record-lock/temp-file checks, and corrupt JSON rejection. Tests use temporary directories and do not modify the application's universe data. The optional CLI runner also checks PHP syntax and core storage behavior: `php tests/run.php`.
+The browser QA panel runs eleven-plus tests (13 in this release), including persistence round-trips, duplicate-create protection, revision conflicts, required change type, payload size limits, and corrupt JSON rejection. Tests use temporary directories and do not modify application universe records. The optional CLI runner remains available: `php tests/run.php`.
 
-The browser QA endpoint is restricted to development mode and local/private-network clients. Set `qa.enabled` to `false` in `config/app.php` before exposing CORE publicly. This is a development utility, not a production-safe test service.
+## Persistence and logging
+- JSON writes use same-directory temporary files and atomic rename.
+- Per-record locks serialize writes and read-modify-write transactions.
+- Universe updates require an expected revision to avoid stale overwrites.
+- PHP runtime errors, exceptions, fatal errors, validation failures, and storage errors are logged to `storage/logs/core.log` where possible.
 
 ## Limitations
-Per-record write locks prevent simultaneous writes from interleaving, but they do not implement transactional read-modify-write semantics across the entire universe service. Concurrent create/load requests and multi-file transactions need further testing before public deployment. CORE remains a development scaffold and should not be exposed publicly without authentication and a security review.
+Universe state changes are currently append-only event records. They are not yet interpreted as gameplay effects. Full authentication, authorization, multi-user account ownership, and a public-safe deployment configuration are not implemented.

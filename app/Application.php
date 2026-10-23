@@ -34,7 +34,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.8',
+            'version' => '0.1.10',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -83,6 +83,43 @@ final class Application
             }
         });
 
+        $this->router->post('/api/universe/state', static function (Request $request) use ($universeService, $config): Response {
+            $environment = (string)($config['app']['environment'] ?? 'production');
+            $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+            $isPrivate = $remote === '127.0.0.1' || $remote === '::1'
+                || preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/', $remote) === 1
+                || preg_match('/^(fc|fd)[0-9a-f:]*$/i', $remote) === 1;
+            if ($environment !== 'development' || !$isPrivate) {
+                Logger::warning('Development state API access denied', ['remote_addr' => $remote, 'environment' => $environment]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'state_api_disabled', 'message' => 'State updates are available only in development mode from a local/private network.']], 403);
+            }
+
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            $change = $body['change'] ?? null;
+            if ($universeId === '' || !is_int($expectedRevision) || !is_array($change)) {
+                Logger::warning('Request validation failed', ['method' => $request->method(), 'path' => $request->path(), 'error_code' => 'invalid_state_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_state_request', 'message' => 'Provide universe_id, integer expected_revision, and a change object.']], 400);
+            }
+            try {
+                $universe = $universeService->updateState($universeId, $expectedRevision, $change);
+                return Response::json(['ok' => true, 'universe_id' => $universe['id'], 'state' => $universe['state']]);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_starts_with($message, 'Revision conflict:')) {
+                    Logger::warning('Universe state revision conflict', ['universe_id' => $universeId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'must ') || str_contains($message, 'cannot be empty') || str_contains($message, 'exceeds')) {
+                    Logger::warning('Universe state change rejected', ['universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_change', 'message' => $message]], 400);
+                }
+                Logger::error('Universe state update failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'state_update_failed', 'message' => 'The universe state could not be updated. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->get('/', static fn(): Response => Response::json([
             'name' => 'CORE',
             'message' => 'CORE foundation is running.',
@@ -90,6 +127,7 @@ final class Application
                 'GET /api/health',
                 'GET /api/universe/preview?seed=your-seed',
                 'POST /api/universe with JSON {"seed":"your-seed"}',
+                'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],
         ]));
     }

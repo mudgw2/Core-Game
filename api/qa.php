@@ -135,6 +135,69 @@ $run('Writes use a per-record lock and leave no temporary files', static functio
         return 'Record lock exists and successful writes leave no temporary files.';
     } finally { $cleanup($dir); }
 });
+$run('Concurrent-style create attempts preserve the first stored record', static function () use ($equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $first = $storage->createIfAbsent('records', 'shared-id', ['id' => 'shared-id', 'owner' => 'first']);
+        $second = $storage->createIfAbsent('records', 'shared-id', ['id' => 'shared-id', 'owner' => 'second']);
+        $equal('first', $second['owner'], 'A later create attempt replaced the first record.');
+        $equal($first, $storage->read('records', 'shared-id'), 'Stored record changed after a duplicate create attempt.');
+        return 'Duplicate create returned the original record without overwriting it.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe state updates enforce revision checks', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-revision');
+        $updated = $service->updateState($universe['id'], 0, ['type' => 'qa_change', 'value' => 1]);
+        $equal(1, $updated['state']['revision'], 'Revision did not increment.');
+        $equal(1, count($updated['state']['changes']), 'Change was not appended.');
+        try { $service->updateState($universe['id'], 0, ['type' => 'stale_change']); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'Revision conflict:'), 'Unexpected stale revision error.');
+            $reloaded = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $equal(1, $reloaded['state']['revision'], 'Stale update modified the revision.');
+            $equal(1, count($reloaded['state']['changes']), 'Stale update was applied.');
+            return 'Current revision committed; stale revision rejected without changing saved state.';
+        }
+        throw new RuntimeException('Stale revision was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Universe state changes require a type', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-change-type');
+        try { $service->updateState($universe['id'], 0, ['value' => 'missing type']); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'non-empty string type'), 'Unexpected validation error.');
+            $saved = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $assert($saved['state']['revision'] === 0, 'Invalid change modified saved state.');
+            return 'Missing change type rejected without modifying the universe.';
+        }
+        throw new RuntimeException('Change without type was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Oversized universe state changes are rejected', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-change-size');
+        try { $service->updateState($universe['id'], 0, ['type' => 'oversized', 'payload' => str_repeat('x', 17000)]); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), '16 KB limit'), 'Unexpected size validation error.');
+            $saved = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $assert($saved['state']['revision'] === 0, 'Oversized change modified saved state.');
+            return 'Changes larger than 16 KB rejected without modifying the universe.';
+        }
+        throw new RuntimeException('Oversized change was accepted.');
+    } finally { $cleanup($dir); }
+});
+
 $run('Corrupt JSON is rejected instead of silently accepted', static function () use ($assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
@@ -153,4 +216,4 @@ $run('Corrupt JSON is rejected instead of silently accepted', static function ()
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.8', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.10', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

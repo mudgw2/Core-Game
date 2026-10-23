@@ -21,7 +21,44 @@ final class JsonStorage
     {
         $path = $this->path($collection, $id);
         if (!is_file($path)) return null;
+        return $this->decodeFile($path, $collection, $id);
+    }
 
+    public function write(string $collection, string $id, array $record): void
+    {
+        $path = $this->path($collection, $id);
+        $this->withRecordLock($path, $collection, $id, function () use ($path, $collection, $id, $record): void {
+            $this->atomicWrite($path, $collection, $id, $record);
+        });
+    }
+
+    /** Atomically creates a record only if no record already exists. Returns the stored record. */
+    public function createIfAbsent(string $collection, string $id, array $record): array
+    {
+        $path = $this->path($collection, $id);
+        return $this->withRecordLock($path, $collection, $id, function () use ($path, $collection, $id, $record): array {
+            if (is_file($path)) return $this->decodeFile($path, $collection, $id);
+            $this->atomicWrite($path, $collection, $id, $record);
+            return $record;
+        });
+    }
+
+    /** Locks, reads, validates and replaces one record as a single read-modify-write operation. */
+    public function transact(string $collection, string $id, callable $mutator): array
+    {
+        $path = $this->path($collection, $id);
+        return $this->withRecordLock($path, $collection, $id, function () use ($path, $collection, $id, $mutator): array {
+            if (!is_file($path)) throw new RuntimeException('Stored JSON record does not exist.');
+            $current = $this->decodeFile($path, $collection, $id);
+            $next = $mutator($current);
+            if (!is_array($next)) throw new RuntimeException('Storage transaction must return an array record.');
+            $this->atomicWrite($path, $collection, $id, $next);
+            return $next;
+        });
+    }
+
+    private function decodeFile(string $path, string $collection, string $id): array
+    {
         $raw = @file_get_contents($path);
         if ($raw === false) {
             Logger::error('Stored JSON record could not be read', ['collection' => $collection, 'record_id' => $id]);
@@ -40,27 +77,35 @@ final class JsonStorage
         return $decoded;
     }
 
-    public function write(string $collection, string $id, array $record): void
+    private function withRecordLock(string $path, string $collection, string $id, callable $operation): mixed
     {
-        $path = $this->path($collection, $id);
         $directory = dirname($path);
         if (!is_dir($directory) && !@mkdir($directory, 0770, true) && !is_dir($directory)) {
             Logger::error('Storage collection directory could not be created', ['collection' => $collection]);
             throw new RuntimeException('Unable to create collection directory.');
         }
-
-        $lockPath = $path . '.lock';
-        $lock = @fopen($lockPath, 'c');
+        $lock = @fopen($path . '.lock', 'c');
         if ($lock === false) {
             Logger::error('Storage lock file could not be opened', ['collection' => $collection, 'record_id' => $id]);
             throw new RuntimeException('Unable to open storage lock file.');
         }
-        $temporary = null;
         try {
             if (!flock($lock, LOCK_EX)) {
                 Logger::error('Storage record lock could not be acquired', ['collection' => $collection, 'record_id' => $id]);
                 throw new RuntimeException('Unable to lock stored JSON record.');
             }
+            return $operation();
+        } finally {
+            @flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function atomicWrite(string $path, string $collection, string $id, array $record): void
+    {
+        $directory = dirname($path);
+        $temporary = null;
+        try {
             $json = json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
             $temporary = @tempnam($directory, '.core-');
             if ($temporary === false) {
@@ -68,13 +113,9 @@ final class JsonStorage
                 throw new RuntimeException('Unable to create temporary storage file.');
             }
             $handle = @fopen($temporary, 'wb');
-            if ($handle === false) {
-                Logger::error('Temporary storage file could not be opened', ['collection' => $collection, 'record_id' => $id]);
-                throw new RuntimeException('Unable to open temporary storage file.');
-            }
+            if ($handle === false) throw new RuntimeException('Unable to open temporary storage file.');
             try {
-                $length = strlen($json);
-                $offset = 0;
+                $length = strlen($json); $offset = 0;
                 while ($offset < $length) {
                     $written = fwrite($handle, substr($json, $offset));
                     if ($written === false || $written === 0) {
@@ -85,9 +126,7 @@ final class JsonStorage
                 }
                 if (!fflush($handle)) throw new RuntimeException('Unable to flush temporary storage file.');
                 if (function_exists('fsync') && !@fsync($handle)) throw new RuntimeException('Unable to synchronize temporary storage file.');
-            } finally {
-                fclose($handle);
-            }
+            } finally { fclose($handle); }
             @chmod($temporary, 0660);
             if (!@rename($temporary, $path)) {
                 Logger::error('Atomic storage replacement failed', ['collection' => $collection, 'record_id' => $id]);
@@ -101,8 +140,6 @@ final class JsonStorage
             throw $e;
         } finally {
             if (is_string($temporary) && is_file($temporary)) @unlink($temporary);
-            @flock($lock, LOCK_UN);
-            fclose($lock);
         }
     }
 

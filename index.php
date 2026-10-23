@@ -23,8 +23,9 @@ declare(strict_types=1);
         section { background:rgba(20,29,50,.92); border:1px solid var(--line); border-radius:14px; padding:22px; min-width:0; }
         h2 { font-size:1.1rem; margin:0 0 12px; }
         label { display:block; color:var(--muted); font-size:.9rem; margin-bottom:6px; }
-        input,button { font:inherit; min-height:44px; border-radius:8px; }
-        input { width:100%; padding:9px 12px; color:var(--text); background:#0b1325; border:1px solid var(--line); }
+        input,button,textarea { font:inherit; min-height:44px; border-radius:8px; }
+        input,textarea { width:100%; padding:9px 12px; color:var(--text); background:#0b1325; border:1px solid var(--line); }
+        textarea { min-height:110px; resize:vertical; }
         button { padding:9px 14px; background:var(--accent); color:#08201d; font-weight:700; border:0; cursor:pointer; margin-top:10px; }
         button.secondary { background:#263752; color:var(--text); border:1px solid #3a4d6e; }
         .actions { display:flex; flex-wrap:wrap; gap:8px; }
@@ -37,7 +38,7 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.8</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.10</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -57,6 +58,21 @@ declare(strict_types=1);
                 <button id="createButton" class="secondary" type="button">Create / load</button>
             </div>
             <p id="universeStatus" class="status" aria-live="polite">Preview does not save. Create / load writes a JSON record.</p>
+        </section>
+        <section style="grid-column:1/-1">
+            <h2>Universe state API (development only)</h2>
+            <p>Append a versioned change event to a saved universe. This modifies saved state; use a test universe while experimenting. Stale revisions are rejected. This endpoint is restricted to development mode and local/private-network clients.</p>
+            <label for="stateUniverseId">Universe ID</label>
+            <input id="stateUniverseId" autocomplete="off" placeholder="Filled after Create / Load">
+            <label for="stateRevision">Expected revision</label>
+            <input id="stateRevision" type="number" min="0" step="1" value="0">
+            <label for="stateChange">Change JSON (must include a non-empty string type)</label>
+            <textarea id="stateChange" spellcheck="false">{
+  "type": "note_added",
+  "value": "Workbench test event"
+}</textarea>
+            <div class="actions"><button id="stateUpdateButton" type="button">Append state change</button></div>
+            <p id="stateStatus" class="status" aria-live="polite">No state update submitted.</p>
         </section>
         <section style="grid-column:1/-1">
             <h2>Response</h2>
@@ -169,6 +185,42 @@ declare(strict_types=1);
         }
     });
 
+    document.getElementById('stateUpdateButton').addEventListener('click', async () => {
+        const status = document.getElementById('stateStatus');
+        const universeId = document.getElementById('stateUniverseId').value.trim();
+        const expectedRevision = Number(document.getElementById('stateRevision').value);
+        let change;
+        if (!universeId) { status.textContent = 'Create / load a universe or enter its ID first.'; return; }
+        if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) { status.textContent = 'Expected revision must be a non-negative integer.'; return; }
+        try { change = JSON.parse(document.getElementById('stateChange').value); }
+        catch (error) { status.textContent = 'Change JSON is invalid: ' + error.message; logActivity('error', 'State change JSON parse failed', String(error)); return; }
+        if (!change || Array.isArray(change) || typeof change !== 'object') { status.textContent = 'Change must be a JSON object.'; return; }
+        const button = document.getElementById('stateUpdateButton');
+        button.disabled = true;
+        status.textContent = 'Submitting revision-checked change…';
+        try {
+            const response = await fetch('api/universe-state.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ universe_id: universeId, expected_revision: expectedRevision, change })
+            });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            output.textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                document.getElementById('stateRevision').value = data.state.revision;
+                status.textContent = 'Change saved. Current revision: ' + data.state.revision + '.';
+                logActivity('info', 'Universe state updated', universeId + ' → revision ' + data.state.revision);
+            } else {
+                status.textContent = (data.error?.code || 'request_failed') + ': ' + (data.error?.message || 'State update failed.');
+                logActivity('error', 'Universe state update failed', JSON.stringify(data));
+            }
+        } catch (error) {
+            status.textContent = 'Request failed. Check the server and activity log.';
+            logActivity('error', 'Universe state request failed', String(error));
+        } finally { button.disabled = false; }
+    });
+
     document.getElementById('createButton').addEventListener('click', async () => {
         const seed = seedInput.value.trim();
         if (!seed) { universeStatus.textContent = 'Enter a seed first.'; return; }
@@ -180,6 +232,11 @@ declare(strict_types=1);
                 body: JSON.stringify({ seed })
             }));
             universeStatus.textContent = result.response.ok ? 'Universe created or loaded.' : 'Create/load request failed.';
+            if (result.response.ok && result.data.universe) {
+                document.getElementById('stateUniverseId').value = result.data.universe.id || '';
+                document.getElementById('stateRevision').value = result.data.universe.state?.revision ?? 0;
+                document.getElementById('stateStatus').textContent = 'Universe selected. Confirm the ID and expected revision before updating.';
+            }
             if (!result.response.ok || !result.data.ok) logActivity('error', 'Create/load failed', JSON.stringify(result.data));
         } catch (error) {
             universeStatus.textContent = 'Request failed. Check Apache/PHP and the browser console.';

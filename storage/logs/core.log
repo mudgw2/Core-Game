@@ -1,11 +1,4 @@
-{"time":"2026-10-23T23:23:36+00:00","level":"WARNING","message":"Request validation failed","context":{"method":"GET","path":"/api/universe/preview","error_code":"missing_seed","message":"Required query parameter seed was missing or empty."}}
-{"time":"2026-10-23T23:23:36+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/universe/preview"}}
-{"time":"2026-10-23T23:23:37+00:00","level":"WARNING","message":"Request validation failed","context":{"method":"GET","path":"/api/universe/preview","error_code":"missing_seed","message":"Required query parameter seed was missing or empty."}}
-{"time":"2026-10-23T23:23:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/universe/preview"}}
-{"time":"2026-10-23T23:23:37+00:00","level":"WARNING","message":"Request validation failed","context":{"method":"GET","path":"/api/universe/preview","error_code":"missing_seed","message":"Required query parameter seed was missing or empty."}}
-{"time":"2026-10-23T23:23:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/universe/preview"}}
-{"time":"2026-10-23T23:23:37+00:00","level":"WARNING","message":"Request validation failed","context":{"method":"GET","path":"/api/universe/preview","error_code":"missing_seed","message":"Required query parameter seed was missing or empty."}}
-{"time":"2026-10-23T23:23:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/universe/preview"}}
-{"time":"2026-10-23T23:24:26+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
-{"time":"2026-10-23T23:35:21+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:35:21+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:36:39+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:36:39+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-23T23:40:03+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-23T23:40:03+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

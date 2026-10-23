@@ -9,10 +9,12 @@ use RuntimeException;
 final class UniverseService
 {
     private UniverseGenerator $generator;
+    private UniverseEventProcessor $eventProcessor;
 
     public function __construct(private JsonStorage $storage)
     {
         $this->generator = new UniverseGenerator();
+        $this->eventProcessor = new UniverseEventProcessor();
     }
 
     public function preview(string $seed): array
@@ -43,6 +45,8 @@ final class UniverseService
     {
         if ($expectedRevision < 0) throw new RuntimeException('Expected revision must be zero or greater.');
         if ($change === []) throw new RuntimeException('Universe change cannot be empty.');
+        // Validate and normalize the formal event envelope before acquiring the record lock.
+        // The revision and timestamp are finalized inside the transaction below.
         if (!isset($change['type']) || !is_string($change['type']) || trim($change['type']) === '') {
             throw new RuntimeException('Universe change must include a non-empty string type.');
         }
@@ -53,7 +57,8 @@ final class UniverseService
         }
         if (strlen($encodedChange) > 16384) throw new RuntimeException('Universe change exceeds the 16 KB limit.');
 
-        return $this->storage->transact('universes', $universeId, static function (array $record) use ($expectedRevision, $change): array {
+        $eventProcessor = $this->eventProcessor;
+        return $this->storage->transact('universes', $universeId, static function (array $record) use ($expectedRevision, $change, $eventProcessor): array {
             $state = $record['state'] ?? null;
             if (!is_array($state) || !isset($state['revision']) || !is_array($state['changes'] ?? null)) {
                 throw new RuntimeException('Universe state structure is invalid.');
@@ -62,7 +67,11 @@ final class UniverseService
             if ($actualRevision !== $expectedRevision) {
                 throw new RuntimeException('Revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
             }
-            $state['changes'][] = ['revision' => $actualRevision + 1, 'change' => $change, 'recorded_at' => gmdate('c')];
+            $event = UniverseEvent::fromChange($change, $actualRevision + 1);
+            // Validate/apply event effects before committing history and revision. A handler failure
+            // aborts the storage transaction, leaving the prior universe state unchanged.
+            $state = $eventProcessor->process($event, $state);
+            $state['changes'][] = $event;
             $state['revision'] = $actualRevision + 1;
             $record['state'] = $state;
             return $record;

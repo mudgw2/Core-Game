@@ -198,6 +198,44 @@ $run('Oversized universe state changes are rejected', static function () use ($a
     } finally { $cleanup($dir); }
 });
 
+$run('State changes are stored as versioned event records', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-event-schema');
+        $updated = $service->updateState($universe['id'], 0, ['type' => 'note_added', 'value' => 'hello', 'source' => 'qa']);
+        $event = $updated['state']['changes'][0] ?? null;
+        $assert(is_array($event), 'No event record was stored.');
+        foreach (['schema_version', 'event_id', 'type', 'payload', 'revision', 'recorded_at'] as $field) {
+            $assert(array_key_exists($field, $event), 'Event is missing ' . $field . '.');
+        }
+        $equal(1, $event['schema_version'], 'Unexpected event schema version.');
+        $equal('note_added', $event['type'], 'Event type was not normalized.');
+        $equal(['value' => 'hello', 'source' => 'qa'], $event['payload'], 'Event payload does not preserve custom fields.');
+        $equal(1, $event['revision'], 'Event revision does not match committed revision.');
+        $assert(preg_match('/^[a-f0-9]{32}$/', $event['event_id']) === 1, 'Event ID is not a 128-bit hexadecimal ID.');
+        $assert(strtotime($event['recorded_at']) !== false, 'Event timestamp is invalid.');
+        return 'Stored event has schema version, unique ID, type, payload, revision, and timestamp.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Invalid event type formats are rejected without mutation', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-event-type');
+        try { $service->updateState($universe['id'], 0, ['type' => 'Not Valid!', 'value' => 1]); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'Event type must start'), 'Unexpected invalid event type error.');
+            $saved = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $assert($saved['state']['revision'] === 0, 'Invalid event changed the revision.');
+            $assert($saved['state']['changes'] === [], 'Invalid event was appended.');
+            return 'Invalid event type rejected without changing saved state.';
+        }
+        throw new RuntimeException('Invalid event type was accepted.');
+    } finally { $cleanup($dir); }
+});
+
 $run('Corrupt JSON is rejected instead of silently accepted', static function () use ($assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
@@ -213,7 +251,53 @@ $run('Corrupt JSON is rejected instead of silently accepted', static function ()
     } finally { $cleanup($dir); }
 });
 
+$run('note_added events update the notes projection', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-note-projection');
+        $updated = $service->updateState($universe['id'], 0, ['type' => 'note_added', 'value' => 'Hello from QA']);
+        $notes = $updated['state']['projections']['notes'] ?? [];
+        $equal(1, count($notes), 'Note event did not create one projected note.');
+        $equal('Hello from QA', $notes[0]['text'] ?? null, 'Projected note text did not match.');
+        $equal(1, $notes[0]['revision'] ?? null, 'Projected note revision did not match.');
+        $equal('applied', $updated['state']['event_processing'][0]['status'] ?? null, 'Event processing status was not applied.');
+        return 'note_added created a derived note and recorded successful processing.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Invalid note_added payload aborts the transaction', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-invalid-note');
+        try { $service->updateState($universe['id'], 0, ['type' => 'note_added', 'value' => '   ']); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'non-empty text or value string'), 'Unexpected invalid note error.');
+            $saved = (new JsonStorage($dir))->read('universes', $universe['id']);
+            $equal(0, $saved['state']['revision'], 'Rejected note advanced the revision.');
+            $equal([], $saved['state']['changes'], 'Rejected note was appended to event history.');
+            $assert(!isset($saved['state']['projections']['notes']), 'Rejected note changed the notes projection.');
+            return 'Invalid note payload rejected with no committed state changes.';
+        }
+        throw new RuntimeException('Empty note payload was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Unknown event types are recorded as unhandled', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new UniverseService(new JsonStorage($dir));
+        $universe = $service->createOrLoad('core-ui-qa-unhandled-event');
+        $updated = $service->updateState($universe['id'], 0, ['type' => 'exploration_started', 'system_id' => 'system-test']);
+        $equal(1, $updated['state']['revision'], 'Unknown but valid event was not recorded.');
+        $equal('unhandled', $updated['state']['event_processing'][0]['status'] ?? null, 'Unknown event was not marked unhandled.');
+        $assert(count($updated['state']['changes']) === 1, 'Unknown event was not preserved in history.');
+        return 'Valid future event preserved in history and explicitly marked unhandled.';
+    } finally { $cleanup($dir); }
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.10', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.12', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

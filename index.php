@@ -54,6 +54,18 @@ declare(strict_types=1);
         .dashboard-list { margin:0; color:#d5e2f7; overflow-wrap:anywhere; }
         .form-row { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; max-width:680px; margin:12px 0; }
         .form-row button { justify-self:start; max-width:100%; }
+        .content-studio-grid { display:grid; grid-template-columns:minmax(220px,.8fr) minmax(0,2fr); gap:14px; margin:14px 0; }
+        .content-studio-grid > section { background:#101a2e; padding:16px; }
+        .content-studio-grid h3 { margin:0 0 12px; }
+        .content-field-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; }
+        .content-field { min-width:0; margin-bottom:12px; }
+        .content-field textarea { min-height:86px; }
+        .content-input-row { display:grid; grid-template-columns:minmax(0,2fr) minmax(90px,1fr) auto; gap:8px; align-items:end; margin:8px 0; }
+        .content-input-row button { margin:0; min-height:44px; }
+        .content-reward-grid { display:grid; grid-template-columns:minmax(0,2fr) repeat(2,minmax(90px,1fr)); gap:8px; }
+        details { border:1px solid var(--line); border-radius:8px; padding:12px; margin-top:16px; background:#0d1628; }
+        summary { cursor:pointer; font-weight:700; }
+        @media(max-width:700px) { .content-studio-grid { grid-template-columns:minmax(0,1fr); } .content-input-row,.content-reward-grid { grid-template-columns:minmax(0,1fr); } }
 
         .app-header { padding-top:38px; }
         .app-header h1 { font-size:clamp(2.5rem,7vw,4.2rem); line-height:1; margin:.5rem 0 1rem; letter-spacing:-.04em; }
@@ -74,7 +86,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.41</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.43</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -240,28 +252,49 @@ declare(strict_types=1);
     </section>
     <section class="tab-panel grid" id="panel-content" role="tabpanel" aria-labelledby="tab-content" data-panel="content" hidden>
         <section style="grid-column:1/-1">
-            <h2>JSON content management</h2>
-            <p>Edit the external game-content definitions used by exploration, rewards, crafting, and ship fitting. Changes are validated against all related catalogs, revision-checked, backed up, and atomically saved. Gameplay services reload definitions from JSON on each request.</p>
-            <p class="status info">Development-only management. Keep content IDs stable after players have saved inventory or installed modules that reference them.</p>
+            <h2>Content Studio</h2>
+            <p>Edit game definitions through structured forms. CORE stores the definitions as JSON, but routine content changes no longer require editing JSON files. Every catalog is validated against related catalogs before it can be saved.</p>
+            <p class="status info">Development-only management. Existing content IDs are stable and cannot be renamed in the form editor because saved inventories, discoveries, recipes, and installed modules may reference them. Use a new ID to add content.</p>
             <div class="form-row">
-                <label for="contentCatalogSelect">Catalog</label>
+                <label for="contentCatalogSelect">Content type</label>
                 <select id="contentCatalogSelect">
                     <option value="items">Items &amp; resources</option>
                     <option value="recipes">Crafting recipes</option>
-                    <option value="discoveries">Exploration &amp; rewards</option>
+                    <option value="discoveries">Discoveries &amp; rewards</option>
                     <option value="ship_modules">Ship modules</option>
                 </select>
                 <div class="actions">
-                    <button id="contentLoadButton" type="button">Load current JSON</button>
-                    <button id="contentValidateButton" type="button" class="secondary">Validate draft</button>
-                    <button id="contentSaveButton" type="button">Validate &amp; save</button>
+                    <button id="contentLoadButton" type="button" class="secondary">Reload from server</button>
+                    <button id="contentValidateButton" type="button" class="secondary">Validate changes</button>
+                    <button id="contentSaveButton" type="button">Save catalog</button>
                 </div>
             </div>
-            <label for="contentJsonEditor">Catalog JSON</label>
-            <textarea id="contentJsonEditor" rows="22" spellcheck="false" autocomplete="off" style="width:100%;min-height:360px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2" aria-describedby="contentEditorHelp"></textarea>
-            <p id="contentEditorHelp" class="dashboard-list">The current catalog is loaded from config/content. Saving creates a verified previous-version copy under storage/backups/content/.</p>
+            <div class="content-studio-grid">
+                <section class="content-entry-browser">
+                    <h3>Entries</h3>
+                    <label for="contentEntrySelect">Choose an entry</label>
+                    <select id="contentEntrySelect"><option value="">Load a catalog first</option></select>
+                    <div class="actions">
+                        <button id="contentAddEntryButton" type="button" class="secondary">+ New entry</button>
+                        <button id="contentDeleteEntryButton" type="button" class="secondary">Remove entry</button>
+                    </div>
+                    <p id="contentEntryHelp" class="dashboard-list">Select an entry to edit its fields.</p>
+                </section>
+                <section class="content-entry-editor">
+                    <h3 id="contentEntryHeading">Entry editor</h3>
+                    <div id="contentEntryForm"><p>Load a catalog to edit entries.</p></div>
+                    <div class="actions"><button id="contentApplyEntryButton" type="button">Apply entry changes</button></div>
+                </section>
+            </div>
+            <details id="contentAdvancedDetails">
+                <summary>Advanced: inspect or edit raw JSON</summary>
+                <p id="contentEditorHelp" class="dashboard-list">Use this only for catalog-level fields or advanced edits. Structured editing is the normal workflow. JSON edits are validated before saving.</p>
+                <label for="contentJsonEditor">Catalog JSON</label>
+                <textarea id="contentJsonEditor" rows="22" spellcheck="false" autocomplete="off" style="width:100%;min-height:360px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2" aria-describedby="contentEditorHelp"></textarea>
+                <div class="actions"><button id="contentUseJsonButton" type="button" class="secondary">Use JSON draft in editor</button><button id="contentRefreshJsonButton" type="button" class="secondary">Refresh JSON from structured draft</button></div>
+            </details>
             <p id="contentManagementStatus" class="status" role="status" aria-live="polite">Load a catalog to begin.</p>
-            <pre id="contentManagementOutput" aria-live="polite">Content management API responses will appear here.</pre>
+            <pre id="contentManagementOutput" aria-live="polite">Content API results and validation details appear here.</pre>
         </section>
     </section>
     <section class="tab-panel grid" id="panel-data" role="tabpanel" aria-labelledby="tab-data" data-panel="data" hidden>
@@ -443,14 +476,26 @@ declare(strict_types=1);
     const contentJsonEditor = document.getElementById('contentJsonEditor');
     const contentManagementStatus = document.getElementById('contentManagementStatus');
     const contentManagementOutput = document.getElementById('contentManagementOutput');
+    const contentEntrySelect = document.getElementById('contentEntrySelect');
+    const contentEntryForm = document.getElementById('contentEntryForm');
     let contentRevisions = { items: 1, recipes: 1, discoveries: 1, ship_modules: 1 };
     let loadedContentDocuments = {};
+    let contentDraftDocuments = {};
+    let contentDraftDirty = { items:false, recipes:false, discoveries:false, ship_modules:false };
+    let editingNewContentEntry = false;
+    const contentCatalogLabels = { items: 'Items & resources', recipes: 'Crafting recipes', discoveries: 'Discoveries & rewards', ship_modules: 'Ship modules' };
+    const contentEntryLabels = { items: 'item', recipes: 'recipe', discoveries: 'discovery', ship_modules: 'ship module' };
+    function cloneContent(value) { return JSON.parse(JSON.stringify(value)); }
+    function escContent(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function currentContentDocument() { return contentDraftDocuments[contentCatalogSelect.value]; }
     function selectedContentDocument() {
-        try {
-            const parsed = JSON.parse(contentJsonEditor.value);
-            if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('The catalog must be a JSON object.');
-            return parsed;
-        } catch (error) { throw new Error('JSON parse error: ' + error.message); }
+        if (document.getElementById('contentAdvancedDetails').open) {
+            try { const parsed = JSON.parse(contentJsonEditor.value); if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('The catalog must be a JSON object.'); return parsed; }
+            catch (error) { throw new Error('JSON parse error: ' + error.message); }
+        }
+        const doc = currentContentDocument();
+        if (!doc) throw new Error('Load a content catalog first.');
+        return cloneContent(doc);
     }
     async function contentApiRequest(endpoint, body) {
         const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body) });
@@ -459,58 +504,199 @@ declare(strict_types=1);
         if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Content API request failed.');
         return data;
     }
-    async function loadContentEditor() {
+    function contentInput(label, name, value, type='text', attrs='') {
+        return `<div class="content-field"><label for="entryField_${name}">${escContent(label)}</label><input id="entryField_${name}" data-field="${escContent(name)}" type="${type}" value="${escContent(value)}" ${attrs}></div>`;
+    }
+    function contentTextarea(label, name, value) {
+        return `<div class="content-field"><label for="entryField_${name}">${escContent(label)}</label><textarea id="entryField_${name}" data-field="${escContent(name)}">${escContent(value)}</textarea></div>`;
+    }
+    function itemOptions(selected='') {
+        const items = contentDraftDocuments.items?.entries || {};
+        const options = Object.entries(items).map(([id, item]) => `<option value="${escContent(id)}" ${id===selected?'selected':''}>${escContent(item.label || id)} (${escContent(id)})</option>`).join('');
+        return `<option value="">Choose item…</option>${options}`;
+    }
+    function itemCategoryOptions(selected='') {
+        const categories = contentDraftDocuments.item_categories?.entries || {};
+        return `<option value="">Choose category…</option>` + Object.entries(categories).map(([id, category]) => `<option value="${escContent(id)}" ${id===selected?'selected':''}>${escContent(category.label || id)} (${escContent(id)})</option>`).join('');
+    }
+    function quantityRows(inputs={}) {
+        const rows = Object.entries(inputs);
+        return `<div class="content-field"><label>Required items and quantities</label><div id="contentQuantityRows">${rows.map(([id,qty]) => quantityRow(id,qty)).join('')}</div><button type="button" class="secondary" id="contentAddQuantityButton">+ Add required item</button></div>`;
+    }
+    function quantityRow(id='', qty=1) {
+        return `<div class="content-input-row"><div><label>Item</label><select data-quantity-item>${itemOptions(id)}</select></div><div><label>Quantity</label><input data-quantity-value type="number" min="1" max="1000000" step="1" value="${escContent(qty)}"></div><button type="button" class="secondary" data-remove-quantity aria-label="Remove required item">Remove</button></div>`;
+    }
+    function bindQuantityRows() {
+        document.getElementById('contentAddQuantityButton')?.addEventListener('click', () => {
+            document.getElementById('contentQuantityRows').insertAdjacentHTML('beforeend', quantityRow('',1));
+            bindRemoveQuantityButtons();
+        });
+        bindRemoveQuantityButtons();
+    }
+    function bindRemoveQuantityButtons() {
+        document.querySelectorAll('[data-remove-quantity]').forEach(button => { if (button.dataset.bound) return; button.dataset.bound='1'; button.addEventListener('click', () => button.closest('.content-input-row')?.remove()); });
+    }
+    function renderContentEntry(id) {
         const catalog = contentCatalogSelect.value;
-        contentManagementStatus.textContent = 'Loading ' + catalog + ' from the content API…';
-        try {
-            const response = await fetch('api/content.php', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-            const data = await response.json();
-            if (!response.ok || !data.ok || !data.content?.[catalog]) throw new Error(data.error?.message || 'Could not load content catalogs.');
-            loadedContentDocuments = data.content;
-            for (const key of Object.keys(contentRevisions)) contentRevisions[key] = Number.isInteger(data.content[key]?.revision) ? data.content[key].revision : 1;
-            const doc = { ...data.content[catalog], revision: contentRevisions[catalog] };
-            delete doc.catalog;
-            contentJsonEditor.value = JSON.stringify(doc, null, 2);
-            contentManagementStatus.textContent = 'Loaded ' + catalog + ' · revision ' + contentRevisions[catalog] + ' · ' + Object.keys(doc.entries || {}).length + ' entries.';
-            logActivity('info', 'Content catalog loaded', catalog + ' revision ' + contentRevisions[catalog]);
-        } catch (error) {
-            contentManagementStatus.textContent = 'Load failed: ' + error.message;
-            logActivity('error', 'Content catalog load failed', error.message);
+        const doc = currentContentDocument();
+        if (!doc) return;
+        editingNewContentEntry = id === '__new__';
+        const entry = editingNewContentEntry ? {} : cloneContent(doc.entries?.[id] || {});
+        document.getElementById('contentEntryHeading').textContent = editingNewContentEntry ? `New ${contentEntryLabels[catalog]}` : (entry.label || id);
+        let html = '';
+        if (editingNewContentEntry) html += contentInput('Stable ID (lowercase letters, numbers, underscores)', 'id', '', 'text', 'pattern="[a-z][a-z0-9_]{1,63}" maxlength="64" required');
+        else html += `<p class="field-help">Stable ID: <code>${escContent(id)}</code>. Existing IDs cannot be renamed here.</p>`;
+        html += `<div class="content-field-grid">${contentInput('Display name', 'label', entry.label || '')}`;
+        if (catalog === 'items') {
+            html += `<div class="content-field"><label for="entryField_category">Category</label><select id="entryField_category" data-field="category" required>${itemCategoryOptions(entry.category || '')}</select><p class="field-help">Categories are defined in config/content/item-categories.json. Choose an approved category; arbitrary text is not accepted.</p></div>`;
+            html += `</div>${contentTextarea('Description', 'description', entry.description || '')}<div class="content-field"><label><input data-field="stackable" type="checkbox" ${entry.stackable ? 'checked':''} style="width:auto;min-height:0"> Stackable inventory item</label></div>`;
+        } else if (catalog === 'recipes') {
+            html += `</div>${contentTextarea('Description', 'description', entry.description || '')}${quantityRows(entry.inputs || {})}<div class="content-field-grid"><div class="content-field"><label for="entryField_output_resource">Output item</label><select id="entryField_output_resource" data-field="output_resource">${itemOptions(entry.output?.resource || '')}</select></div>${contentInput('Output quantity', 'output_quantity', entry.output?.quantity ?? 1, 'number', 'min="1" max="1000000" step="1"')}</div>`;
+        } else if (catalog === 'discoveries') {
+            html += `</div>${contentTextarea('Signal description', 'description', entry.description || '')}${contentTextarea('Investigation outcome text', 'outcome', entry.outcome || '')}<div class="content-reward-grid"><div class="content-field"><label for="entryField_reward_resource">Reward item</label><select id="entryField_reward_resource" data-field="reward_resource">${itemOptions(entry.reward?.resource || '')}</select></div>${contentInput('Minimum reward', 'reward_minimum', entry.reward?.minimum ?? 1, 'number', 'min="1" max="1000000" step="1"')}${contentInput('Maximum reward', 'reward_maximum', entry.reward?.maximum ?? 1, 'number', 'min="1" max="1000000" step="1"')}</div>`;
+        } else {
+            html += contentInput('Fitting slot', 'slot', entry.slot || 'utility');
+            html += `</div>${contentTextarea('Description', 'description', entry.description || '')}${quantityRows(entry.inputs || {})}`;
         }
+        contentEntryForm.innerHTML = html;
+        bindQuantityRows();
+        document.getElementById('contentApplyEntryButton').disabled = false;
+        document.getElementById('contentDeleteEntryButton').disabled = editingNewContentEntry;
+    }
+    function refreshContentEntryList(preferredId='') {
+        const doc = currentContentDocument();
+        const entries = doc?.entries || {};
+        contentEntrySelect.replaceChildren();
+        Object.entries(entries).sort((a,b) => String(a[1]?.label || a[0]).localeCompare(String(b[1]?.label || b[0]))).forEach(([id,entry]) => contentEntrySelect.add(new Option(`${entry.label || id} — ${id}`, id)));
+        if (preferredId === '__new__') { contentEntrySelect.add(new Option('+ New entry (draft)', '__new__')); contentEntrySelect.value='__new__'; }
+        else if (preferredId && entries[preferredId]) contentEntrySelect.value=preferredId;
+        else if (contentEntrySelect.options.length) contentEntrySelect.selectedIndex=0;
+        if (contentEntrySelect.value) renderContentEntry(contentEntrySelect.value);
+        else { contentEntryForm.innerHTML='<p>No entries in this catalog yet. Choose “New entry” to add one.</p>'; document.getElementById('contentEntryHeading').textContent='Entry editor'; document.getElementById('contentDeleteEntryButton').disabled=true; }
+        document.getElementById('contentEntryHelp').textContent = `${Object.keys(entries).length} entries in ${contentCatalogLabels[contentCatalogSelect.value]}. Changes are drafts until the catalog is saved.`;
+    }
+    function applyContentEntry() {
+        const catalog = contentCatalogSelect.value;
+        const doc = currentContentDocument();
+        if (!doc) throw new Error('Load a content catalog first.');
+        const read = name => document.querySelector(`[data-field="${name}"]`);
+        const value = name => read(name)?.value ?? '';
+        const integer = (name,label) => { const raw=value(name); if (raw.trim()==='' || !Number.isSafeInteger(Number(raw)) || Number(raw)<1 || Number(raw)>1000000) throw new Error(`${label} must be a whole number from 1 to 1,000,000.`); return Number(raw); };
+        const idField = read('id');
+        const id = editingNewContentEntry ? String(idField?.value || '').trim() : contentEntrySelect.value;
+        if (!/^[a-z][a-z0-9_]{1,63}$/.test(id)) throw new Error('Entry ID must start with a lowercase letter and contain 2–64 lowercase letters, numbers, or underscores.');
+        if (editingNewContentEntry && Object.prototype.hasOwnProperty.call(doc.entries,id)) throw new Error(`ID “${id}” already exists. Choose a unique ID.`);
+        const entry = { label: String(value('label')).trim() };
+        if (!entry.label) throw new Error('Display name is required.');
+        if (catalog === 'items') {
+            entry.category=String(value('category')).trim(); entry.description=value('description'); entry.stackable=!!read('stackable')?.checked;
+        } else if (catalog === 'recipes') {
+            entry.description=value('description'); entry.inputs=collectQuantityRows(); entry.output={resource:value('output_resource'),quantity:integer('output_quantity','Output quantity')};
+        } else if (catalog === 'discoveries') {
+            entry.description=value('description'); entry.outcome=value('outcome'); entry.reward={resource:value('reward_resource'),minimum:integer('reward_minimum','Minimum reward'),maximum:integer('reward_maximum','Maximum reward')};
+        } else {
+            entry.slot=String(value('slot')).trim(); entry.description=value('description'); entry.inputs=collectQuantityRows();
+        }
+        doc.entries[id]=entry;
+        contentDraftDocuments[catalog]=doc;
+        contentDraftDirty[catalog]=true;
+        contentJsonEditor.value=JSON.stringify(doc,null,2);
+        refreshContentEntryList(id);
+        contentManagementStatus.className='status info';
+        contentManagementStatus.textContent=`Draft updated: ${entry.label} (${id}). Validate or save the catalog to commit it to disk.`;
+        logActivity('info','Content entry draft updated',`${catalog}/${id}`);
+    }
+    function collectQuantityRows() {
+        const inputs={};
+        document.querySelectorAll('#contentQuantityRows .content-input-row').forEach(row => {
+            const id=row.querySelector('[data-quantity-item]')?.value || '';
+            const raw=row.querySelector('[data-quantity-value]')?.value || '';
+            if (!id) throw new Error('Choose an item for every ingredient row, or remove the empty row.');
+            if (!Number.isSafeInteger(Number(raw)) || Number(raw)<1 || Number(raw)>1000000) throw new Error('Ingredient quantities must be whole numbers from 1 to 1,000,000.');
+            if (Object.prototype.hasOwnProperty.call(inputs,id)) throw new Error(`Item “${id}” appears more than once. Combine its quantities into one row.`);
+            inputs[id]=Number(raw);
+        });
+        if (!Object.keys(inputs).length) throw new Error('At least one required item is needed.');
+        return inputs;
+    }
+    async function loadContentEditor() {
+        const catalog=contentCatalogSelect.value;
+        contentManagementStatus.className='status'; contentManagementStatus.textContent=`Loading ${contentCatalogLabels[catalog]}…`;
+        try {
+            const response=await fetch('api/content.php',{headers:{'Accept':'application/json'},cache:'no-store'});
+            const data=await response.json();
+            if (!response.ok || !data.ok || !data.content?.[catalog]) throw new Error(data.error?.message || 'Could not load content catalogs.');
+            loadedContentDocuments=data.content; contentDraftDocuments=cloneContent(data.content);
+            contentDraftDirty={ items:false, recipes:false, discoveries:false, ship_modules:false };
+            for (const key of Object.keys(contentRevisions)) contentRevisions[key]=Number.isInteger(data.content[key]?.revision)?data.content[key].revision:1;
+            for (const key of Object.keys(contentDraftDocuments)) delete contentDraftDocuments[key].catalog;
+            contentJsonEditor.value=JSON.stringify(contentDraftDocuments[catalog],null,2);
+            refreshContentEntryList();
+            contentManagementStatus.className='status success'; contentManagementStatus.textContent=`Loaded ${contentCatalogLabels[catalog]} · revision ${contentRevisions[catalog]} · ${Object.keys(contentDraftDocuments[catalog].entries||{}).length} entries.`;
+            logActivity('info','Content catalog loaded',catalog+' revision '+contentRevisions[catalog]);
+        } catch(error) { contentManagementStatus.className='status error'; contentManagementStatus.textContent='Load failed: '+error.message; logActivity('error','Content catalog load failed',error.message); }
     }
     async function validateContentDraft() {
         try {
-            const catalog = contentCatalogSelect.value;
-            contentManagementStatus.textContent = 'Validating catalog and cross-catalog references…';
-            const data = await contentApiRequest('api/content-validate.php', { catalog, document: selectedContentDocument() });
-            contentManagementStatus.textContent = 'VALID — ' + data.validation.entry_count + ' entries; all catalog references passed validation.';
-            logActivity('info', 'Content draft validated', catalog + ': ' + data.validation.entry_count + ' entries');
+            const catalog=contentCatalogSelect.value;
+            if (!document.getElementById('contentAdvancedDetails').open) {
+                if (!editingNewContentEntry && contentEntrySelect.value && contentEntrySelect.value !== '__new__') applyContentEntry();
+                else if (editingNewContentEntry) applyContentEntry();
+            } else {
+                const parsed=selectedContentDocument(); contentDraftDocuments[catalog]=parsed; contentDraftDirty[catalog]=true;
+            }
+            contentManagementStatus.className='status'; contentManagementStatus.textContent='Validating all content references…';
+            const data=await contentApiRequest('api/content-validate.php',{catalog,document:selectedContentDocument()});
+            contentManagementStatus.className='status success'; contentManagementStatus.textContent=`VALID — ${data.validation.entry_count} entries; all cross-catalog references passed.`;
+            logActivity('info','Content draft validated',catalog+': '+data.validation.entry_count+' entries');
             return true;
-        } catch (error) {
-            contentManagementStatus.textContent = 'Validation failed: ' + error.message;
-            logActivity('error', 'Content draft validation failed', error.message);
-            return false;
-        }
+        } catch(error) { contentManagementStatus.className='status error'; contentManagementStatus.textContent='Validation failed: '+error.message; logActivity('error','Content draft validation failed',error.message); return false; }
     }
-    document.getElementById('contentLoadButton').addEventListener('click', loadContentEditor);
-    contentCatalogSelect.addEventListener('change', loadContentEditor);
-    document.getElementById('contentValidateButton').addEventListener('click', validateContentDraft);
-    document.getElementById('contentSaveButton').addEventListener('click', async () => {
-        if (!await validateContentDraft()) return;
-        const catalog = contentCatalogSelect.value;
-        try {
-            contentManagementStatus.textContent = 'Saving validated catalog with revision check…';
-            const data = await contentApiRequest('api/content-save.php', { catalog, expected_revision: contentRevisions[catalog], document: selectedContentDocument() });
-            contentRevisions[catalog] = data.saved.revision;
-            await loadGameContent();
-            contentManagementStatus.textContent = 'SAVED — ' + catalog + ' revision ' + data.saved.revision + ', ' + data.saved.entry_count + ' entries. Previous definition backed up as ' + data.saved.backup_file + '.';
-            logActivity('info', 'Content catalog saved', catalog + ' revision ' + data.saved.revision + '; backup ' + data.saved.backup_file);
-            await loadContentEditor();
-        } catch (error) {
-            contentManagementStatus.textContent = 'Save failed: ' + error.message;
-            logActivity('error', 'Content catalog save failed', error.message);
-        }
+    document.getElementById('contentLoadButton').addEventListener('click',()=>{
+        if (Object.values(contentDraftDirty).some(Boolean) && !confirm('Reload all catalogs from the server? This will discard unsaved content drafts.')) return;
+        loadContentEditor();
     });
+    contentCatalogSelect.addEventListener('change',()=>{
+        const catalog=contentCatalogSelect.value;
+        if (contentDraftDocuments[catalog]) { contentJsonEditor.value=JSON.stringify(contentDraftDocuments[catalog],null,2); refreshContentEntryList(); contentManagementStatus.className='status info'; contentManagementStatus.textContent=`Switched to ${contentCatalogLabels[catalog]}. Unsaved drafts in other catalogs remain in memory.`; }
+        else loadContentEditor();
+    });
+    contentEntrySelect.addEventListener('change',()=>renderContentEntry(contentEntrySelect.value));
+    document.getElementById('contentAddEntryButton').addEventListener('click',()=>{ refreshContentEntryList('__new__'); document.getElementById('entryField_id')?.focus(); });
+    document.getElementById('contentApplyEntryButton').addEventListener('click',()=>{ try { applyContentEntry(); } catch(error) { contentManagementStatus.className='status error'; contentManagementStatus.textContent='Entry not applied: '+error.message; logActivity('error','Content entry apply failed',error.message); } });
+    document.getElementById('contentDeleteEntryButton').addEventListener('click',()=>{
+        const catalog=contentCatalogSelect.value, id=contentEntrySelect.value, doc=currentContentDocument();
+        if (!id || id==='__new__' || !doc?.entries?.[id]) return;
+        const label=doc.entries[id].label || id;
+        if (!confirm(`Remove “${label}” (${id}) from this draft? The full catalog must still pass validation before it can be saved.`)) return;
+        delete doc.entries[id]; contentDraftDocuments[catalog]=doc; contentDraftDirty[catalog]=true; contentJsonEditor.value=JSON.stringify(doc,null,2); refreshContentEntryList();
+        contentManagementStatus.className='status info'; contentManagementStatus.textContent=`Removed ${id} from the draft. Validate and save to commit the change.`;
+    });
+    document.getElementById('contentValidateButton').addEventListener('click',validateContentDraft);
+    document.getElementById('contentSaveButton').addEventListener('click',async()=>{
+        if (!await validateContentDraft()) return;
+        const catalog=contentCatalogSelect.value;
+        try {
+            contentManagementStatus.className='status'; contentManagementStatus.textContent='Saving validated catalog with revision check…';
+            const data=await contentApiRequest('api/content-save.php',{catalog,expected_revision:contentRevisions[catalog],document:selectedContentDocument()});
+            const savedDocument=selectedContentDocument();
+            savedDocument.revision=data.saved.revision;
+            if (data.saved.updated_at) savedDocument.updated_at=data.saved.updated_at;
+            contentRevisions[catalog]=data.saved.revision;
+            contentDraftDocuments[catalog]=savedDocument;
+            contentDraftDirty[catalog]=false;
+            contentJsonEditor.value=JSON.stringify(savedDocument,null,2);
+            refreshContentEntryList(contentEntrySelect.value);
+            await loadGameContent();
+            contentManagementStatus.className='status success'; contentManagementStatus.textContent=`SAVED — ${catalog} revision ${data.saved.revision}, ${data.saved.entry_count} entries. Previous version backed up as ${data.saved.backup_file}. Other catalog drafts were preserved.`;
+            logActivity('info','Content catalog saved',catalog+' revision '+data.saved.revision+'; backup '+data.saved.backup_file);
+        } catch(error) { contentManagementStatus.className='status error'; contentManagementStatus.textContent='Save failed: '+error.message; logActivity('error','Content catalog save failed',error.message); }
+    });
+    document.getElementById('contentUseJsonButton').addEventListener('click',()=>{
+        try { const catalog=contentCatalogSelect.value, parsed=JSON.parse(contentJsonEditor.value); if(!parsed || Array.isArray(parsed) || typeof parsed!=='object') throw new Error('Catalog must be a JSON object.'); contentDraftDocuments[catalog]=parsed; contentDraftDirty[catalog]=true; refreshContentEntryList(); contentManagementStatus.className='status info'; contentManagementStatus.textContent='Advanced JSON draft loaded into the structured editor. Review entries and validate before saving.'; document.getElementById('contentAdvancedDetails').open=false; }
+        catch(error) { contentManagementStatus.className='status error'; contentManagementStatus.textContent='Could not use JSON draft: '+error.message; }
+    });
+    document.getElementById('contentRefreshJsonButton').addEventListener('click',()=>{ contentJsonEditor.value=JSON.stringify(currentContentDocument(),null,2); contentManagementStatus.className='status info'; contentManagementStatus.textContent='Raw JSON refreshed from the current structured draft.'; });
     loadContentEditor();
 
     function populateSystemChoices() {

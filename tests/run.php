@@ -393,6 +393,36 @@ $test('content management validates cross-catalog references before saving', sta
     }
 });
 
+$test('item categories are JSON-backed and reject unknown item category IDs', static function () use ($assert, $equal): void {
+    $categories = ContentCatalog::itemCategoriesDocument();
+    $assert(isset($categories['entries']['resource'], $categories['entries']['material'], $categories['entries']['component']), 'Expected configured item categories are missing.');
+    $all = ContentCatalog::allDocuments();
+    $assert(isset($all['item_categories']['entries']['resource']), 'Item categories are not exposed through the content API document.');
+
+    $dir = sys_get_temp_dir() . '/core-content-category-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $items = json_decode((string)file_get_contents($content . '/items.json'), true, 512, JSON_THROW_ON_ERROR);
+        $items['entries']['raw_ore']['category'] = 'freeform_typo';
+        try { $manager->validate('items', $items); throw new RuntimeException('Unknown item category was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid item category'), 'Unexpected category validation error: ' . $e->getMessage()); }
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('item category field is a JSON-driven dropdown rather than free text', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(str_contains($html, 'function itemCategoryOptions(selected'), 'Category dropdown helper is missing.');
+    $assert(str_contains($html, 'data-field="category" required'), 'Item category form does not render a required select control.');
+    $assert(str_contains($html, 'Category</label><select id="entryField_category"'), 'Item category form does not use a select element.');
+    $assert(str_contains($html, 'config/content/item-categories.json'), 'Workbench does not explain the JSON-backed category source.');
+    $application = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $assert(str_contains($application, '/api/content/item-categories'), 'Dedicated item category API endpoint is missing.');
+});
+
 $test('content management atomically saves revisions and verifies previous catalog backup', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-content-manager-save-' . bin2hex(random_bytes(8));
     try {
@@ -431,6 +461,14 @@ $test('content management rejects stale revisions without overwriting newer cont
     } finally {
         if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
     }
+});
+
+$test('Workbench defaults to structured content editing with optional advanced JSON', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    foreach (['Content Studio', 'contentEntrySelect', 'contentAddEntryButton', 'contentDeleteEntryButton', 'contentApplyEntryButton', 'contentAdvancedDetails', 'contentUseJsonButton', 'contentRefreshJsonButton'] as $needle) {
+        $assert(str_contains($html, $needle), 'Missing structured content editor feature: ' . $needle);
+    }
+    $assert((bool)preg_match('/<details id="contentAdvancedDetails">/', $html), 'Advanced JSON editor should be collapsed by default.');
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

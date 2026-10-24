@@ -56,7 +56,9 @@ final class ContentCatalog
         }
         foreach ($entries as $id => $entry) {
             if ($name === 'items') {
-                if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['category'] ?? null) || trim($entry['category']) === '' || strlen($entry['category']) > 60 || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_bool($entry['stackable'] ?? null)) throw new RuntimeException('Invalid item definition: ' . $id);
+                if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['category'] ?? null) || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_bool($entry['stackable'] ?? null)) throw new RuntimeException('Invalid item definition: ' . $id);
+                $categories = self::itemCategoriesDocument()['entries'];
+                if (!isset($categories[$entry['category']])) throw new RuntimeException('Invalid item category for ' . $id . ': ' . (string)$entry['category'] . '. Choose a category defined in config/content/item-categories.json.');
             } elseif ($name === 'recipes') {
                 if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_array($entry['inputs'] ?? null) || $entry['inputs'] === []) throw new RuntimeException('Invalid recipe definition: ' . $id);
                 foreach ($entry['inputs'] as $itemId => $quantity) if (!isset($items[$itemId]) || !is_int($quantity) || $quantity < 1 || $quantity > 1000000) throw new RuntimeException('Invalid recipe input: ' . $id . '/' . $itemId);
@@ -124,10 +126,39 @@ final class ContentCatalog
         return $entries;
     }
 
+    /** Load the JSON-backed category definitions used by the item editor and item validation. */
+    public static function itemCategoriesDocument(): array
+    {
+        $path = CORE_ROOT . '/config/content/item-categories.json';
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
+            Logger::error('Item category JSON could not be read', ['path' => $path]);
+            throw new RuntimeException('Item category definitions are unavailable.');
+        }
+        try { $document = json_decode($raw, true, 512, JSON_THROW_ON_ERROR); }
+        catch (\JsonException $e) {
+            Logger::error('Item category JSON is malformed', ['path' => $path, 'message' => $e->getMessage()]);
+            throw new RuntimeException('Item category definitions contain invalid JSON.', 0, $e);
+        }
+        if (!is_array($document) || ($document['schema_version'] ?? null) !== 1 || !is_array($document['entries'] ?? null) || $document['entries'] === []) {
+            Logger::error('Item category JSON has an invalid structure', ['path' => $path]);
+            throw new RuntimeException('Item category definitions have an invalid structure.');
+        }
+        foreach ($document['entries'] as $id => $entry) {
+            if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_]{1,63}$/', $id) || !is_array($entry) || !is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 80 || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 500) {
+                Logger::error('Item category definition failed validation', ['path' => $path, 'category_id' => (string)$id]);
+                throw new RuntimeException('Invalid item category definition: ' . (string)$id);
+            }
+        }
+        $document['catalog'] = 'item_categories';
+        return $document;
+    }
+
     public static function allDocuments(): array
     {
         $result = [];
         foreach (array_keys(self::FILES) as $name) $result[$name] = self::document($name);
+        $result['item_categories'] = self::itemCategoriesDocument();
         return $result;
     }
 }

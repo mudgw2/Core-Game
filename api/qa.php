@@ -1652,14 +1652,15 @@ $run('Focused logging and deletion permission preflight are implemented', static
 $run('Game item, recipe, discovery, and ship-module definitions are external JSON catalogs', static function () use ($assert): string {
     $docs = ContentCatalog::allDocuments();
     foreach (['items','recipes','discoveries','ship_modules'] as $name) $assert(is_array($docs[$name]['entries'] ?? null) && count($docs[$name]['entries']) > 0, 'Missing JSON content catalog: ' . $name);
+    $assert(isset($docs['item_categories']['entries']['resource'], $docs['item_categories']['entries']['material'], $docs['item_categories']['entries']['component']), 'Item category JSON definitions are missing.');
     $assert(is_array($docs['discoveries']['scan_rules'] ?? null), 'Scan generation rules are not externally configured in discoveries.json.');
     return 'All current gameplay definitions load from config/content JSON files.';
 });
 
 $run('Content API wrappers expose the editable JSON catalogs', static function () use ($assert): string {
     $root = dirname(__DIR__);
-    foreach (['content.php','content-items.php','content-recipes.php','content-discoveries.php','content-ship-modules.php'] as $file) $assert(is_file($root . '/api/' . $file), 'Missing content API wrapper: ' . $file);
-    foreach (['items.json','recipes.json','discoveries.json','ship-modules.json'] as $file) $assert(is_file($root . '/config/content/' . $file), 'Missing content JSON: ' . $file);
+    foreach (['content.php','content-items.php','content-recipes.php','content-discoveries.php','content-ship-modules.php','content-item-categories.php'] as $file) $assert(is_file($root . '/api/' . $file), 'Missing content API wrapper: ' . $file);
+    foreach (['items.json','recipes.json','discoveries.json','ship-modules.json','item-categories.json'] as $file) $assert(is_file($root . '/config/content/' . $file), 'Missing content JSON: ' . $file);
     return 'Aggregate and individual read-only content API wrappers are present.';
 });
 
@@ -1721,9 +1722,23 @@ $run('Content manager rejects stale revision without overwriting newer edit', st
 });
 
 
-$run('Workbench exposes revision-checked JSON content management', static function () use ($assert): string {
+$run('Item categories are a JSON-defined dropdown and arbitrary categories are rejected', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $html = (string)file_get_contents($root . '/index.php');
+    $application = (string)file_get_contents($root . '/app/Application.php');
+    $categoryJson = json_decode((string)file_get_contents($root . '/config/content/item-categories.json'), true, 512, JSON_THROW_ON_ERROR);
+    $assert(isset($categoryJson['entries']['resource']['label'], $categoryJson['entries']['material']['label'], $categoryJson['entries']['component']['label']), 'Expected item category labels are missing.');
+    $assert(str_contains($html, 'function itemCategoryOptions(selected'), 'Category dropdown helper is missing.');
+    $assert(str_contains($html, 'data-field="category" required'), 'Category select is not required.');
+    $assert(str_contains($application, '/api/content/item-categories'), 'Dedicated category API route is missing.');
+    $items = ContentCatalog::document('items')['entries'];
+    foreach ($items as $id => $item) $assert(isset($categoryJson['entries'][$item['category']]), 'Item ' . $id . ' references an unknown category.');
+    return 'Item category labels load from JSON; item forms use a required dropdown; every configured item category is allow-listed.';
+});
+
+$run('Workbench exposes structured content management and revision-checked APIs', static function () use ($assert): string {
     $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
-    foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
+    foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentEntrySelect', 'contentEntryForm', 'contentAddEntryButton', 'contentApplyEntryButton', 'contentUseJsonButton', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
         if (str_starts_with($needle, 'api/')) $assert(is_file($root . '/' . $needle), 'Missing content management API wrapper: ' . $needle);
         else $assert(str_contains($html, $needle), 'Workbench content editor is missing: ' . $needle);
     }
@@ -1737,4 +1752,4 @@ $passed = count(array_filter($results, static fn(array $r): bool => $r['status']
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.41', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.43', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

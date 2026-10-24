@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.43",
+  "description": "Authoritative item category identifiers and display labels. Item definitions must reference one of these IDs.",
+  "entries": {
+    "resource": {
+      "label": "Resource",
+      "description": "Raw or recovered materials and supplies."
+    },
+    "material": {
+      "label": "Material",
+      "description": "Processed materials used to create equipment and components."
+    },
+    "component": {
+      "label": "Component",
+      "description": "Constructed parts used to assemble ship modules and equipment."
+    }
+  }
+}

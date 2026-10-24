@@ -1,4 +1,4 @@
-# CORE PHP Foundation 0.1.41
+# CORE PHP Foundation 0.1.43
 
 CORE is a seed-driven sci-fi sandbox foundation using PHP, JSON persistence, and a browser Workbench.
 
@@ -6,12 +6,13 @@ CORE is a seed-driven sci-fi sandbox foundation using PHP, JSON persistence, and
 
 Game definitions live in editable JSON files under `config/content/`, not duplicated PHP catalogs:
 
-- `items.json` — stable item IDs, labels, categories, descriptions, stackability.
+- `items.json` — stable item IDs, labels, category IDs, descriptions, stackability.
+- `item-categories.json` — approved item category IDs, display labels, and descriptions; Content Studio uses this catalog for a required category dropdown.
 - `discoveries.json` — exploration signals, outcomes, reward item IDs and quantity ranges, scan signal-count limits.
 - `recipes.json` — crafting inputs and outputs.
 - `ship-modules.json` — module slots and installation requirements.
 
-The PHP mechanics load these definitions at runtime. The Workbench **Content Management** tab lets a developer load, validate, and save the JSON catalogs without editing PHP. Validation checks catalog structure and cross-catalog references before any write.
+The PHP mechanics load these definitions at runtime. The Workbench **Content Studio** tab provides structured forms for editing items, recipes, discoveries/rewards, and ship modules without manually editing JSON. An optional advanced JSON editor remains available. Validation checks catalog structure and cross-catalog references before any write; saves are revision-checked, backed up, and atomic.
 
 ## Content API
 
@@ -55,4 +56,4 @@ The Workbench's **Run automated tests** action runs the browser QA suite. Do not
 
 Preserve the live contents of `storage/data/`, `storage/logs/`, and `storage/backups/` when installing an upgrade. The package's placeholder storage directories must not replace or erase live data. Content backups are stored under `storage/backups/content/` and should also be retained.
 
-See `RELEASE-NOTES-0.1.41.md` for changes and validation results.
+See `RELEASE-NOTES-0.1.43.md` for changes and validation results.

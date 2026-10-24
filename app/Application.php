@@ -148,7 +148,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.41',
+            'version' => '0.1.43',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.
@@ -162,6 +162,10 @@ final class Application
                 catch (Throwable $e) { Logger::error('Game content catalog request failed', ['catalog' => $catalogName, 'exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_catalog_failed', 'message' => 'Game content definitions could not be loaded. Check CORE logs.']], 500); }
             });
         }
+        $this->router->get('/api/content/item-categories', static function (): Response {
+            try { return Response::json(['ok' => true, 'catalog' => 'item_categories', 'document' => ContentCatalog::itemCategoriesDocument()]); }
+            catch (Throwable $e) { Logger::error('Item category catalog request failed', ['exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_catalog_failed', 'message' => 'Item category definitions could not be loaded. Check CORE logs.']], 500); }
+        });
 
         $contentManager = new \Core\Modules\ContentManagementService(
             CORE_ROOT . '/config/content',

@@ -10,5 +10,29 @@
         "updated_at": "2026-10-23T23:50:11+00:00"
     },
     "created_at": "2026-10-23T23:50:04+00:00",
-    "revision": 4
+    "revision": 5,
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_3a9a93b845899e87",
+                "name": "System 01",
+                "first_visited_at": "2026-10-23T23:50:11+00:00",
+                "first_visited_revision": 4
+            }
+        ]
+    },
+    "route_progress": {
+        "route_id": "rte_86f2d6e8497bb1711014",
+        "destination_system_id": "sys_3a9a93b845899e87",
+        "destination_name": "System 01",
+        "path_system_ids": [
+            "sys_3a9a93b845899e87"
+        ],
+        "current_step_index": 0,
+        "total_hops": 0,
+        "status": "completed",
+        "planned_from_system_id": "sys_3a9a93b845899e87",
+        "planned_at": "2026-10-24T04:23:35+00:00",
+        "updated_at": "2026-10-24T04:23:35+00:00"
+    }
 }

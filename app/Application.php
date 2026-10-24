@@ -9,6 +9,7 @@ use Core\Http\Response;
 use Core\Http\Router;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Characters\CharacterService;
+use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -34,12 +35,13 @@ final class Application
         $storage = new JsonStorage((string)$config['storage']['path']);
         $universeService = new UniverseService($storage);
         $characterService = new CharacterService($storage);
+        $travelService = new CharacterTravelService($storage);
         $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.18',
+            'version' => '0.1.19',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -232,6 +234,50 @@ final class Application
             }
         });
 
+        $this->router->post('/api/characters/travel', static function (Request $request) use ($travelService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character travel API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'travel_api_disabled', 'message' => 'Route execution is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $action = isset($body['action']) && is_string($body['action']) ? trim($body['action']) : '';
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if (!in_array($action, ['start', 'advance'], true) || $universeId === '' || $characterId === '' || !is_int($expectedRevision)) {
+                Logger::warning('Character travel request validation failed', ['error_code' => 'invalid_travel_request', 'action' => $action]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_travel_request', 'message' => 'Provide action (start or advance), universe_id, character_id, and integer expected_revision.']], 400);
+            }
+            try {
+                if ($action === 'start') {
+                    $destinationId = isset($body['destination_system_id']) && is_string($body['destination_system_id']) ? trim($body['destination_system_id']) : '';
+                    if ($destinationId === '') return Response::json(['ok' => false, 'error' => ['code' => 'invalid_travel_request', 'message' => 'Provide destination_system_id when starting a route.']], 400);
+                    $result = $travelService->start($universeId, $characterId, $destinationId, $expectedRevision);
+                } else {
+                    $result = $travelService->advance($universeId, $characterId, $expectedRevision);
+                }
+                Logger::info('Character travel action completed', ['action' => $action, 'travel_status' => $result['travel_status'], 'character_id' => $characterId, 'universe_id' => $universeId, 'revision' => $result['character']['revision'], 'current_system_id' => $result['character']['current_system_id'] ?? null]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character travel revision conflict', ['action' => $action, 'character_id' => $characterId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'travel_target_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'does not belong') || str_contains($message, 'invalid path') || str_contains($message, 'not active') || str_contains($message, 'No travel route') || str_contains($message, 'route') || str_contains($message, 'location changed')) {
+                    Logger::warning('Character travel action rejected', ['action' => $action, 'character_id' => $characterId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'travel_rejected', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list')) {
+                    Logger::warning('Character travel request rejected', ['action' => $action, 'character_id' => $characterId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_travel_request', 'message' => $message]], 400);
+                }
+                Logger::error('Character travel failed', ['action' => $action, 'character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_travel_failed', 'message' => 'Character travel could not be updated. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->post('/api/characters', static function (Request $request) use ($characterService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
@@ -271,6 +317,7 @@ final class Application
                 'GET /api/characters?universe_id=... (development/private network only)',
                 'GET /api/navigation?universe_id=... (development/private network only)',
                 'GET /api/navigation/route?universe_id=...&from_system_id=...&to_system_id=... (development/private network only)',
+                'POST /api/characters/travel with action start or advance (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

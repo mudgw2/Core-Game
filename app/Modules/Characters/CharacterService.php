@@ -126,6 +126,15 @@ final class CharacterService
                 $character['current_system_id'] = $systemId;
                 $character['location'] = ['system_id' => $systemId, 'updated_at' => $now];
                 $character['revision'] = $actualRevision + 1;
+                // Manual movement must not leave an old multi-hop route looking executable.
+                $routeProgress = $character['route_progress'] ?? null;
+                if (is_array($routeProgress) && ($routeProgress['status'] ?? '') === 'active') {
+                    $routeProgress['status'] = 'cancelled';
+                    $routeProgress['cancelled_at'] = $now;
+                    $routeProgress['cancellation_reason'] = 'manual_movement';
+                    $routeProgress['updated_at'] = $now;
+                    $character['route_progress'] = $routeProgress;
+                }
             }
             if (!$alreadyVisited) {
                 $visited[] = [

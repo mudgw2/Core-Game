@@ -43,7 +43,7 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.18</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.19</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -100,8 +100,9 @@ declare(strict_types=1);
             <p>Choose any system in this universe to preview the shortest route. This list includes distant systems too. Planning does not move the character.</p>
             <label for="routeDestinationSelect">Route destination</label>
             <select id="routeDestinationSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Create / load a universe first</option></select>
-            <div class="actions"><button id="planRouteButton" type="button">Plan route</button></div>
+            <div class="actions"><button id="planRouteButton" type="button">Plan route</button><button id="startTravelButton" type="button" disabled>Start travel along route</button><button id="advanceTravelButton" type="button" class="secondary" disabled>Travel next jump</button></div>
             <p id="routeStatus" class="status" aria-live="polite">Choose a character and destination to preview a route.</p>
+            <p id="travelProgressStatus" class="status" role="status" aria-live="polite">No travel route is active for the selected character.</p>
             <pre id="routeOutput" aria-live="polite">No route planned.</pre>
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
@@ -133,6 +134,7 @@ declare(strict_types=1);
                 <li>PHP request routing and JSON responses</li>
                 <li>Deterministic seed-based universe preview</li>
                 <li>JSON file persistence for created universes</li>
+                <li>Character route execution with one connected jump per action</li>
                 <li>Structured application logging</li>
             </ul>
             <p class="status">This is an early development scaffold, not a finished game. Accounts, character ownership, gameplay progression, and access control are not implemented yet.</p>
@@ -220,12 +222,40 @@ declare(strict_types=1);
         const characterId = document.getElementById('characterSelect').value;
         const character = loadedCharacters.find(item => item.id === characterId);
         const status = document.getElementById('characterExplorationStatus');
-        if (!character) { status.textContent = 'Select a character to view its location and exploration history.'; return; }
+        if (!character) {
+            status.textContent = 'Select a character to view its location and exploration history.';
+            document.getElementById('travelProgressStatus').textContent = 'Select a character before starting or continuing travel.';
+            document.getElementById('startTravelButton').disabled = true;
+            document.getElementById('advanceTravelButton').disabled = true;
+            return;
+        }
         const names = new Map(systems.map(system => [system.id, system.name]));
         const currentId = character.current_system_id || character.location?.system_id || '';
         const visited = character.exploration?.explored_systems || [];
         const visitedNames = visited.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).filter(Boolean);
         status.textContent = 'Current system: ' + (names.get(currentId) || currentId || 'Unknown') + ' (' + currentId + '). Explored systems (' + visited.length + '): ' + (visitedNames.length ? visitedNames.join(', ') : 'none recorded');
+        const progressStatus = document.getElementById('travelProgressStatus');
+        const advanceButton = document.getElementById('advanceTravelButton');
+        const routeProgress = character.route_progress;
+        if (routeProgress && routeProgress.status === 'active') {
+            const path = Array.isArray(routeProgress.path_system_ids) ? routeProgress.path_system_ids : [];
+            const index = Number(routeProgress.current_step_index || 0);
+            const completedHops = index;
+            const totalHops = Number(routeProgress.total_hops || Math.max(0, path.length - 1));
+            const nextId = path[index + 1] || '';
+            progressStatus.textContent = 'Travel active: ' + completedHops + ' of ' + totalHops + ' jump(s) complete. Current: ' + (names.get(currentId) || currentId) + (nextId ? '. Next jump: ' + (names.get(nextId) || nextId) + ' (' + nextId + ').' : '.');
+            advanceButton.disabled = !nextId;
+        } else if (routeProgress && routeProgress.status === 'completed') {
+            progressStatus.textContent = 'Last travel route completed at ' + (names.get(currentId) || currentId) + '. Choose a destination and start a new route to travel again.';
+            advanceButton.disabled = true;
+        } else if (routeProgress && routeProgress.status === 'cancelled') {
+            progressStatus.textContent = 'Previous route was cancelled. Plan and start a new route to continue travelling.';
+            advanceButton.disabled = true;
+        } else {
+            progressStatus.textContent = 'No travel route is active for this character. Plan a route, then click Start travel along route.';
+            advanceButton.disabled = true;
+        }
+        document.getElementById('startTravelButton').disabled = !characterId;
     }
     function populateCharacterChoices() {
         const select = document.getElementById('characterSelect');
@@ -423,6 +453,73 @@ declare(strict_types=1);
         } catch (error) { status.textContent = 'Route planning request failed.'; routeOutput.textContent = String(error); logActivity('error', 'Route planning request failed', String(error)); }
         finally { button.disabled = false; }
     });
+    async function submitTravelAction(action) {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const destinationId = document.getElementById('routeDestinationSelect').value;
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('travelProgressStatus');
+        if (!universeId || !characterId) { status.textContent = 'Create or load a universe and select a character first.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        if (action === 'start' && !destinationId) { status.textContent = 'Choose a route destination first.'; return; }
+        const button = document.getElementById(action === 'start' ? 'startTravelButton' : 'advanceTravelButton');
+        button.disabled = true;
+        status.textContent = action === 'start' ? 'Starting travel route…' : 'Executing next jump…';
+        try {
+            const payload = { action, universe_id: universeId, character_id: characterId, expected_revision: revision };
+            if (action === 'start') payload.destination_system_id = destinationId;
+            const response = await fetch('api/character-travel.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(payload) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (!response.ok || !data.ok) {
+                const failureMessage = (data.error?.code || 'travel_failed') + ': ' + (data.error?.message || 'Travel action failed.');
+                logActivity('error', 'Character travel failed', JSON.stringify(data));
+                // Refresh server state after conflicts/rejections so the revision and route
+                // status shown in the Workbench cannot remain stale.
+                await refreshCharacters();
+                document.getElementById('characterSelect').value = characterId;
+                const latestCharacter = loadedCharacters.find(item => item.id === characterId);
+                if (latestCharacter) document.getElementById('characterRevision').value = String(latestCharacter.revision ?? 0);
+                updateCharacterDetails();
+                populateSystemChoices();
+                status.textContent = failureMessage;
+                return;
+            }
+            const character = data.character;
+            await refreshCharacters();
+            document.getElementById('characterSelect').value = characterId;
+            document.getElementById('characterRevision').value = String(character.revision);
+            updateCharacterDetails();
+            populateSystemChoices();
+            const progress = character.route_progress || {};
+            const path = progress.path_system_ids || [];
+            const names = new Map((currentUniverseBaseline?.systems || []).map(system => [system.id, system.name]));
+            const routeText = path.map(id => (names.get(id) || id) + ' (' + id + ')').join(' → ');
+            document.getElementById('routeOutput').textContent = JSON.stringify({ ok: true, travel_status: data.travel_status, character_id: characterId, current_system_id: character.current_system_id, revision: character.revision, route_progress: progress, route: routeText }, null, 2);
+            status.textContent = data.travel_status === 'already_at_destination'
+                ? 'Already at the selected destination. No jumps required.'
+                : data.travel_status === 'route_completed'
+                    ? 'Travel complete. Character reached ' + (names.get(character.current_system_id) || character.current_system_id) + '.'
+                    : data.travel_status === 'route_started'
+                        ? 'Travel started: ' + Math.max(0, path.length - 1) + ' jump(s). Click Travel next jump to execute one jump at a time.'
+                        : 'Jump completed. ' + (progress.current_step_index || 0) + ' of ' + (progress.total_hops || 0) + ' jump(s) complete.';
+            logActivity('info', 'Character travel ' + action, characterId + ' → ' + character.current_system_id + ' (' + data.travel_status + ', revision ' + character.revision + ')');
+        } catch (error) {
+            status.textContent = 'Travel request failed. Check the server and activity log.';
+            logActivity('error', 'Character travel request failed', String(error));
+        } finally {
+            if (action === 'start') {
+                button.disabled = !document.getElementById('characterSelect').value;
+            } else {
+                const selectedCharacter = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
+                button.disabled = !(selectedCharacter?.route_progress?.status === 'active');
+            }
+        }
+    }
+    document.getElementById('startTravelButton').addEventListener('click', () => submitTravelAction('start'));
+    document.getElementById('advanceTravelButton').addEventListener('click', () => submitTravelAction('advance'));
+
     document.getElementById('moveCharacterButton').addEventListener('click', async () => {
         const universeId = document.getElementById('characterUniverseId').value.trim();
         const characterId = document.getElementById('characterSelect').value;

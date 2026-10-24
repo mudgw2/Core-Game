@@ -33,6 +33,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 
 use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Characters\CharacterService;
+use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
@@ -672,7 +673,95 @@ $run('Route planner rejects system IDs outside the graph', static function () us
     } finally { $cleanup($dir); }
 });
 
+
+$run('Starting travel stores a route without moving the character', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-travel-start');
+        $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems);
+        $character = (new CharacterService($storage))->create($universe['id'], 'Travel Starter');
+        $from = $character['current_system_id']; $destination = null; $path = [];
+        foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $from, (string)$system['id']); if (count($candidate) > count($path)) { $path = $candidate; $destination = (string)$system['id']; } }
+        $assert(count($path) >= 3, 'Fixture needs a destination at least two jumps away.');
+        $result = (new CharacterTravelService($storage))->start($universe['id'], $character['id'], $destination, 0);
+        $equal('route_started', $result['travel_status'], 'Travel route did not start.');
+        $equal($from, $result['character']['current_system_id'], 'Starting travel moved the character immediately.');
+        $equal(1, $result['character']['revision'], 'Starting travel should advance the character revision.');
+        $equal($path, $result['character']['route_progress']['path_system_ids'], 'Stored route does not match the shortest path.');
+        $equal('active', $result['character']['route_progress']['status'], 'Multi-hop route should be active.');
+        return (count($path) - 1) . ' hop route saved; character remained at the starting system.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Travel next jump advances exactly one hop and records exploration', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-travel-one-hop');
+        $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems); $characterService = new CharacterService($storage);
+        $character = $characterService->create($universe['id'], 'One Hop'); $from = $character['current_system_id']; $path = [];
+        foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $from, (string)$system['id']); if (count($candidate) > count($path)) $path = $candidate; }
+        $assert(count($path) >= 3, 'Fixture needs a route of at least two hops.');
+        $travel = new CharacterTravelService($storage); $started = $travel->start($universe['id'], $character['id'], (string)end($path), 0);
+        $advanced = $travel->advance($universe['id'], $character['id'], $started['character']['revision']);
+        $equal($path[1], $advanced['character']['current_system_id'], 'One action did not move exactly to the next system.');
+        $equal(2, $advanced['character']['revision'], 'One jump should advance revision exactly once after route start.');
+        $equal(1, $advanced['character']['route_progress']['current_step_index'], 'Route progress index did not advance by one.');
+        $visited = array_column($advanced['character']['exploration']['explored_systems'], 'system_id');
+        $assert(in_array($path[1], $visited, true), 'Destination system was not added to exploration history.');
+        $equal(count($visited), count(array_unique($visited)), 'Exploration history contains duplicate systems.');
+        return 'Exactly one jump executed; revision and exploration history updated.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Travel completes at the planned destination and cannot advance again', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-travel-complete');
+        $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems); $character = (new CharacterService($storage))->create($universe['id'], 'Route Finisher');
+        $path = []; foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $character['current_system_id'], (string)$system['id']); if (count($candidate) > count($path)) $path = $candidate; }
+        $assert(count($path) >= 3, 'Fixture needs a route of at least two hops.'); $destination = (string)end($path); $travel = new CharacterTravelService($storage);
+        $result = $travel->start($universe['id'], $character['id'], $destination, 0); $current = $result['character']; $iterations = 0;
+        while (($current['route_progress']['status'] ?? '') === 'active' && $iterations < 20) { $result = $travel->advance($universe['id'], $character['id'], (int)$current['revision']); $current = $result['character']; $iterations++; }
+        $equal('completed', $current['route_progress']['status'] ?? null, 'Route did not reach completed status.');
+        $equal($destination, $current['current_system_id'], 'Character did not reach the selected destination.');
+        $equal('route_completed', $result['travel_status'], 'Final jump did not return route_completed.');
+        $revision = $current['revision'];
+        try { $travel->advance($universe['id'], $character['id'], $revision); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not active'), 'Unexpected completed-route rejection.'); $saved = $storage->read('characters', $character['id']); $equal($revision, $saved['revision'], 'Rejected advance changed revision.'); $equal($destination, $saved['current_system_id'], 'Rejected advance changed location.'); return $iterations . ' jump(s) completed; completed route cannot be replayed.'; }
+        throw new RuntimeException('Completed route accepted another jump.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Travel rejects stale revisions without moving the character', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-travel-stale'); $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems);
+        $character = (new CharacterService($storage))->create($universe['id'], 'Stale Traveller'); $path = [];
+        foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $character['current_system_id'], (string)$system['id']); if (count($candidate) > count($path)) $path = $candidate; }
+        $travel = new CharacterTravelService($storage); $started = $travel->start($universe['id'], $character['id'], (string)end($path), 0); $before = $started['character'];
+        try { $travel->advance($universe['id'], $character['id'], 0); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale-revision error.'); $saved = $storage->read('characters', $character['id']); $equal($before['current_system_id'], $saved['current_system_id'], 'Stale request moved the character.'); $equal($before['revision'], $saved['revision'], 'Stale request changed revision.'); return 'Stale jump rejected without changing location or revision.'; }
+        throw new RuntimeException('Stale travel revision was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Travel rejects a route after manual movement changes the route origin', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-travel-desync'); $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems); $characters = new CharacterService($storage);
+        $character = $characters->create($universe['id'], 'Route Desync'); $path = [];
+        foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $character['current_system_id'], (string)$system['id']); if (count($candidate) > count($path)) $path = $candidate; }
+        $travel = new CharacterTravelService($storage); $started = $travel->start($universe['id'], $character['id'], (string)end($path), 0);
+        $characters->move($universe['id'], $character['id'], (string)$path[1], (int)$started['character']['revision']);
+        $afterManualMove = $storage->read('characters', $character['id']);
+        try { $travel->advance($universe['id'], $character['id'], (int)$afterManualMove['revision']); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not active'), 'Unexpected route desynchronization error.'); $saved = $storage->read('characters', $character['id']); $equal($afterManualMove['current_system_id'], $saved['current_system_id'], 'Rejected stale route changed location.'); $equal($afterManualMove['revision'], $saved['revision'], 'Rejected stale route changed revision.'); $equal('cancelled', $saved['route_progress']['status'] ?? null, 'Manual movement did not cancel the old route.'); return 'Manual movement cancels the previous route and it cannot be resumed.'; }
+        throw new RuntimeException('Out-of-sync route was allowed to continue.');
+    } finally { $cleanup($dir); }
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.18', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.19', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

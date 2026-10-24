@@ -148,7 +148,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.44',
+            'version' => '0.1.45',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.
@@ -169,6 +169,25 @@ final class Application
         $this->router->get('/api/content/item-characteristics', static function (): Response {
             try { return Response::json(['ok' => true, 'catalog' => 'item_characteristics', 'document' => ContentCatalog::itemCharacteristicsDocument()]); }
             catch (Throwable $e) { Logger::error('Item characteristic schema request failed', ['exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_characteristics_failed', 'message' => 'Item characteristic definitions could not be loaded. Check CORE logs.']], 500); }
+        });
+
+        $characteristicManager = new \Core\Modules\ItemCharacteristicsManagementService(
+            CORE_ROOT . '/config/content',
+            dirname((string)$config['storage']['path']) . '/backups'
+        );
+        $this->router->post('/api/content/item-characteristics/validate', static function (Request $request) use ($characteristicManager, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok'=>false,'error'=>['code'=>'content_management_disabled','message'=>'Content editing is available only in development mode from a local/private network.']],403);
+            $body=$request->jsonBody(); $document=$body['document']??null;
+            if (!is_array($document)) return Response::json(['ok'=>false,'error'=>['code'=>'invalid_content_request','message'=>'Provide a characteristic schema document.']],400);
+            try { return Response::json(['ok'=>true,'validation'=>$characteristicManager->validate($document)]); }
+            catch (Throwable $e) { Logger::warning('Characteristic schema validation failed',['message'=>$e->getMessage()]); return Response::json(['ok'=>false,'error'=>['code'=>'content_validation_failed','message'=>$e->getMessage()]],400); }
+        });
+        $this->router->post('/api/content/item-characteristics/save', static function (Request $request) use ($characteristicManager, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok'=>false,'error'=>['code'=>'content_management_disabled','message'=>'Content editing is available only in development mode from a local/private network.']],403);
+            $body=$request->jsonBody(); $revision=$body['expected_revision']??null; $document=$body['document']??null;
+            if (!is_int($revision)||!is_array($document)) return Response::json(['ok'=>false,'error'=>['code'=>'invalid_content_request','message'=>'Provide expected_revision and a schema document.']],400);
+            try { return Response::json(['ok'=>true,'saved'=>$characteristicManager->save($revision,$document)]); }
+            catch (Throwable $e) { $message=$e->getMessage(); if (str_contains($message,'revision conflict')) return Response::json(['ok'=>false,'error'=>['code'=>'content_revision_conflict','message'=>$message]],409); Logger::warning('Characteristic schema save failed',['expected_revision'=>$revision,'message'=>$message]); return Response::json(['ok'=>false,'error'=>['code'=>'content_save_rejected','message'=>$message]],400); }
         });
 
         $contentManager = new \Core\Modules\ContentManagementService(

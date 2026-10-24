@@ -1,9 +1,4 @@
-{"time":"2026-10-24T18:22:27+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T18:41:19+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T19:00:32+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T19:15:38+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
-{"time":"2026-10-24T19:29:06+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T19:29:09+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
-{"time":"2026-10-24T19:36:39+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T19:36:41+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
+{"time":"2026-10-24T19:40:38+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T19:40:38+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
+{"time":"2026-10-24T19:47:06+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T19:47:09+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}

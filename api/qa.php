@@ -1764,6 +1764,31 @@ $run('Content Studio renders typed item characteristic fields from JSON schema',
     return 'Item editor renders schema-driven fields and carries their typed values into the draft.';
 });
 
+$run('Characteristic schema manager exposes form controls and mutation endpoints', static function () use ($assert): string {
+    $root=dirname(__DIR__); $html=(string)file_get_contents($root.'/index.php'); $app=(string)file_get_contents($root.'/app/Application.php');
+    foreach (['schemaCategorySelect','schemaFieldSelect','schemaFieldType','schemaFieldRequired','schemaFieldDefault','schemaFieldMin','schemaFieldMax','schemaFieldOptions','schemaApplyFieldButton','schemaValidateButton','schemaSaveButton'] as $id) $assert(str_contains($html,'id="'.$id.'"'),'Characteristic form control is missing: '.$id);
+    $assert(str_contains($app,"'/api/content/item-characteristics/validate'"),'Schema validation endpoint is missing.');
+    $assert(str_contains($app,"'/api/content/item-characteristics/save'"),'Schema save endpoint is missing.');
+    $assert(is_file($root.'/app/Modules/ItemCharacteristicsManagementService.php'),'Schema manager service is missing.');
+    return 'Form controls support category-specific field definitions and dedicated validation/save endpoints.';
+});
+$run('Characteristic schema manager validates existing item values before save', static function () use ($assert): string {
+    $root=dirname(__DIR__); $schema=ContentCatalog::itemCharacteristicsDocument();
+    $manager=new Core\Modules\ItemCharacteristicsManagementService($root.'/config/content',$root.'/storage/backups');
+    $result=$manager->validate($schema);
+    $assert($result['valid']===true,'Current schema should be valid.');
+    $assert($result['existing_items_checked']===count(ContentCatalog::document('items')['entries']),'Not every existing item was checked.');
+    $schema['categories']['resource']['fields']['rarity']['options']=['common'=>'Common'];
+    try {$manager->validate($schema);throw new RuntimeException('Schema invalidating existing enum values was accepted.');}
+    catch(RuntimeException $e){$assert(str_contains($e->getMessage(),'invalidate existing items'),'Unexpected schema compatibility error: '.$e->getMessage());}
+    return 'Existing item values are checked against proposed definitions and incompatible schema changes are rejected.';
+});
+$run('Characteristic schema changes use revision checks, atomic saves, and verified backups', static function () use ($assert): string {
+    $root=dirname(__DIR__); $service=(string)file_get_contents($root.'/app/Modules/ItemCharacteristicsManagementService.php');
+    foreach (['Content revision conflict','LOCK_EX','rename($temp,$path)','hash_equals(hash(\'sha256\',$old)','Logger::info'] as $needle) $assert(str_contains($service,$needle),'Missing schema safety control: '.$needle);
+    return 'Schema service uses revision checks, file locking, verified backups, atomic replacement, and logs.';
+});
+
 $run('Workbench exposes structured content management and revision-checked APIs', static function () use ($assert): string {
     $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
     foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentEntrySelect', 'contentEntryForm', 'contentAddEntryButton', 'contentApplyEntryButton', 'contentUseJsonButton', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
@@ -1780,4 +1805,4 @@ $passed = count(array_filter($results, static fn(array $r): bool => $r['status']
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.44', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.45', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

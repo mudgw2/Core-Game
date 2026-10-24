@@ -63,6 +63,34 @@ $test('PHP syntax: all project PHP files parse', static function () use ($assert
     $assert(count($files) > 0, 'No PHP files found to lint');
 });
 
+$test('item characteristic manager validates category schema and existing item values', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-schema-qa-' . bin2hex(random_bytes(6)); mkdir($dir,0770,true);
+    try {
+        $schemaPath = CORE_ROOT . '/config/content/item-characteristics.json';
+        $schema = json_decode((string)file_get_contents($schemaPath),true,512,JSON_THROW_ON_ERROR);
+        $manager = new Core\Modules\ItemCharacteristicsManagementService(CORE_ROOT . '/config/content',$dir);
+        $result=$manager->validate($schema); $assert($result['valid']===true && $result['existing_items_checked']>=1,'Schema validation did not check existing items');
+    } finally { if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $f)@unlink($f);@rmdir($dir);} }
+});
+$test('item characteristic manager rejects a schema that removes a used field', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-schema-qa-' . bin2hex(random_bytes(6)); mkdir($dir,0770,true);
+    try {
+        $schema=json_decode((string)file_get_contents(CORE_ROOT.'/config/content/item-characteristics.json'),true,512,JSON_THROW_ON_ERROR);
+        unset($schema['categories']['resource']['fields']['rarity']);
+        try {(new Core\Modules\ItemCharacteristicsManagementService(CORE_ROOT.'/config/content',$dir))->validate($schema);throw new RuntimeException('Schema removing a used field was accepted.');}
+        catch(RuntimeException $e){$assert(str_contains($e->getMessage(),'invalidate existing items'),'Unexpected rejection message: '.$e->getMessage());}
+    } finally { if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $f)@unlink($f);@rmdir($dir);} }
+});
+$test('item characteristic manager rejects invalid enum defaults', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-schema-qa-' . bin2hex(random_bytes(6)); mkdir($dir,0770,true);
+    try {
+        $schema=json_decode((string)file_get_contents(CORE_ROOT.'/config/content/item-characteristics.json'),true,512,JSON_THROW_ON_ERROR);
+        $schema['categories']['resource']['fields']['rarity']['default']='not_an_option';
+        try {(new Core\Modules\ItemCharacteristicsManagementService(CORE_ROOT.'/config/content',$dir))->validate($schema);throw new RuntimeException('Invalid enum default was accepted.');}
+        catch(RuntimeException $e){$assert(str_contains($e->getMessage(),'Default value'),'Unexpected rejection message: '.$e->getMessage());}
+    } finally { if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $f)@unlink($f);@rmdir($dir);} }
+});
+
 $test('same seed produces identical deterministic baseline', static function () use ($equal): void {
     $generator = new UniverseGenerator();
     $equal($generator->generate('qa-seed-alpha'), $generator->generate('qa-seed-alpha'));

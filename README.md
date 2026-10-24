@@ -1,8 +1,8 @@
-# CORE PHP Foundation 0.1.26 — Crafting Bench
+# CORE PHP Foundation 0.1.27 — Crafting Bench
 
 CORE is a browser-based, seed-driven sci-fi sandbox prototype built with PHP, JSON persistence, and a browser Workbench.
 
-## What changed in 0.1.26
+## What changed in 0.1.27
 
 - Added a revision-checked character crafting service and development-only API.
 - Refine 3 raw ore into 1 refined alloy.

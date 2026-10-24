@@ -70,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.26</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.27</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -194,6 +194,19 @@ declare(strict_types=1);
                 <button id="craftButton" type="button" disabled>Craft selected recipe</button>
             </div>
             <p id="craftStatus" class="status" role="status" aria-live="polite">Select a character and collect materials to use the crafting bench.</p>
+            <h3>Ship fitting</h3>
+            <p>Install one module per slot. Installation consumes inventory materials permanently and is saved to the selected character.</p>
+            <div class="form-row">
+                <label for="fitModule">Ship module</label>
+                <select id="fitModule">
+                    <option value="propulsion_array">Propulsion array — 1 ship component + 1 refined alloy</option>
+                    <option value="survey_scanner">Survey scanner — 1 ship component + 1 tech insight</option>
+                    <option value="expanded_cargo_rack">Expanded cargo rack — 1 ship component + 2 refined alloy</option>
+                </select>
+                <button id="fitModuleButton" type="button" disabled>Install module</button>
+            </div>
+            <p id="fitModuleStatus" class="status" role="status" aria-live="polite">Collect materials and select a character to install ship modules.</p>
+            <div id="shipFittingPanel" class="dashboard-lists" aria-live="polite"><div><h4>Installed modules</h4><p class="dashboard-list">Select a character to view ship fittings.</p></div></div>
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
         </section>
     </section>
@@ -370,10 +383,13 @@ declare(strict_types=1);
             renderCharacterDashboard(null);
             document.getElementById('scanSystemButton').disabled = true;
             document.getElementById('craftButton').disabled = true;
+            document.getElementById('fitModuleButton').disabled = true;
             document.getElementById('characterScanStatus').textContent = 'Select a character to scan its current system.';
             document.getElementById('characterScanResults').innerHTML = '<div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div>';
             document.getElementById('characterInventory').innerHTML = '<div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div>';
             document.getElementById('craftStatus').textContent = 'Select a character and collect materials to use the crafting bench.';
+            document.getElementById('fitModuleStatus').textContent = 'Collect materials and select a character to install ship modules.';
+            document.getElementById('shipFittingPanel').innerHTML = '<div><h4>Installed modules</h4><p class="dashboard-list">Select a character to view ship fittings.</p></div>';
             status.textContent = 'Select a character to view its location and exploration history.';
             document.getElementById('travelProgressStatus').textContent = 'Select a character before starting or continuing travel.';
             document.getElementById('startTravelButton').disabled = true;
@@ -401,6 +417,14 @@ declare(strict_types=1);
         const ledgerCount = Array.isArray(inventory.ledger) ? inventory.ledger.length : 0;
         const ledgerNote = document.createElement('p'); ledgerNote.className = 'dashboard-list'; ledgerNote.textContent = 'Recorded recovery events: ' + ledgerCount; inventoryPanel.append(ledgerNote);
         inventoryHost.append(inventoryPanel);
+        const fittingHost = document.getElementById('shipFittingPanel'); fittingHost.replaceChildren();
+        const fittingPanel = document.createElement('div'); const fittingHeading = document.createElement('h4'); fittingHeading.textContent = 'Installed modules'; fittingPanel.append(fittingHeading);
+        const fittedModules = character.ship?.modules || {};
+        const slotLabels = {propulsion:'Propulsion', scanner:'Scanner', cargo:'Cargo'};
+        const fittingList = document.createElement('ul'); fittingList.className = 'dashboard-list';
+        for (const slot of ['propulsion','scanner','cargo']) { const item = document.createElement('li'); const installed = fittedModules[slot]; item.textContent = slotLabels[slot] + ': ' + (installed ? installed.label + ' — ' + installed.description : 'Empty'); fittingList.append(item); }
+        fittingPanel.append(fittingList); fittingHost.append(fittingPanel);
+        document.getElementById('fitModuleButton').disabled = false;
         document.getElementById('scanSystemButton').disabled = false;
         document.getElementById('craftButton').disabled = false;
         document.getElementById('characterScanStatus').textContent = currentScan
@@ -832,6 +856,34 @@ declare(strict_types=1);
                 if (response.status === 409) { await refreshCharacters(); document.getElementById('characterSelect').value = characterId; const latest = loadedCharacters.find(item => item.id === characterId); if (latest) document.getElementById('characterRevision').value = String(latest.revision ?? 0); updateCharacterDetails(); }
             }
         } catch (error) { status.textContent = 'Crafting request failed: ' + error.message; logActivity('error', 'Crafting request failed', error.stack || error.message); }
+        finally { button.disabled = !document.getElementById('characterSelect').value; }
+    });
+
+    document.getElementById('fitModuleButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const moduleId = document.getElementById('fitModule').value;
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('fitModuleStatus');
+        if (!universeId || !characterId) { status.textContent = 'Load a universe and select a character before fitting a module.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        const button = document.getElementById('fitModuleButton'); button.disabled = true; status.textContent = 'Installing ship module…';
+        try {
+            const response = await fetch('api/character-fit.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, module_id: moduleId, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                status.textContent = 'Installed ' + data.module.label + ' in the ' + data.module.slot + ' slot. Character revision: ' + data.character.revision + '.';
+                logActivity('info', 'Ship module installed', data.module.label + ' (' + data.module.slot + ')');
+                await refreshCharacters(); document.getElementById('characterSelect').value = characterId;
+                document.getElementById('characterRevision').value = String(data.character.revision); updateCharacterDetails();
+            } else {
+                status.textContent = (data.error?.code || 'fitting_failed') + ': ' + (data.error?.message || 'Module installation failed.');
+                logActivity('error', 'Ship fitting rejected', JSON.stringify(data));
+                if (response.status === 409) { await refreshCharacters(); document.getElementById('characterSelect').value = characterId; const latest = loadedCharacters.find(item => item.id === characterId); if (latest) document.getElementById('characterRevision').value = String(latest.revision ?? 0); updateCharacterDetails(); }
+            }
+        } catch (error) { status.textContent = 'Ship fitting request failed: ' + error.message; logActivity('error', 'Ship fitting request failed', error.stack || error.message); }
         finally { button.disabled = !document.getElementById('characterSelect').value; }
     });
 

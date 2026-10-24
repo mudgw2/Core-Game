@@ -213,3 +213,12 @@
 {"time":"2026-10-24T06:18:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
 {"time":"2026-10-24T06:18:07+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T06:18:07+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T06:23:58+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T06:24:01+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T06:24:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T06:24:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:24:42+00:00","level":"INFO","message":"Ship module installed","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","module_id":"propulsion_array","revision":22}}
+{"time":"2026-10-24T06:24:42+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/fit"}}
+{"time":"2026-10-24T06:24:42+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:24:55+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T06:24:55+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

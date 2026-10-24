@@ -38,7 +38,7 @@
         ]
     },
     "created_at": "2026-10-24T00:00:29+00:00",
-    "revision": 21,
+    "revision": 22,
     "scans": {
         "systems": {
             "sys_3a9a93b845899e87": {
@@ -219,8 +219,8 @@
             "rare_ore": 1,
             "raw_ore": 0,
             "salvage_parts": 0,
-            "refined_alloy": 1,
-            "ship_components": 1,
+            "refined_alloy": 0,
+            "ship_components": 0,
             "tech_insights": 1
         },
         "ledger": [
@@ -349,6 +349,24 @@
                 "label": "Tech insights",
                 "quantity": 1,
                 "recorded_at": "2026-10-24T06:18:01+00:00"
+            },
+            {
+                "id": "fit_67e2486a8404659ff49a",
+                "type": "module_install_input",
+                "module_id": "propulsion_array",
+                "resource": "ship_components",
+                "label": "Ship Components",
+                "quantity": -1,
+                "recorded_at": "2026-10-24T06:24:42+00:00"
+            },
+            {
+                "id": "fit_deebee6fb648ed902355",
+                "type": "module_install_input",
+                "module_id": "propulsion_array",
+                "resource": "refined_alloy",
+                "label": "Refined Alloy",
+                "quantity": -1,
+                "recorded_at": "2026-10-24T06:24:42+00:00"
             }
         ]
     },
@@ -373,5 +391,16 @@
         "planned_from_system_id": "sys_4a75940074ad3a72",
         "planned_at": "2026-10-24T06:17:14+00:00",
         "updated_at": "2026-10-24T06:17:29+00:00"
+    },
+    "ship": {
+        "modules": {
+            "propulsion": {
+                "id": "propulsion_array",
+                "label": "Propulsion array",
+                "description": "A tuned propulsion assembly for the ship\u2019s propulsion slot.",
+                "installed_at": "2026-10-24T06:24:42+00:00"
+            }
+        },
+        "updated_at": "2026-10-24T06:24:42+00:00"
     }
 }

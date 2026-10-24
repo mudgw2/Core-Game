@@ -13,6 +13,7 @@ use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Characters\CharacterCraftingService;
+use Core\Modules\Characters\CharacterFittingService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -42,12 +43,13 @@ final class Application
         $scanService = new CharacterScanService($storage);
         $discoveryService = new CharacterDiscoveryService($storage);
         $craftingService = new CharacterCraftingService($storage);
+        $fittingService = new CharacterFittingService($storage);
         $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.26',
+            'version' => '0.1.27',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -267,6 +269,34 @@ final class Application
             }
         });
 
+        $this->router->post('/api/characters/fit', static function (Request $request) use ($fittingService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Ship fitting API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'fitting_api_disabled', 'message' => 'Ship fitting is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $moduleId = isset($body['module_id']) && is_string($body['module_id']) ? trim($body['module_id']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || $moduleId === '' || !is_int($expectedRevision)) {
+                Logger::warning('Ship fitting request validation failed', ['error_code' => 'invalid_fitting_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_fitting_request', 'message' => 'Provide universe_id, character_id, module_id, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $fittingService->install($universeId, $characterId, $moduleId, $expectedRevision);
+                Logger::info('Ship module installed', ['character_id' => $characterId, 'universe_id' => $universeId, 'module_id' => $moduleId, 'revision' => $result['character']['revision'] ?? null]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'fitting_target_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'required') || str_contains($message, 'must be') || str_contains($message, 'Unknown ship module') || str_contains($message, 'Insufficient') || str_contains($message, 'already occupied') || str_contains($message, 'do not belong')) return Response::json(['ok' => false, 'error' => ['code' => 'fitting_rejected', 'message' => $message]], 409);
+                Logger::error('Ship fitting failed', ['character_id' => $characterId, 'universe_id' => $universeId, 'module_id' => $moduleId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'fitting_failed', 'message' => 'Ship module could not be installed. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->post('/api/characters/discoveries/investigate', static function (Request $request) use ($discoveryService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Discovery investigation API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
@@ -434,6 +464,7 @@ final class Application
                 'POST /api/characters/travel with action start or advance (development/private network only)',
                 'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (development/private network only)',
                 'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (development/private network only)',
+                'POST /api/characters/fit with universe_id, character_id, module_id, and expected_revision (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

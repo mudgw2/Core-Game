@@ -37,6 +37,7 @@ use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Characters\CharacterCraftingService;
+use Core\Modules\Characters\CharacterFittingService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
@@ -1147,7 +1148,57 @@ $run('Overview dashboard is wired to current universe, character, location, and 
     return 'Overview tiles are updated alongside the existing character/travel dashboard and a default tab is initialized.';
 });
 
+
+$run('Ship fitting consumes materials, installs a module, and increments revision', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-fitting-success');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Ship Fitter');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['ship_components' => 2, 'refined_alloy' => 3, 'tech_insights' => 1], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
+        $result = (new CharacterFittingService($storage))->install($universe['id'], $character['id'], 'propulsion_array', 0);
+        $equal('propulsion_array', $result['character']['ship']['modules']['propulsion']['id'] ?? null, 'Propulsion module not installed.');
+        $equal(1, $result['character']['inventory']['resources']['ship_components'], 'Ship component not consumed.');
+        $equal(2, $result['character']['inventory']['resources']['refined_alloy'], 'Refined alloy not consumed.');
+        $equal(1, $result['character']['revision'], 'Fitting should increment revision once.');
+        $equal(2, count($result['character']['inventory']['ledger']), 'Fitting ledger entries missing.');
+        $equal($result['character'], $storage->read('characters', $character['id']), 'Fitted character was not persisted.');
+        return 'Module, material consumption, ledger entries, revision, and persisted character agree.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Ship fitting rejects occupied slots without changing inventory', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-fitting-slot');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Slot Tester');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['ship_components' => 2, 'refined_alloy' => 3], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
+        $service = new CharacterFittingService($storage); $service->install($universe['id'], $character['id'], 'propulsion_array', 0);
+        try { $service->install($universe['id'], $character['id'], 'propulsion_array', 1); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'slot is already occupied'), 'Unexpected occupied-slot error.'); $saved = $storage->read('characters', $character['id']); $equal(1, $saved['revision'], 'Rejected installation changed revision.'); $equal(1, $saved['inventory']['resources']['ship_components'], 'Rejected installation consumed components.'); $equal(2, count($saved['inventory']['ledger']), 'Rejected installation added ledger entries.'); return 'An occupied slot is rejected without further material consumption or revision changes.'; }
+        throw new RuntimeException('Occupied module slot was accepted.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Ship fitting rejects insufficient materials and stale revisions', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-fitting-validation');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Fitting Validation');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['ship_components' => 1], 'ledger' => []]; $storage->write('characters', $character['id'], $record); $service = new CharacterFittingService($storage);
+        try { $service->install($universe['id'], $character['id'], 'propulsion_array', 0); } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Insufficient refined alloy'), 'Unexpected insufficient-resource error.'); }
+        try { $service->install($universe['id'], $character['id'], 'survey_scanner', 5); } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale-revision error.'); }
+        $saved = $storage->read('characters', $character['id']); $equal(0, $saved['revision'], 'Rejected fitting changed revision.'); $equal(['ship_components' => 1], $saved['inventory']['resources'], 'Rejected fitting changed resources.'); $equal([], $saved['inventory']['ledger'], 'Rejected fitting added ledger entries.');
+        return 'Insufficient materials and stale revisions leave ship and inventory unchanged.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes ship fitting controls and persisted module slots', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['fitModule','fitModuleButton','fitModuleStatus','shipFittingPanel','api/character-fit.php','propulsion_array','survey_scanner','expanded_cargo_rack','character.ship?.modules'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing ship fitting marker: ' . $needle);
+    return 'Workbench exposes module selection, installation action, status feedback, and all three fitting slots.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.26', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.27', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

@@ -56,7 +56,7 @@ final class ItemCharacteristicsManagementService
             $current = $this->load(); $revision = $current['revision'];
             if ($expectedRevision !== $revision) throw new RuntimeException('Content revision conflict: expected ' . $expectedRevision . ', current revision is ' . $revision . '. Reload before saving.');
             $candidate['schema_version'] = 1; $candidate['revision'] = $revision + 1;
-            $candidate['content_version'] = is_string($candidate['content_version'] ?? null) ? $candidate['content_version'] : '0.1.45';
+            $candidate['content_version'] = is_string($candidate['content_version'] ?? null) ? $candidate['content_version'] : '0.1.46';
             $candidate['updated_at'] = gmdate('c'); unset($candidate['entries'], $candidate['catalog']);
             $this->validate($candidate);
             $path = $dir . '/item-characteristics.json'; $old = @file_get_contents($path);

@@ -1736,6 +1736,26 @@ $run('Item categories are a JSON-defined dropdown and arbitrary categories are r
     return 'Item category labels load from JSON; item forms use a required dropdown; every configured item category is allow-listed.';
 });
 
+$run('Item characteristic values persist through revision-checked save and reload', static function () use ($assert): string {
+    $root = dirname(__DIR__); $dir = sys_get_temp_dir() . '/core-web-item-characteristics-roundtrip-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; if (!mkdir($content, 0770, true) && !is_dir($content)) throw new RuntimeException('Could not create temporary content directory.');
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) if (!copy($root . '/config/content/' . $file, $content . '/' . $file)) throw new RuntimeException('Could not copy catalog: ' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $document = json_decode((string)file_get_contents($content . '/items.json'), true, 512, JSON_THROW_ON_ERROR);
+        $document['entries']['raw_ore']['characteristics']['rarity'] = 'exceptional';
+        $saved = $manager->save('items', 1, $document);
+        $assert($saved['revision'] === 2, 'Item catalog revision did not increment.');
+        $reloaded = json_decode((string)file_get_contents($content . '/items.json'), true, 512, JSON_THROW_ON_ERROR);
+        $assert(($reloaded['entries']['raw_ore']['characteristics']['rarity'] ?? null) === 'exceptional', 'Characteristic value did not survive save/reload.');
+        $backup = json_decode((string)file_get_contents($dir . '/backups/content/' . $saved['backup_file']), true, 512, JSON_THROW_ON_ERROR);
+        $assert(($backup['entries']['raw_ore']['characteristics']['rarity'] ?? null) === 'common', 'Verified backup did not preserve the prior characteristic value.');
+        return 'A typed characteristic survived an item-catalog save/reload, revision increment, and previous-version backup.';
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
 $run('Item characteristic schema is JSON-defined and available through the content API', static function () use ($assert): string {
     $root = dirname(__DIR__);
     $schema = ContentCatalog::itemCharacteristicsDocument();
@@ -1805,4 +1825,4 @@ $passed = count(array_filter($results, static fn(array $r): bool => $r['status']
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.45', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.46', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

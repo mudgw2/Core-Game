@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "content_version": "0.1.45",
+  "content_version": "0.1.46",
   "description": "Typed, category-specific item characteristic definitions used by the Content Studio and server-side validation. This catalog defines metadata only; characteristics do not alter gameplay mechanics unless a later system explicitly uses them.",
   "categories": {
     "resource": {

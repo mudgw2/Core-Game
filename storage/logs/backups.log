@@ -10,3 +10,9 @@
 {"time":"2026-10-24T19:47:09+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261024194709_3fa6e46e0b","characters":0}}
 {"time":"2026-10-24T19:47:09+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_delete_test","backup_id":"bkp_20261024194709_137086a5cb","characters":1}}
 {"time":"2026-10-24T19:47:09+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024194709_137086a5cb","universe_id":"universe_delete_test","characters":1}}
+{"time":"2026-10-24T19:52:54+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_backup_test","backup_id":"bkp_20261024195254_e73debce46","characters":1}}
+{"time":"2026-10-24T19:52:54+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261024195254_c505fff4dc","characters":1}}
+{"time":"2026-10-24T19:52:54+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024195254_c505fff4dc","universe_id":"universe_restore_test","characters":1}}
+{"time":"2026-10-24T19:52:54+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261024195254_fd9ef21756","characters":0}}
+{"time":"2026-10-24T19:52:55+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_delete_test","backup_id":"bkp_20261024195255_d78846f328","characters":1}}
+{"time":"2026-10-24T19:52:55+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024195255_d78846f328","universe_id":"universe_delete_test","characters":1}}

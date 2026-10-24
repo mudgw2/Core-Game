@@ -1,4 +1,4 @@
-# CORE PHP Foundation 0.1.45
+# CORE PHP Foundation 0.1.46
 
 CORE is a seed-driven sci-fi sandbox foundation using PHP, JSON persistence, and a browser Workbench.
 
@@ -61,12 +61,12 @@ The Workbench's **Run automated tests** action runs the browser QA suite. Do not
 
 Preserve the live contents of `storage/data/`, `storage/logs/`, and `storage/backups/` when installing an upgrade. The package's placeholder storage directories must not replace or erase live data. Content backups are stored under `storage/backups/content/` and should also be retained.
 
-See `RELEASE-NOTES-0.1.45.md` for changes and validation results.
+See `RELEASE-NOTES-0.1.46.md` for changes and validation results.
 
-## Item characteristics (0.1.45)
+## Item characteristics (introduced in 0.1.45)
 
 Item-specific typed fields are defined in `config/content/item-characteristics.json`, separately from the item definitions in `config/content/items.json`. The Workbench renders the field controls from that schema, and PHP validates submitted values against it. The initial `rarity` field is descriptive metadata only and has no gameplay effect yet. The schema is available at `GET /api/content/item-characteristics`. The schema supports text, number, integer, boolean, and enumerated values so category-specific characteristics can be added without redesigning the editor.
 
-## Characteristic schema management (0.1.45)
+## Characteristic schema management (introduced in 0.1.45)
 
 The Item Characteristics Manager lets you select a category and add/edit/remove typed fields through forms. It supports text, number, integer, boolean, and enumerated choices, plus required/default settings, numeric limits, option IDs/labels, and descriptions. Existing field IDs cannot be renamed. Before saving, the server checks all current items; it rejects changes that would invalidate values or remove fields currently in use. Successful saves are revision-checked, backed up, and atomically replaced.

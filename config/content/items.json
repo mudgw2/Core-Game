@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "content_version": "0.1.45",
+  "content_version": "0.1.46",
   "description": "Editable item and resource definitions used by exploration rewards, crafting, and ship fitting.",
   "entries": {
     "raw_ore": {

@@ -491,6 +491,25 @@ $test('content management rejects stale revisions without overwriting newer cont
     }
 });
 
+$test('item characteristic values persist through content save and reload', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-item-characteristics-roundtrip-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/items.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['raw_ore']['characteristics']['rarity'] = 'exceptional';
+        $saved = $manager->save('items', 1, $doc);
+        $equal(2, $saved['revision'], 'Item catalog revision did not increment.');
+        $reloaded = json_decode((string)file_get_contents($content . '/items.json'), true, 512, JSON_THROW_ON_ERROR);
+        $equal('exceptional', $reloaded['entries']['raw_ore']['characteristics']['rarity'], 'Characteristic value did not survive save/reload.');
+        $backup = json_decode((string)file_get_contents($dir . '/backups/content/' . $saved['backup_file']), true, 512, JSON_THROW_ON_ERROR);
+        $equal('common', $backup['entries']['raw_ore']['characteristics']['rarity'], 'Backup did not preserve the prior characteristic value.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
 $test('item characteristics are defined in JSON and exposed by the aggregate content document', static function () use ($assert, $equal): void {
     $schema = ContentCatalog::itemCharacteristicsDocument();
     $assert(isset($schema['categories']['resource']['fields']['rarity']['options']['rare']), 'Rarity enum schema is missing.');

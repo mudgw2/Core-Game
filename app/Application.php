@@ -148,7 +148,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.45',
+            'version' => '0.1.46',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.

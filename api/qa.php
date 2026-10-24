@@ -1541,6 +1541,68 @@ $run('Universe deletion rejects stale revisions and changed dependent-character 
         return 'Stale universe revisions and stale dependent-record lists rejected without mutation.';
     } finally { $cleanup($dir); }
 });
+$run('Atomic universe deletion stages the universe and dependents as one verified set', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-atomic-delete-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'universe_atomic_qa', 'state' => ['revision' => 0, 'changes' => []]];
+        $characterA = ['id' => 'character_atomic_a', 'universe_id' => $universe['id'], 'revision' => 0];
+        $characterB = ['id' => 'character_atomic_b', 'universe_id' => $universe['id'], 'revision' => 0];
+        $storage->write('universes', $universe['id'], $universe);
+        $storage->write('characters', $characterA['id'], $characterA);
+        $storage->write('characters', $characterB['id'], $characterB);
+        $transaction = $storage->deleteBatchAtomically([
+            ['collection' => 'universes', 'id' => $universe['id'], 'expected' => $universe],
+            ['collection' => 'characters', 'id' => $characterA['id'], 'expected' => $characterA],
+            ['collection' => 'characters', 'id' => $characterB['id'], 'expected' => $characterB],
+        ], 'ud_' . bin2hex(random_bytes(12)), static function (): void {});
+        $equal(3, $transaction['deleted_count'], 'Atomic transaction record count mismatch.');
+        $equal(true, $transaction['verified'], 'Atomic transaction did not verify.');
+        foreach ([['universes', $universe['id']], ['characters', $characterA['id']], ['characters', $characterB['id']]] as [$collection, $id]) {
+            $equal(null, $storage->read($collection, $id), 'Record remained live after atomic deletion: ' . $id);
+            $assert(is_file($dir . '/data/' . $collection . '/' . $id . '.json.lock'), 'Record lock tombstone was removed: ' . $id);
+        }
+        $assert(!is_dir($dir . '/data/.transactions/' . 'delete_' . $transaction['transaction_id']), 'Committed transaction staging directory was not cleaned.');
+        return 'Universe and both dependents were removed as one verified staged transaction; lock files were retained.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Atomic universe deletion aborts before moving records when the final guard rejects', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-atomic-delete-guard-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'universe_atomic_guard_qa', 'state' => ['revision' => 0, 'changes' => []]];
+        $character = ['id' => 'character_atomic_guard_qa', 'universe_id' => $universe['id'], 'revision' => 0];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $transactionId = 'ud_' . bin2hex(random_bytes(12));
+        try {
+            $storage->deleteBatchAtomically([
+                ['collection' => 'universes', 'id' => $universe['id'], 'expected' => $universe],
+                ['collection' => 'characters', 'id' => $character['id'], 'expected' => $character],
+            ], $transactionId, static function (): void { throw new RuntimeException('Injected final-guard rejection.'); });
+            throw new RuntimeException('Rejected final guard was ignored.');
+        } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'before any live record was moved'), 'Unexpected guard failure response: ' . $e->getMessage()); }
+        $equal($universe, $storage->read('universes', $universe['id']), 'Universe changed after pre-move rejection.');
+        $equal($character, $storage->read('characters', $character['id']), 'Character changed after pre-move rejection.');
+        $assert(!is_dir($dir . '/data/.transactions/delete_' . $transactionId), 'Empty failed transaction directory was retained.');
+        return 'Final guard rejection left both live records byte-equivalent at the decoded-record level and removed empty staging.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character creation and universe deletion share the universe lock', static function () use ($assert): string {
+    $characters = file_get_contents(dirname(__DIR__) . '/app/Modules/Characters/CharacterService.php');
+    $storage = file_get_contents(dirname(__DIR__) . '/app/Storage/JsonStorage.php');
+    $deletion = file_get_contents(dirname(__DIR__) . '/app/Modules/UniverseDeletionService.php');
+    $assert(str_contains($characters, "withRecordLockOperation('universes', \$universeId"), 'Character creation does not hold the universe lock.');
+    $assert(str_contains($storage, 'deleteBatchAtomically'), 'Atomic batch deletion primitive is missing.');
+    $assert(str_contains($storage, 'Caller order is intentional: universe lock first'), 'Atomic deletion lock ordering is undocumented or changed.');
+    $assert(str_contains($deletion, 'deleteBatchAtomically($records, $transactionId'), 'Universe deletion is not using atomic batch staging.');
+    $assert(str_contains($deletion, 'currentCharacters !== $characterSnapshots'), 'Final dependent-character snapshot guard is missing.');
+    $storageProtection = file_get_contents(dirname(__DIR__) . '/storage/.htaccess');
+    $assert(is_string($storageProtection) && str_contains($storageProtection, 'Require all denied') && str_contains($storageProtection, 'Deny from all'), 'Storage files and recovery transactions are not protected from direct HTTP access.');
+    return 'Character creation serializes on the universe lock; deletion acquires universe then sorted character locks and rechecks the dependent set before staging. Storage records, backups, logs, and recovery transactions are denied direct HTTP access.';
+});
+
 $run('Universe deletion API and confirmation UI are wired', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php'); $endpoint = file_get_contents(dirname(__DIR__) . '/api/data-management-universe-delete.php');
     foreach (['deleteManagedUniverseButton', 'cleanupUniverseConfirmation', 'DELETE UNIVERSE ', 'pre-deletion backup'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion UI marker missing: ' . $needle);
@@ -1588,4 +1650,4 @@ $run('Focused logging and deletion permission preflight are implemented', static
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.38', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.39', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

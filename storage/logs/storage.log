@@ -5,3 +5,8 @@
 {"time":"2026-10-24T18:13:08+00:00","level":"ERROR","message":"Existing storage lock file is not writable by PHP","context":{"collection":"characters","record_id":"chr_37ca26fe92c99e9a9c8b0688","lock_path":"/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock","collection_directory":"/var/www/html/core-game/storage/data/characters","directory_writable":true,"lock_exists":true,"lock_writable":false}}
 {"time":"2026-10-24T18:22:27+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T18:22:27+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T18:41:12+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_69008d2bd24a38214999017c","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-24T18:41:19+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T18:41:20+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T18:41:22+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_df2b20595ad932d3b224fc02","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-24T18:41:22+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_b8bf4f1172012ece247992db","record_count":3,"cleanup_complete":true}}

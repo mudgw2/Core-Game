@@ -198,6 +198,49 @@ $test('universe backup and restore preserve data and refuse conflicts', static f
     }
 });
 
+$test('atomic batch deletion removes related records and preserves lock-file identity', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-atomic-delete-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'atomic_universe', 'revision' => 1];
+        $character = ['id' => 'atomic_character', 'universe_id' => $universe['id'], 'revision' => 1];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $result = $storage->deleteBatchAtomically([
+            ['collection' => 'universes', 'id' => $universe['id'], 'expected' => $universe],
+            ['collection' => 'characters', 'id' => $character['id'], 'expected' => $character],
+        ], 'ud_' . bin2hex(random_bytes(12)), static function (): void {});
+        $equal(2, $result['deleted_count']); $equal(true, $result['verified']);
+        $equal(null, $storage->read('universes', $universe['id'])); $equal(null, $storage->read('characters', $character['id']));
+        $assert(is_file($dir . '/data/universes/' . $universe['id'] . '.json.lock'), 'Universe lock tombstone was removed.');
+        $assert(is_file($dir . '/data/characters/' . $character['id'] . '.json.lock'), 'Character lock tombstone was removed.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('atomic batch deletion guard failure leaves every live record intact', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-atomic-delete-guard-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'atomic_guard_universe', 'revision' => 1];
+        $character = ['id' => 'atomic_guard_character', 'universe_id' => $universe['id'], 'revision' => 1];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $transactionId = 'ud_' . bin2hex(random_bytes(12));
+        try {
+            $storage->deleteBatchAtomically([
+                ['collection' => 'universes', 'id' => $universe['id'], 'expected' => $universe],
+                ['collection' => 'characters', 'id' => $character['id'], 'expected' => $character],
+            ], $transactionId, static function (): void { throw new RuntimeException('injected guard failure'); });
+            throw new RuntimeException('Guard failure was ignored.');
+        } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'before any live record was moved'), 'Unexpected guard error.'); }
+        $equal($universe, $storage->read('universes', $universe['id']));
+        $equal($character, $storage->read('characters', $character['id']));
+        $assert(!is_dir($dir . '/data/.transactions/delete_' . $transactionId), 'Empty transaction staging directory remains.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
 $test('focused logs receive categorized events while preserving the central log', static function () use ($assert): void {
     $dir = sys_get_temp_dir() . '/core-cli-logs-' . bin2hex(random_bytes(8));
     if (!mkdir($dir, 0770, true) && !is_dir($dir)) throw new RuntimeException('Could not create log test directory.');

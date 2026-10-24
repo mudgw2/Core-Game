@@ -29,41 +29,45 @@ final class CharacterService
         if ($role === '' || $roleLength === false || $roleLength > 40) {
             throw new RuntimeException('Character role must be a non-empty string of at most 40 characters.');
         }
-        $universe = $this->storage->read('universes', $universeId);
-        if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
-            throw new RuntimeException('The selected universe does not exist.');
-        }
-        UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
-        $id = 'chr_' . bin2hex(random_bytes(12));
-        $firstSystem = $universe['baseline']['systems'][0] ?? null;
-        if (!is_array($firstSystem) || !isset($firstSystem['id'])) {
-            throw new RuntimeException('The selected universe has no valid starting system.');
-        }
-        $now = gmdate('c');
-        $record = [
-            'id' => $id,
-            'schema_version' => 1,
-            'universe_id' => $universeId,
-            'name' => $name,
-            'role' => $role,
-            'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
-            'current_system_id' => (string)$firstSystem['id'],
-            'location' => [
-                'system_id' => (string)$firstSystem['id'],
-                'updated_at' => $now,
-            ],
-            'exploration' => [
-                'explored_systems' => [[
+        // Character creation shares the universe lock with universe deletion. This closes the race
+        // where a new dependent character could appear after deletion enumerates its dependents.
+        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role): array {
+            $universe = $this->storage->read('universes', $universeId);
+            if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
+                throw new RuntimeException('The selected universe does not exist.');
+            }
+            UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
+            $id = 'chr_' . bin2hex(random_bytes(12));
+            $firstSystem = $universe['baseline']['systems'][0] ?? null;
+            if (!is_array($firstSystem) || !isset($firstSystem['id'])) {
+                throw new RuntimeException('The selected universe has no valid starting system.');
+            }
+            $now = gmdate('c');
+            $record = [
+                'id' => $id,
+                'schema_version' => 1,
+                'universe_id' => $universeId,
+                'name' => $name,
+                'role' => $role,
+                'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
+                'current_system_id' => (string)$firstSystem['id'],
+                'location' => [
                     'system_id' => (string)$firstSystem['id'],
-                    'name' => (string)($firstSystem['name'] ?? $firstSystem['id']),
-                    'first_visited_at' => $now,
-                    'first_visited_revision' => 0,
-                ]],
-            ],
-            'created_at' => $now,
-            'revision' => 0,
-        ];
-        return $this->storage->createIfAbsent('characters', $id, $record);
+                    'updated_at' => $now,
+                ],
+                'exploration' => [
+                    'explored_systems' => [[
+                        'system_id' => (string)$firstSystem['id'],
+                        'name' => (string)($firstSystem['name'] ?? $firstSystem['id']),
+                        'first_visited_at' => $now,
+                        'first_visited_revision' => 0,
+                    ]],
+                ],
+                'created_at' => $now,
+                'revision' => 0,
+            ];
+            return $this->storage->createIfAbsent('characters', $id, $record);
+        });
     }
 
     /** Move a character within its universe. Repeated same-destination requests are idempotent. */

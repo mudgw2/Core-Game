@@ -1,2 +1,9 @@
-# Keep persisted game records, local backups, and logs out of direct HTTP access.
-Require all denied
+# Storage contains live JSON records, backups, logs, and in-progress recovery transactions.
+# Never serve these files directly over HTTP.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

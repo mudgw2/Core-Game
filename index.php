@@ -74,7 +74,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.38</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.39</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>

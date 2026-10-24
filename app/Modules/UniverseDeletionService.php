@@ -50,35 +50,91 @@ final class UniverseDeletionService
             throw new RuntimeException('Records changed while the pre-deletion backup was being created. No live records were deleted; backup ' . $backup['backup_id'] . ' was retained. Refresh the preview.');
         }
 
-        $deletedCharacters = [];
-        $deletedUniverse = false;
-        try {
-            foreach ($characterSnapshots as $character) {
-                $id = (string)$character['id'];
-                $deletedCharacters[] = $this->storage->delete('characters', $id, static function (array $current) use ($character): void {
-                    if ($current !== $character) throw new RuntimeException('Deletion rejected because character data changed. Refresh the preview.');
-                });
-            }
-            // Check for newly created dependents before deleting the parent record.
-            if ($this->charactersFor($universeId) !== []) throw new RuntimeException('A character was added during deletion. Universe deletion was cancelled.');
-            $this->storage->delete('universes', $universeId, static function (array $current) use ($universeSnapshot): void {
-                if ($current !== $universeSnapshot) throw new RuntimeException('Deletion rejected because universe data changed. Refresh the preview.');
-            });
-            $deletedUniverse = true;
-            if ($this->storage->read('universes', $universeId) !== null || $this->charactersFor($universeId) !== []) throw new RuntimeException('Post-deletion verification found remaining records.');
-        } catch (Throwable $failure) {
-            try {
-                $restored = $this->backups->restore($backup['backup_id']);
-                Logger::warning('Universe deletion failed; backup rollback attempted', ['universe_id' => $universeId, 'backup_id' => $backup['backup_id'], 'deleted_character_count' => count($deletedCharacters), 'universe_deleted' => $deletedUniverse, 'rollback_verified' => $restored['verified'] ?? false, 'failure' => $failure->getMessage()]);
-            } catch (Throwable $rollbackFailure) {
-                Logger::error('CRITICAL: universe deletion failed and automatic rollback could not be verified', ['universe_id' => $universeId, 'backup_id' => $backup['backup_id'], 'failure' => $failure->getMessage(), 'rollback_failure' => $rollbackFailure->getMessage()]);
-                throw new RuntimeException('Deletion failed and automatic rollback could not be verified. Preserve backup ' . $backup['backup_id'] . ' and inspect storage/logs/universe-deletion.log and storage/logs/backups.log immediately.', 0, $failure);
-            }
-            throw new RuntimeException('Universe deletion was cancelled and the pre-deletion backup was used to verify/restore records. Reason: ' . $failure->getMessage() . ' Backup: ' . $backup['backup_id'], 0, $failure);
+        $transactionId = 'ud_' . bin2hex(random_bytes(12));
+        $records = [['collection' => 'universes', 'id' => $universeId, 'expected' => $universeSnapshot]];
+        foreach ($characterSnapshots as $character) {
+            $records[] = ['collection' => 'characters', 'id' => (string)$character['id'], 'expected' => $character];
         }
 
-        Logger::warning('Universe and associated characters permanently deleted', ['universe_id' => $universeId, 'deleted_characters' => count($deletedCharacters), 'backup_id' => $backup['backup_id'], 'verified' => true]);
-        return ['universe_id' => $universeId, 'deleted_characters' => count($deletedCharacters), 'backup' => $backup, 'verified' => true];
+        try {
+            // The storage layer acquires the universe lock first, then character locks in stable order.
+            // CharacterService uses the same universe lock when creating characters, preventing a new
+            // dependent character from appearing between the final dependency check and deletion.
+            $transaction = $this->storage->deleteBatchAtomically($records, $transactionId, function () use ($universeId, $expectedCharacterIds, $universeSnapshot, $characterSnapshots, $backup): void {
+                $currentUniverse = $this->storage->read('universes', $universeId);
+                $currentCharacters = $this->charactersFor($universeId);
+                $currentIds = array_map(static fn(array $c): string => (string)($c['id'] ?? ''), $currentCharacters);
+                sort($currentIds, SORT_STRING);
+                if ($currentUniverse !== $universeSnapshot || $currentCharacters !== $characterSnapshots || $currentIds !== $expectedCharacterIds) {
+                    throw new RuntimeException('Records or dependent characters changed before atomic deletion. No live records were removed; backup ' . $backup['backup_id'] . ' was retained. Generate a fresh preview.');
+                }
+            });
+
+            if ($this->storage->read('universes', $universeId) !== null || $this->charactersFor($universeId) !== []) {
+                throw new RuntimeException('Atomic deletion committed but post-commit verification found live records. Preserve backup ' . $backup['backup_id'] . '.');
+            }
+        } catch (Throwable $failure) {
+            if (str_contains($failure->getMessage(), 'before any live record was moved')) {
+                // The storage layer guarantees that no live JSON was staged in this path. In particular,
+                // a character created just before the universe lock was acquired is a stale-preview case,
+                // not a rollback failure; keep it and require a new preview.
+                Logger::warning('Universe deletion cancelled before any records were removed', [
+                    'universe_id' => $universeId, 'backup_id' => $backup['backup_id'],
+                    'transaction_id' => $transactionId, 'failure' => $failure->getMessage(),
+                ]);
+                throw new RuntimeException('Universe deletion was cancelled before any records were removed. The live data was not changed by this attempt. Reason: ' . $failure->getMessage() . ' Backup retained: ' . $backup['backup_id'] . '. Generate a fresh preview before retrying.', 0, $failure);
+            }
+            if (str_contains($failure->getMessage(), 'all live records were verified restored')) {
+                $universeRestored = $this->storage->read('universes', $universeId) === $universeSnapshot;
+                $charactersRestored = true;
+                foreach ($characterSnapshots as $expectedCharacter) {
+                    if ($this->storage->read('characters', (string)$expectedCharacter['id']) !== $expectedCharacter) {
+                        $charactersRestored = false;
+                        break;
+                    }
+                }
+                if ($universeRestored && $charactersRestored) {
+                    Logger::warning('Universe deletion aborted; storage transaction verified all original records restored', [
+                        'universe_id' => $universeId, 'backup_id' => $backup['backup_id'],
+                        'transaction_id' => $transactionId, 'failure' => $failure->getMessage(),
+                        'rollback_verified' => true,
+                    ]);
+                    throw new RuntimeException('Universe deletion was cancelled; all original universe and character records were verified restored. Reason: ' . $failure->getMessage() . ' Backup retained: ' . $backup['backup_id'] . '. Generate a fresh preview before retrying.', 0, $failure);
+                }
+            }
+            try {
+                // The storage transaction normally restores moved files itself. This checksum-verified
+                // backup restore is a second recovery layer for missing records if filesystem rollback failed.
+                $restored = $this->backups->restore($backup['backup_id']);
+                $universeRestored = $this->storage->read('universes', $universeId) === $universeSnapshot;
+                $charactersRestored = true;
+                foreach ($characterSnapshots as $expectedCharacter) {
+                    if ($this->storage->read('characters', (string)$expectedCharacter['id']) !== $expectedCharacter) {
+                        $charactersRestored = false;
+                        break;
+                    }
+                }
+                if (!($restored['verified'] ?? false) || !$universeRestored || !$charactersRestored) {
+                    throw new RuntimeException('Backup restore returned without verifying the original universe and every pre-deletion character.');
+                }
+                Logger::warning('Universe deletion failed; atomic rollback and backup recovery verified', [
+                    'universe_id' => $universeId, 'backup_id' => $backup['backup_id'],
+                    'transaction_id' => $transactionId, 'failure' => $failure->getMessage(),
+                    'rollback_verified' => true,
+                ]);
+            } catch (Throwable $rollbackFailure) {
+                Logger::critical('CRITICAL: universe deletion failed and automatic rollback could not be verified', [
+                    'universe_id' => $universeId, 'backup_id' => $backup['backup_id'],
+                    'transaction_id' => $transactionId, 'failure' => $failure->getMessage(),
+                    'rollback_failure' => $rollbackFailure->getMessage(),
+                ]);
+                throw new RuntimeException('Deletion failed and recovery could not be verified. Preserve backup ' . $backup['backup_id'] . ' and inspect storage/logs/universe-deletion.log and storage/logs/backups.log immediately. Recovery transaction: ' . $transactionId . '. Generate a fresh preview before retrying.', 0, $failure);
+            }
+            throw new RuntimeException('Universe deletion was cancelled; the original universe and character records were verified restored. Reason: ' . $failure->getMessage() . ' Backup: ' . $backup['backup_id'], 0, $failure);
+        }
+
+        Logger::warning('Universe and associated characters permanently deleted', ['universe_id' => $universeId, 'deleted_characters' => count($characterSnapshots), 'backup_id' => $backup['backup_id'], 'transaction_id' => $transactionId, 'verified' => true]);
+        return ['universe_id' => $universeId, 'deleted_characters' => count($characterSnapshots), 'backup' => $backup, 'transaction_id' => $transactionId, 'verified' => true];
     }
 
     private function charactersFor(string $universeId): array

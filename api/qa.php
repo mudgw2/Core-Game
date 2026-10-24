@@ -1736,6 +1736,34 @@ $run('Item categories are a JSON-defined dropdown and arbitrary categories are r
     return 'Item category labels load from JSON; item forms use a required dropdown; every configured item category is allow-listed.';
 });
 
+$run('Item characteristic schema is JSON-defined and available through the content API', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $schema = ContentCatalog::itemCharacteristicsDocument();
+    $assert(isset($schema['categories']['resource']['fields']['rarity']['options']['rare']), 'Rarity schema is missing.');
+    $assert(is_file($root . '/api/content-item-characteristics.php'), 'Characteristic schema API wrapper is missing.');
+    $all = ContentCatalog::allDocuments();
+    $assert(isset($all['item_characteristics']['entries']['component']), 'Aggregate API lacks characteristic schema.');
+    return 'Category-specific characteristic definitions are loaded from JSON and exposed through the aggregate and dedicated API.';
+});
+$run('Item characteristic validation rejects unknown enum values and fields', static function () use ($assert): string {
+    $docs = ['items'=>ContentCatalog::document('items'), 'recipes'=>ContentCatalog::document('recipes'), 'discoveries'=>ContentCatalog::document('discoveries'), 'ship_modules'=>ContentCatalog::document('ship_modules')];
+    $docs['items']['entries']['raw_ore']['characteristics']['rarity'] = 'not_a_rarity';
+    try { ContentCatalog::validateDocuments($docs); throw new RuntimeException('Invalid enum characteristic was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid value for item characteristic'), 'Unexpected enum error: ' . $e->getMessage()); }
+    $docs['items'] = ContentCatalog::document('items');
+    $docs['items']['entries']['raw_ore']['characteristics']['not_defined'] = 'value';
+    try { ContentCatalog::validateDocuments($docs); throw new RuntimeException('Unknown characteristic was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Unknown item characteristic'), 'Unexpected unknown field error: ' . $e->getMessage()); }
+    return 'Invalid characteristic choices and undefined fields are rejected before save.';
+});
+$run('Content Studio renders typed item characteristic fields from JSON schema', static function () use ($assert): string {
+    $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
+    $assert(str_contains($html, 'function renderCharacteristicFields(categoryId'), 'Dynamic characteristic editor is missing.');
+    $assert(str_contains($html, 'data-characteristic-type="enum"'), 'Enum dropdown rendering is missing.');
+    $assert(str_contains($html, 'entry.characteristics=readCharacteristicValues()'), 'Item form does not save characteristic values.');
+    return 'Item editor renders schema-driven fields and carries their typed values into the draft.';
+});
+
 $run('Workbench exposes structured content management and revision-checked APIs', static function () use ($assert): string {
     $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
     foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentEntrySelect', 'contentEntryForm', 'contentAddEntryButton', 'contentApplyEntryButton', 'contentUseJsonButton', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
@@ -1752,4 +1780,4 @@ $passed = count(array_filter($results, static fn(array $r): bool => $r['status']
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.43', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.44', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

@@ -59,6 +59,7 @@ final class ContentCatalog
                 if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['category'] ?? null) || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_bool($entry['stackable'] ?? null)) throw new RuntimeException('Invalid item definition: ' . $id);
                 $categories = self::itemCategoriesDocument()['entries'];
                 if (!isset($categories[$entry['category']])) throw new RuntimeException('Invalid item category for ' . $id . ': ' . (string)$entry['category'] . '. Choose a category defined in config/content/item-categories.json.');
+                self::validateItemCharacteristics($id, $entry, $entry['category']);
             } elseif ($name === 'recipes') {
                 if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_array($entry['inputs'] ?? null) || $entry['inputs'] === []) throw new RuntimeException('Invalid recipe definition: ' . $id);
                 foreach ($entry['inputs'] as $itemId => $quantity) if (!isset($items[$itemId]) || !is_int($quantity) || $quantity < 1 || $quantity > 1000000) throw new RuntimeException('Invalid recipe input: ' . $id . '/' . $itemId);
@@ -74,6 +75,87 @@ final class ContentCatalog
         }
     }
 
+
+    /** Load typed characteristic definitions for each item category from JSON. */
+    public static function itemCharacteristicsDocument(): array
+    {
+        $path = CORE_ROOT . '/config/content/item-characteristics.json';
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
+            Logger::error('Item characteristic schema could not be read', ['path' => $path]);
+            throw new RuntimeException('Item characteristic definitions are unavailable.');
+        }
+        try { $document = json_decode($raw, true, 512, JSON_THROW_ON_ERROR); }
+        catch (\JsonException $e) {
+            Logger::error('Item characteristic schema is malformed', ['path' => $path, 'message' => $e->getMessage()]);
+            throw new RuntimeException('Item characteristic definitions contain invalid JSON.', 0, $e);
+        }
+        if (!is_array($document) || ($document['schema_version'] ?? null) !== 1 || !is_array($document['categories'] ?? null) || $document['categories'] === []) {
+            Logger::error('Item characteristic schema has an invalid structure', ['path' => $path]);
+            throw new RuntimeException('Item characteristic definitions have an invalid structure.');
+        }
+        $knownCategories = self::itemCategoriesDocument()['entries'];
+        foreach ($document['categories'] as $categoryId => $category) {
+            if (!isset($knownCategories[$categoryId]) || !is_array($category) || !is_array($category['fields'] ?? null)) {
+                throw new RuntimeException('Invalid item characteristic category definition: ' . (string)$categoryId);
+            }
+            foreach ($category['fields'] as $fieldId => $field) {
+                if (!is_string($fieldId) || !preg_match('/^[a-z][a-z0-9_]{1,63}$/', $fieldId) || !is_array($field)
+                    || !is_string($field['label'] ?? null) || trim($field['label']) === '' || strlen($field['label']) > 100
+                    || !in_array($field['type'] ?? null, ['text', 'number', 'integer', 'boolean', 'enum'], true)
+                    || !is_bool($field['required'] ?? null)) {
+                    throw new RuntimeException('Invalid item characteristic field definition: ' . (string)$categoryId . '/' . (string)$fieldId);
+                }
+                if (isset($field['min']) && (!is_int($field['min']) && !is_float($field['min']))) throw new RuntimeException('Characteristic minimum must be numeric: ' . $fieldId);
+                if (isset($field['max']) && (!is_int($field['max']) && !is_float($field['max']))) throw new RuntimeException('Characteristic maximum must be numeric: ' . $fieldId);
+                if (isset($field['min'], $field['max']) && $field['min'] > $field['max']) throw new RuntimeException('Characteristic minimum exceeds maximum: ' . $fieldId);
+                if (isset($field['options'])) {
+                    if (!is_array($field['options']) || $field['options'] === []) throw new RuntimeException('Characteristic options must be a non-empty object: ' . $fieldId);
+                    foreach ($field['options'] as $optionId => $optionLabel) if (!is_string($optionId) || !is_string($optionLabel) || trim($optionLabel) === '') throw new RuntimeException('Invalid characteristic option: ' . $fieldId);
+                }
+                if (($field['type'] ?? '') === 'enum' && !is_array($field['options'] ?? null)) throw new RuntimeException('Enum characteristic must define options: ' . $fieldId);
+                if (array_key_exists('default', $field)) self::validateCharacteristicValue($fieldId, $field, $field['default']);
+            }
+        }
+        foreach ($knownCategories as $categoryId => $_) if (!isset($document['categories'][$categoryId])) throw new RuntimeException('Missing item characteristic schema for category: ' . $categoryId);
+        // Keep the same aggregate-document shape as the other catalogs while exposing category schemas too.
+        $document['entries'] = $document['categories'];
+        $document['catalog'] = 'item_characteristics';
+        return $document;
+    }
+
+    private static function validateItemCharacteristics(string $itemId, array $entry, string $categoryId): void
+    {
+        $schema = self::itemCharacteristicsDocument();
+        $fields = $schema['categories'][$categoryId]['fields'] ?? [];
+        $values = $entry['characteristics'] ?? [];
+        if (!is_array($values)) throw new RuntimeException('Item characteristics must be an object: ' . $itemId);
+        foreach ($values as $fieldId => $_value) {
+            if (!isset($fields[$fieldId])) throw new RuntimeException('Unknown item characteristic for ' . $itemId . ': ' . (string)$fieldId . '. Add the field to config/content/item-characteristics.json first.');
+        }
+        foreach ($fields as $fieldId => $field) {
+            if (!array_key_exists($fieldId, $values)) {
+                // Defaults keep older item definitions readable while they are migrated in the editor.
+                if (($field['required'] ?? false) && !array_key_exists('default', $field)) throw new RuntimeException('Required item characteristic is missing: ' . $itemId . '/' . $fieldId);
+                continue;
+            }
+            self::validateCharacteristicValue($itemId . '/' . $fieldId, $field, $values[$fieldId]);
+        }
+    }
+
+    private static function validateCharacteristicValue(string $path, array $field, mixed $value): void
+    {
+        $type = $field['type'] ?? '';
+        $valid = match ($type) {
+            'text' => is_string($value) && strlen($value) <= (int)($field['max_length'] ?? 500) && strlen($value) >= (int)($field['min_length'] ?? 0),
+            'number' => (is_int($value) || is_float($value)) && is_finite((float)$value) && (!isset($field['min']) || $value >= $field['min']) && (!isset($field['max']) || $value <= $field['max']),
+            'integer' => is_int($value) && (!isset($field['min']) || $value >= $field['min']) && (!isset($field['max']) || $value <= $field['max']),
+            'boolean' => is_bool($value),
+            'enum' => is_string($value) && isset($field['options'][$value]),
+            default => false,
+        };
+        if (!$valid) throw new RuntimeException('Invalid value for item characteristic ' . $path . ' (expected ' . $type . ').');
+    }
 
     /** Validate a complete candidate set, including cross-catalog references. */
     public static function validateDocuments(array $documents): void
@@ -159,6 +241,7 @@ final class ContentCatalog
         $result = [];
         foreach (array_keys(self::FILES) as $name) $result[$name] = self::document($name);
         $result['item_categories'] = self::itemCategoriesDocument();
+        $result['item_characteristics'] = self::itemCharacteristicsDocument();
         return $result;
     }
 }

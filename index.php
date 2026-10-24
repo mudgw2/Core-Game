@@ -86,7 +86,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.43</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.44</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -536,6 +536,48 @@ declare(strict_types=1);
     function bindRemoveQuantityButtons() {
         document.querySelectorAll('[data-remove-quantity]').forEach(button => { if (button.dataset.bound) return; button.dataset.bound='1'; button.addEventListener('click', () => button.closest('.content-input-row')?.remove()); });
     }
+    function renderCharacteristicFields(categoryId, currentValues={}) {
+        if (!categoryId) return '<section class="content-characteristics"><h4>Characteristics</h4><p class="field-help">Choose an item category to see its defined characteristics.</p></section>';
+        const schema = contentDraftDocuments.item_characteristics?.categories?.[categoryId]?.fields || {};
+        const fields = Object.entries(schema);
+        if (!fields.length) return '<section class="content-characteristics"><h4>Characteristics</h4><p class="field-help">No characteristics are defined for this category yet. Definitions live in config/content/item-characteristics.json.</p></section>';
+        let html = '<section class="content-characteristics"><h4>Characteristics</h4><p class="field-help">These values are descriptive metadata only; they do not alter gameplay mechanics yet.</p><div class="content-field-grid">';
+        for (const [fieldId, field] of fields) {
+            const value = Object.prototype.hasOwnProperty.call(currentValues, fieldId) ? currentValues[fieldId] : field.default;
+            const required = field.required ? 'required' : '';
+            const label = `${field.label || fieldId}${field.unit ? ' ('+field.unit+')' : ''}`;
+            if (field.type === 'enum') {
+                const options = Object.entries(field.options || {}).map(([optionId, optionLabel]) => `<option value="${escContent(optionId)}" ${optionId===value?'selected':''}>${escContent(optionLabel)}</option>`).join('');
+                html += `<div class="content-field"><label for="entryCharacteristic_${escContent(fieldId)}">${escContent(label)}</label><select id="entryCharacteristic_${escContent(fieldId)}" data-characteristic="${escContent(fieldId)}" data-characteristic-type="enum" ${required}><option value="">Choose…</option>${options}</select>${field.description?`<p class="field-help">${escContent(field.description)}</p>`:''}</div>`;
+            } else if (field.type === 'boolean') {
+                html += `<div class="content-field"><label><input type="checkbox" data-characteristic="${escContent(fieldId)}" data-characteristic-type="boolean" ${value?'checked':''} style="width:auto;min-height:0"> ${escContent(label)}</label>${field.description?`<p class="field-help">${escContent(field.description)}</p>`:''}</div>`;
+            } else {
+                const type = field.type === 'integer' || field.type === 'number' ? 'number' : 'text';
+                const step = field.type === 'integer' ? '1' : (field.type === 'number' ? 'any' : '');
+                const attrs = `${required} ${field.min !== undefined ? `min="${escContent(field.min)}"` : ''} ${field.max !== undefined ? `max="${escContent(field.max)}"` : ''} ${field.max_length !== undefined ? `maxlength="${escContent(field.max_length)}"` : ''} ${step ? `step="${step}"` : ''}`;
+                html += `<div class="content-field"><label for="entryCharacteristic_${escContent(fieldId)}">${escContent(label)}</label><input id="entryCharacteristic_${escContent(fieldId)}" type="${type}" data-characteristic="${escContent(fieldId)}" data-characteristic-type="${escContent(field.type)}" value="${escContent(value ?? '')}" ${attrs}>${field.description?`<p class="field-help">${escContent(field.description)}</p>`:''}</div>`;
+            }
+        }
+        return html + '</div></section>';
+    }
+    function readCharacteristicValues() {
+        const values = {};
+        document.querySelectorAll('[data-characteristic]').forEach(control => {
+            const key = control.dataset.characteristic;
+            const type = control.dataset.characteristicType;
+            if (type === 'boolean') { values[key] = !!control.checked; return; }
+            const raw = control.value;
+            if (raw === '') return;
+            if (type === 'integer') {
+                if (!Number.isSafeInteger(Number(raw))) throw new Error(`Characteristic ${key} must be a whole number.`);
+                values[key] = Number(raw);
+            } else if (type === 'number') {
+                if (!Number.isFinite(Number(raw))) throw new Error(`Characteristic ${key} must be a number.`);
+                values[key] = Number(raw);
+            } else values[key] = raw;
+        });
+        return values;
+    }
     function renderContentEntry(id) {
         const catalog = contentCatalogSelect.value;
         const doc = currentContentDocument();
@@ -549,7 +591,7 @@ declare(strict_types=1);
         html += `<div class="content-field-grid">${contentInput('Display name', 'label', entry.label || '')}`;
         if (catalog === 'items') {
             html += `<div class="content-field"><label for="entryField_category">Category</label><select id="entryField_category" data-field="category" required>${itemCategoryOptions(entry.category || '')}</select><p class="field-help">Categories are defined in config/content/item-categories.json. Choose an approved category; arbitrary text is not accepted.</p></div>`;
-            html += `</div>${contentTextarea('Description', 'description', entry.description || '')}<div class="content-field"><label><input data-field="stackable" type="checkbox" ${entry.stackable ? 'checked':''} style="width:auto;min-height:0"> Stackable inventory item</label></div>`;
+            html += `</div>${contentTextarea('Description', 'description', entry.description || '')}<div class="content-field"><label><input data-field="stackable" type="checkbox" ${entry.stackable ? 'checked':''} style="width:auto;min-height:0"> Stackable inventory item</label></div>${renderCharacteristicFields(entry.category || Object.keys(contentDraftDocuments.item_categories?.entries || {})[0] || '', entry.characteristics || {})}`;
         } else if (catalog === 'recipes') {
             html += `</div>${contentTextarea('Description', 'description', entry.description || '')}${quantityRows(entry.inputs || {})}<div class="content-field-grid"><div class="content-field"><label for="entryField_output_resource">Output item</label><select id="entryField_output_resource" data-field="output_resource">${itemOptions(entry.output?.resource || '')}</select></div>${contentInput('Output quantity', 'output_quantity', entry.output?.quantity ?? 1, 'number', 'min="1" max="1000000" step="1"')}</div>`;
         } else if (catalog === 'discoveries') {
@@ -559,6 +601,13 @@ declare(strict_types=1);
             html += `</div>${contentTextarea('Description', 'description', entry.description || '')}${quantityRows(entry.inputs || {})}`;
         }
         contentEntryForm.innerHTML = html;
+        if (catalog === 'items') {
+            document.getElementById('entryField_category')?.addEventListener('change', event => {
+                const currentValues = readCharacteristicValues();
+                const host = document.querySelector('.content-characteristics');
+                if (host) host.outerHTML = renderCharacteristicFields(event.target.value, currentValues);
+            });
+        }
         bindQuantityRows();
         document.getElementById('contentApplyEntryButton').disabled = false;
         document.getElementById('contentDeleteEntryButton').disabled = editingNewContentEntry;
@@ -589,7 +638,7 @@ declare(strict_types=1);
         const entry = { label: String(value('label')).trim() };
         if (!entry.label) throw new Error('Display name is required.');
         if (catalog === 'items') {
-            entry.category=String(value('category')).trim(); entry.description=value('description'); entry.stackable=!!read('stackable')?.checked;
+            entry.category=String(value('category')).trim(); entry.description=value('description'); entry.stackable=!!read('stackable')?.checked; entry.characteristics=readCharacteristicValues();
         } else if (catalog === 'recipes') {
             entry.description=value('description'); entry.inputs=collectQuantityRows(); entry.output={resource:value('output_resource'),quantity:integer('output_quantity','Output quantity')};
         } else if (catalog === 'discoveries') {

@@ -463,6 +463,36 @@ $test('content management rejects stale revisions without overwriting newer cont
     }
 });
 
+$test('item characteristics are defined in JSON and exposed by the aggregate content document', static function () use ($assert, $equal): void {
+    $schema = ContentCatalog::itemCharacteristicsDocument();
+    $assert(isset($schema['categories']['resource']['fields']['rarity']['options']['rare']), 'Rarity enum schema is missing.');
+    $all = ContentCatalog::allDocuments();
+    $assert(isset($all['item_characteristics']['entries']['resource']), 'Item characteristic schema is not exposed in aggregate content.');
+    $assert(isset($all['items']['entries']['rare_ore']['characteristics']['rarity']), 'Existing item does not include characteristic metadata.');
+    $equal('rare', $all['items']['entries']['rare_ore']['characteristics']['rarity']);
+});
+
+$test('item characteristic values reject unknown enum values and unknown fields', static function () use ($assert): void {
+    $items = ContentCatalog::document('items');
+    $items['entries']['raw_ore']['characteristics']['rarity'] = 'ultra_cosmic';
+    try { ContentCatalog::validateDocuments(['items'=>$items, 'recipes'=>ContentCatalog::document('recipes'), 'discoveries'=>ContentCatalog::document('discoveries'), 'ship_modules'=>ContentCatalog::document('ship_modules')]); throw new RuntimeException('Unknown characteristic enum value was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid value for item characteristic'), 'Unexpected characteristic validation error: ' . $e->getMessage()); }
+    $items = ContentCatalog::document('items');
+    $items['entries']['raw_ore']['characteristics']['made_up_field'] = 'bad';
+    try { ContentCatalog::validateDocuments(['items'=>$items, 'recipes'=>ContentCatalog::document('recipes'), 'discoveries'=>ContentCatalog::document('discoveries'), 'ship_modules'=>ContentCatalog::document('ship_modules')]); throw new RuntimeException('Unknown characteristic field was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Unknown item characteristic'), 'Unexpected unknown-field error: ' . $e->getMessage()); }
+});
+
+$test('structured item editor renders characteristic controls from the selected category schema', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(str_contains($html, 'function renderCharacteristicFields(categoryId'), 'Dynamic characteristic renderer is missing.');
+    $assert(str_contains($html, 'data-characteristic-type="enum"'), 'Enum characteristic dropdown rendering is missing.');
+    $assert(str_contains($html, 'entry.characteristics=readCharacteristicValues()'), 'Item characteristics are not persisted from the structured form.');
+    $assert(is_file(CORE_ROOT . '/config/content/item-characteristics.json'), 'Characteristic schema JSON is missing.');
+    $app = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $assert(str_contains($app, '/api/content/item-characteristics'), 'Characteristic schema API route is missing.');
+});
+
 $test('Workbench defaults to structured content editing with optional advanced JSON', static function () use ($assert): void {
     $html = (string)file_get_contents(CORE_ROOT . '/index.php');
     foreach (['Content Studio', 'contentEntrySelect', 'contentAddEntryButton', 'contentDeleteEntryButton', 'contentApplyEntryButton', 'contentAdvancedDetails', 'contentUseJsonButton', 'contentRefreshJsonButton'] as $needle) {

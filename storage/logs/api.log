@@ -47,3 +47,6 @@
 {"time":"2026-10-24T19:21:42+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
 {"time":"2026-10-24T19:28:45+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
 {"time":"2026-10-24T19:28:45+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:35:18+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:35:18+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:35:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}

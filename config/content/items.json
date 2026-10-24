@@ -1,16 +1,88 @@
 {
   "schema_version": 1,
-  "content_version": "0.1.40",
+  "content_version": "0.1.44",
   "description": "Editable item and resource definitions used by exploration rewards, crafting, and ship fitting.",
   "entries": {
-    "raw_ore": {"label":"Raw ore","category":"resource","description":"Unrefined mineral material recovered from mineral signatures.","stackable":true},
-    "rare_ore": {"label":"Rare ore","category":"resource","description":"Unusual mineral samples recovered from atypical asteroid bodies.","stackable":true},
-    "refined_alloy": {"label":"Refined alloy","category":"material","description":"Refined metal alloy used in ship construction.","stackable":true},
-    "salvage_parts": {"label":"Salvage parts","category":"resource","description":"Recoverable components from derelict signals.","stackable":true},
-    "research_data": {"label":"Research data","category":"resource","description":"Scientific data recovered from spatial anomalies.","stackable":true},
-    "energy_cells": {"label":"Energy cells","category":"resource","description":"Recovered energy storage cells.","stackable":true},
-    "intel_fragments": {"label":"Intel fragments","category":"resource","description":"Navigation and identification data recovered from unknown beacons.","stackable":true},
-    "ship_components": {"label":"Ship components","category":"component","description":"Assembled components for ship modules.","stackable":true},
-    "tech_insights": {"label":"Tech insights","category":"material","description":"Analyzed research results used for advanced equipment.","stackable":true}
+    "raw_ore": {
+      "label": "Raw ore",
+      "category": "resource",
+      "description": "Unrefined mineral material recovered from mineral signatures.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "common"
+      }
+    },
+    "rare_ore": {
+      "label": "Rare ore",
+      "category": "resource",
+      "description": "Unusual mineral samples recovered from atypical asteroid bodies.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "rare"
+      }
+    },
+    "refined_alloy": {
+      "label": "Refined alloy",
+      "category": "material",
+      "description": "Refined metal alloy used in ship construction.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "common"
+      }
+    },
+    "salvage_parts": {
+      "label": "Salvage parts",
+      "category": "resource",
+      "description": "Recoverable components from derelict signals.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "common"
+      }
+    },
+    "research_data": {
+      "label": "Research data",
+      "category": "resource",
+      "description": "Scientific data recovered from spatial anomalies.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "uncommon"
+      }
+    },
+    "energy_cells": {
+      "label": "Energy cells",
+      "category": "resource",
+      "description": "Recovered energy storage cells.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "common"
+      }
+    },
+    "intel_fragments": {
+      "label": "Intel fragments",
+      "category": "resource",
+      "description": "Navigation and identification data recovered from unknown beacons.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "uncommon"
+      }
+    },
+    "ship_components": {
+      "label": "Ship components",
+      "category": "component",
+      "description": "Assembled components for ship modules.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "common"
+      }
+    },
+    "tech_insights": {
+      "label": "Tech insights",
+      "category": "material",
+      "description": "Analyzed research results used for advanced equipment.",
+      "stackable": true,
+      "characteristics": {
+        "rarity": "uncommon"
+      }
+    }
   }
 }

@@ -155,6 +155,30 @@ $test('storage rejects unsafe path segments', static function () use ($assert): 
     }
 });
 
+
+$test('universe lifecycle controls are reversible and revision checked', static function () use ($equal, $assert): void {
+    $dir = sys_get_temp_dir() . '/core-cli-lifecycle-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('cli-lifecycle-seed'); $service = new Core\Modules\Universe\UniverseLifecycleService($storage);
+        $locked = $service->apply($universe['id'], 'lock', 0); $equal(true, $locked['universe']['lifecycle']['locked']);
+        $unlocked = $service->apply($universe['id'], 'unlock', 1); $equal(false, $unlocked['universe']['lifecycle']['locked']);
+        try { $service->apply($universe['id'], 'disable', 0); throw new RuntimeException('Stale lifecycle revision accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict')); }
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+$test('universe lifecycle guard blocks mutations but preserves reads', static function () use ($assert): void {
+    $universe = ['id' => 'u', 'lifecycle' => ['enabled' => false, 'locked' => false]];
+    try { Core\Modules\Universe\UniverseLifecycleGuard::assertCanPerformGameplayAction($universe); throw new RuntimeException('Disabled universe passed guard.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is disabled')); }
+    $universe['lifecycle'] = ['enabled' => true, 'locked' => true];
+    try { Core\Modules\Universe\UniverseLifecycleGuard::assertCanPerformGameplayAction($universe); throw new RuntimeException('Locked universe passed guard.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is locked')); }
+    Core\Modules\Universe\UniverseLifecycleGuard::assertCanPerformGameplayAction(['id' => 'legacy']);
+});
+
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";
 if ($failed > 0) {
     foreach ($failures as [$name, $message]) echo " - {$name}: {$message}\n";

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Core\Modules\Characters;
 
+use Core\Modules\Universe\UniverseLifecycleGuard;
+
 use Core\Storage\JsonStorage;
 use RuntimeException;
 
@@ -25,10 +27,12 @@ final class CharacterFittingService
         if (!isset(self::MODULES[$moduleId])) throw new RuntimeException('Unknown ship module.');
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) throw new RuntimeException('The selected universe does not exist.');
+        UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
         $module = self::MODULES[$moduleId];
         $result = [];
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $moduleId, $module, &$result): array {
             if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $revision = (int)($character['revision'] ?? 0);
             if ($revision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $revision . '.');
             $ship = is_array($character['ship'] ?? null) ? $character['ship'] : [];

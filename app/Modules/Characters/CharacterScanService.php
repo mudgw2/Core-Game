@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Core\Modules\Characters;
 
+use Core\Modules\Universe\UniverseLifecycleGuard;
+
 use Core\Storage\JsonStorage;
 use RuntimeException;
 
@@ -30,6 +32,7 @@ final class CharacterScanService
 
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) throw new RuntimeException('The selected universe does not exist.');
+        UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
         $systems = $universe['baseline']['systems'] ?? null;
         if (!is_array($systems)) throw new RuntimeException('The selected universe has no valid system list.');
         $systemsById = [];
@@ -40,6 +43,7 @@ final class CharacterScanService
 
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $systemsById, $fingerprint, &$scanStatus, &$scanResult): array {
             if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
             $systemId = (string)($character['current_system_id'] ?? $character['location']['system_id'] ?? '');

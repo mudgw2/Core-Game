@@ -8,12 +8,15 @@ use Core\Http\Request;
 use Core\Http\Response;
 use Core\Http\Router;
 use Core\Modules\Universe\UniverseService;
+use Core\Modules\Universe\UniverseLifecycleService;
+use Core\Modules\Universe\UniverseLifecycleGuard;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Characters\CharacterFittingService;
+use Core\Modules\Characters\CharacterLifecycleService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -38,18 +41,20 @@ final class Application
         $config = require CORE_ROOT . '/config/app.php';
         $storage = new JsonStorage((string)$config['storage']['path']);
         $universeService = new UniverseService($storage);
+        $universeLifecycleService = new UniverseLifecycleService($storage);
         $characterService = new CharacterService($storage);
         $travelService = new CharacterTravelService($storage);
         $scanService = new CharacterScanService($storage);
         $discoveryService = new CharacterDiscoveryService($storage);
         $craftingService = new CharacterCraftingService($storage);
         $fittingService = new CharacterFittingService($storage);
+        $lifecycleService = new CharacterLifecycleService($storage);
         $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.28',
+            'version' => '0.1.30',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -98,6 +103,35 @@ final class Application
             }
         });
 
+        $this->router->post('/api/universe/lifecycle', static function (Request $request) use ($universeLifecycleService): Response {
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $action = isset($body['action']) && is_string($body['action']) ? trim($body['action']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $action === '' || !is_int($expectedRevision)) {
+                Logger::warning('Universe lifecycle request validation failed', ['error_code' => 'invalid_universe_lifecycle_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_lifecycle_request', 'message' => 'Provide universe_id, action, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $universeLifecycleService->apply($universeId, $action, $expectedRevision);
+                Logger::info('Universe lifecycle changed', ['universe_id' => $universeId, 'action' => $action, 'status' => $result['lifecycle_status'], 'revision' => $result['universe']['lifecycle']['revision'] ?? 0]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Universe lifecycle revision conflict', ['universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'required') || str_contains($message, 'Action must') || str_contains($message, 'Expected universe lifecycle revision')) {
+                    Logger::warning('Universe lifecycle action rejected', ['universe_id' => $universeId, 'action' => $action, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_lifecycle_action', 'message' => $message]], 400);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
+                Logger::error('Universe lifecycle update failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_lifecycle_failed', 'message' => 'The universe lifecycle could not be updated. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->post('/api/universe/state', static function (Request $request) use ($universeService, $config): Response {
             $environment = (string)($config['app']['environment'] ?? 'production');
             $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
@@ -126,7 +160,7 @@ final class Application
                     Logger::warning('Universe state revision conflict', ['universe_id' => $universeId, 'expected_revision' => $expectedRevision, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
-                if (str_contains($message, 'must ') || str_contains($message, 'cannot be empty') || str_contains($message, 'exceeds')) {
+                if (str_contains($message, 'must ') || str_contains($message, 'cannot be empty') || str_contains($message, 'exceeds') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Universe state change rejected', ['universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_change', 'message' => $message]], 400);
                 }
@@ -222,7 +256,7 @@ final class Application
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'do not belong') || str_contains($message, 'not valid') || str_contains($message, 'required') || str_contains($message, 'Expected character revision')) {
+                if (str_contains($message, 'do not belong') || str_contains($message, 'not valid') || str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character scan rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_scan_request', 'message' => $message]], 400);
                 }
@@ -260,7 +294,7 @@ final class Application
                     Logger::warning('Character crafting target not found', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'crafting_target_not_found', 'message' => $message]], 404);
                 }
-                if (str_contains($message, 'required') || str_contains($message, 'must be') || str_contains($message, 'Unknown crafting') || str_contains($message, 'Insufficient') || str_contains($message, 'do not belong') || str_contains($message, 'Expected character revision')) {
+                if (str_contains($message, 'required') || str_contains($message, 'must be') || str_contains($message, 'Unknown crafting') || str_contains($message, 'Insufficient') || str_contains($message, 'do not belong') || str_contains($message, 'Expected character revision') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character crafting rejected', ['character_id' => $characterId, 'recipe_id' => $recipeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'crafting_rejected', 'message' => $message]], 409);
                 }
@@ -325,7 +359,7 @@ final class Application
                     Logger::warning('Discovery investigation target not found', ['character_id' => $characterId, 'discovery_id' => $discoveryId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'discovery_not_found', 'message' => $message]], 404);
                 }
-                if (str_contains($message, 'do not belong') || str_contains($message, 'Travel to') || str_contains($message, 'required') || str_contains($message, 'Expected character revision')) {
+                if (str_contains($message, 'do not belong') || str_contains($message, 'Travel to') || str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Discovery investigation rejected', ['character_id' => $characterId, 'discovery_id' => $discoveryId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'investigation_rejected', 'message' => $message]], 409);
                 }
@@ -365,11 +399,11 @@ final class Application
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'do not belong') || str_contains($message, 'does not belong') || str_contains($message, 'not directly reachable')) {
+                if (str_contains($message, 'do not belong') || str_contains($message, 'does not belong') || str_contains($message, 'not directly reachable') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character location target rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $systemId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_location', 'message' => $message]], 400);
                 }
-                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list')) {
+                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character location request rejected', ['character_id' => $characterId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_location', 'message' => $message]], 400);
                 }
@@ -409,16 +443,51 @@ final class Application
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'travel_target_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'does not belong') || str_contains($message, 'invalid path') || str_contains($message, 'not active') || str_contains($message, 'No travel route') || str_contains($message, 'route') || str_contains($message, 'location changed')) {
+                if (str_contains($message, 'does not belong') || str_contains($message, 'invalid path') || str_contains($message, 'not active') || str_contains($message, 'No travel route') || str_contains($message, 'route') || str_contains($message, 'location changed') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character travel action rejected', ['action' => $action, 'character_id' => $characterId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'travel_rejected', 'message' => $message]], 409);
                 }
-                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list')) {
+                if (str_contains($message, 'required') || str_contains($message, 'Expected character revision') || str_contains($message, 'valid system list') || str_contains($message, 'Character is disabled') || str_contains($message, 'Character is locked') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character travel request rejected', ['action' => $action, 'character_id' => $characterId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_travel_request', 'message' => $message]], 400);
                 }
                 Logger::error('Character travel failed', ['action' => $action, 'character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_travel_failed', 'message' => 'Character travel could not be updated. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->post('/api/characters/lifecycle', static function (Request $request) use ($lifecycleService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character lifecycle API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_lifecycle_api_disabled', 'message' => 'Character lifecycle management is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $action = isset($body['action']) && is_string($body['action']) ? trim($body['action']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || $action === '' || !is_int($expectedRevision)) {
+                Logger::warning('Character lifecycle request validation failed', ['error_code' => 'invalid_character_lifecycle_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_lifecycle_request', 'message' => 'Provide universe_id, character_id, action, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $lifecycleService->apply($universeId, $characterId, $action, $expectedRevision);
+                Logger::info('Character lifecycle action completed', ['action' => $action, 'lifecycle_status' => $result['lifecycle_status'], 'character_id' => $characterId, 'universe_id' => $universeId, 'revision' => $result['character']['revision'] ?? null]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character lifecycle revision conflict', ['action' => $action, 'character_id' => $characterId, 'expected_revision' => $expectedRevision]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'character_or_universe_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'does not belong')) return Response::json(['ok' => false, 'error' => ['code' => 'character_universe_mismatch', 'message' => $message]], 400);
+                if (str_contains($message, 'required') || str_contains($message, 'must be zero') || str_contains($message, 'Action must')) {
+                    Logger::warning('Character lifecycle action rejected', ['action' => $action, 'character_id' => $characterId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_lifecycle_action', 'message' => $message]], 400);
+                }
+                Logger::error('Character lifecycle action failed', ['action' => $action, 'character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_lifecycle_failed', 'message' => 'Character lifecycle could not be updated. Check CORE logs.']], 500);
             }
         });
 
@@ -480,7 +549,7 @@ final class Application
             } catch (Throwable $e) {
                 $message = $e->getMessage();
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'required') || str_contains($message, 'cannot be empty') || str_contains($message, 'must be between') || str_contains($message, 'must be a non-empty')) {
+                if (str_contains($message, 'required') || str_contains($message, 'cannot be empty') || str_contains($message, 'must be between') || str_contains($message, 'must be a non-empty') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character creation rejected', ['universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character', 'message' => $message]], 400);
                 }
@@ -503,6 +572,7 @@ final class Application
                 'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (development/private network only)',
                 'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (development/private network only)',
                 'POST /api/characters/fit with universe_id, character_id, module_id, and expected_revision (development/private network only)',
+                'POST /api/characters/lifecycle with universe_id, character_id, action, and expected_revision (development/private network only)',
                 'POST /api/characters/delete with universe_id, character_id, confirmation_name, and expected_revision (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',

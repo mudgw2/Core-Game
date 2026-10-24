@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Core\Modules\Characters;
 
+use Core\Modules\Universe\UniverseLifecycleGuard;
+
 use Core\Storage\JsonStorage;
 use Core\Modules\Universe\NavigationGraph;
 use RuntimeException;
@@ -31,6 +33,7 @@ final class CharacterService
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
             throw new RuntimeException('The selected universe does not exist.');
         }
+        UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
         $id = 'chr_' . bin2hex(random_bytes(12));
         $firstSystem = $universe['baseline']['systems'][0] ?? null;
         if (!is_array($firstSystem) || !isset($firstSystem['id'])) {
@@ -43,6 +46,7 @@ final class CharacterService
             'universe_id' => $universeId,
             'name' => $name,
             'role' => $role,
+            'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
             'current_system_id' => (string)$firstSystem['id'],
             'location' => [
                 'system_id' => (string)$firstSystem['id'],
@@ -77,6 +81,7 @@ final class CharacterService
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
             throw new RuntimeException('The selected universe does not exist.');
         }
+        UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
         $systems = $universe['baseline']['systems'] ?? null;
         if (!is_array($systems)) throw new RuntimeException('The selected universe has no valid system list.');
         $systemsById = [];
@@ -91,6 +96,7 @@ final class CharacterService
             if (($character['universe_id'] ?? null) !== $universeId) {
                 throw new RuntimeException('Character does not belong to the selected universe.');
             }
+            CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) {
                 throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');

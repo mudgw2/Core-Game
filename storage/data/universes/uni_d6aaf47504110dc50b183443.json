@@ -237,5 +237,12 @@
                 "handler_version": 1
             }
         ]
+    },
+    "lifecycle": {
+        "enabled": true,
+        "locked": false,
+        "revision": 6,
+        "updated_at": "2026-10-24T14:08:46+00:00",
+        "last_action": "enable"
     }
 }

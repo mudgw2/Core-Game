@@ -38,7 +38,9 @@ use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Characters\CharacterFittingService;
+use Core\Modules\Characters\CharacterLifecycleService;
 use Core\Modules\Universe\UniverseService;
+use Core\Modules\Universe\UniverseLifecycleService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
@@ -1103,8 +1105,8 @@ $run('Travel next-jump control remains actionable and reports request failures',
     $html = file_get_contents(dirname(__DIR__) . '/index.php');
     $assert(is_string($html), 'Workbench HTML could not be read.');
     $assert(str_contains($html, "document.getElementById('advanceTravelButton').addEventListener('click', () => submitTravelAction('advance'))"), 'Travel next-jump click handler is missing.');
-    $assert(str_contains($html, "advanceButton.disabled = false;"), 'Active route does not leave next-jump control enabled.');
-    $assert(str_contains($html, "advanceButton.disabled = !characterId;"), 'Next-jump control does not remain actionable for a selected character.');
+    $assert(str_contains($html, 'advanceButton.disabled = !canPlay;'), 'Active route must keep next-jump enabled only when character and universe are playable.');
+    $assert(str_contains($html, "document.getElementById('advanceTravelButton').disabled = true;"), 'Next-jump control is not safely disabled when no character is selected.');
     $assert(str_contains($html, "status.textContent = 'Travel request failed: ' + String(error);"), 'Travel request errors are not visible in the Workbench.');
     $assert(str_contains($html, "button.disabled = !selectedCharacter;"), 'Next-jump control can remain disabled after a failed or stale request.');
     return 'Next-jump control has a click handler, actionable state, and visible error feedback.';
@@ -1243,7 +1245,128 @@ $run('Workbench exposes guarded character deletion controls and request wiring',
     return 'Danger-zone UI, explicit confirmation payload, and guarded deletion API route are present.';
 });
 
+
+$run('Character lifecycle disable/enable is reversible and preserves all progress', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-lifecycle-disable');
+        $characters = new CharacterService($storage); $character = $characters->create($universe['id'], 'Lifecycle Keeper');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['raw_ore' => 7], 'ledger' => [['id' => 'keep-ledger']]]; $storage->write('characters', $character['id'], $record);
+        $service = new CharacterLifecycleService($storage);
+        $disabled = $service->apply($universe['id'], $character['id'], 'disable', 0);
+        $equal(false, $disabled['character']['lifecycle']['enabled'], 'Disable did not persist.'); $equal(1, $disabled['character']['revision'], 'Disable did not advance revision.');
+        $saved = $storage->read('characters', $character['id']); $equal(['raw_ore' => 7], $saved['inventory']['resources'], 'Disable changed inventory.'); $equal([['id' => 'keep-ledger']], $saved['inventory']['ledger'], 'Disable changed ledger.');
+        $enabled = $service->apply($universe['id'], $character['id'], 'enable', 1); $equal(true, $enabled['character']['lifecycle']['enabled'], 'Enable did not restore character.');
+        return 'Disable and enable are reversible, revision checked, and preserve inventory/ledger.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Locked or disabled characters cannot perform gameplay mutations', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-lifecycle-block'); $characters = new CharacterService($storage); $character = $characters->create($universe['id'], 'Frozen Explorer');
+        $lifecycle = new CharacterLifecycleService($storage); $scan = new CharacterScanService($storage);
+        $disabled = $lifecycle->apply($universe['id'], $character['id'], 'disable', 0)['character'];
+        try { $scan->scanCurrentSystem($universe['id'], $character['id'], $disabled['revision']); throw new RuntimeException('Disabled character was allowed to scan.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'disabled'), 'Unexpected disabled action error: ' . $e->getMessage()); }
+        $enabled = $lifecycle->apply($universe['id'], $character['id'], 'enable', $disabled['revision'])['character'];
+        $locked = $lifecycle->apply($universe['id'], $character['id'], 'lock', $enabled['revision'])['character'];
+        try { $scan->scanCurrentSystem($universe['id'], $character['id'], $locked['revision']); throw new RuntimeException('Locked character was allowed to scan.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'locked'), 'Unexpected locked action error: ' . $e->getMessage()); }
+        $saved = $storage->read('characters', $character['id']); $equal([], $saved['scans']['systems'] ?? [], 'Rejected scans changed persisted discoveries.'); $equal($locked['revision'], $saved['revision'], 'Rejected scans changed revision.');
+        return 'Disabled and locked characters are blocked server-side; rejected scans do not mutate state.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Lifecycle changes are idempotent and reject stale revisions or invalid actions', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-lifecycle-validation'); $character = (new CharacterService($storage))->create($universe['id'], 'Revision Guard'); $service = new CharacterLifecycleService($storage);
+        $same = $service->apply($universe['id'], $character['id'], 'enable', 0); $equal('unchanged', $same['lifecycle_status'], 'Repeated enable should be idempotent.'); $equal(0, $same['character']['revision'], 'No-op enable changed revision.');
+        foreach ([['disable', 3, 'revision conflict'], ['explode', 0, 'Action must']] as [$action, $revision, $expected]) {
+            try { $service->apply($universe['id'], $character['id'], $action, $revision); throw new RuntimeException('Invalid lifecycle action accepted.'); }
+            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), $expected), 'Unexpected lifecycle validation error: ' . $e->getMessage()); }
+        }
+        $equal(0, $storage->read('characters', $character['id'])['revision'], 'Rejected lifecycle action mutated record.');
+        return 'No-op actions preserve revision; stale revisions and invalid actions are rejected safely.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes reversible lifecycle controls and API wiring', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
+    foreach (['disableCharacterButton','enableCharacterButton','lockCharacterButton','unlockCharacterButton','characterLifecycleStatus','api/character-lifecycle.php','preserves all character data'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing lifecycle marker: ' . $needle);
+    $assert(str_contains($app, "'/api/characters/lifecycle'"), 'Lifecycle API route is missing.');
+    return 'Workbench includes disable/enable and lock/unlock controls with lifecycle API request wiring.';
+});
+
+
+$run('Universe lifecycle disable/enable and lock/unlock are reversible and preserve saved universe state', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $service = new UniverseService($storage); $universe = $service->createOrLoad('core-ui-qa-universe-lifecycle');
+        $service->updateState($universe['id'], 0, ['type' => 'note_added', 'value' => 'keep me']);
+        $lifecycle = new UniverseLifecycleService($storage);
+        $disabled = $lifecycle->apply($universe['id'], 'disable', 0);
+        $equal(false, $disabled['universe']['lifecycle']['enabled'], 'Disable was not persisted.');
+        $equal(1, $disabled['universe']['lifecycle']['revision'], 'Lifecycle revision did not advance.');
+        $enabled = $lifecycle->apply($universe['id'], 'enable', 1);
+        $equal(true, $enabled['universe']['lifecycle']['enabled'], 'Enable did not restore universe.');
+        $locked = $lifecycle->apply($universe['id'], 'lock', 2);
+        $equal(true, $locked['universe']['lifecycle']['locked'], 'Lock was not persisted.');
+        $unlocked = $lifecycle->apply($universe['id'], 'unlock', 3);
+        $equal(false, $unlocked['universe']['lifecycle']['locked'], 'Unlock did not restore universe.');
+        $saved = $storage->read('universes', $universe['id']);
+        $equal(1, $saved['state']['revision'], 'Lifecycle actions changed universe event revision.');
+        $equal('keep me', $saved['state']['projections']['notes'][0]['text'] ?? null, 'Lifecycle actions damaged universe state.');
+        return 'Universe disable/enable and lock/unlock preserve generated baseline and event state.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Disabled or locked universes reject gameplay mutations server-side', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-universe-lifecycle-guard');
+        $lifecycle = new UniverseLifecycleService($storage); $characters = new CharacterService($storage);
+        $disabled = $lifecycle->apply($universe['id'], 'disable', 0)['universe'];
+        try { $characters->create($universe['id'], 'Blocked Creation'); throw new RuntimeException('Character creation succeeded in disabled universe.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is disabled'), 'Unexpected disabled-universe error: ' . $e->getMessage()); }
+        $enabled = $lifecycle->apply($universe['id'], 'enable', $disabled['lifecycle']['revision'])['universe'];
+        $character = $characters->create($universe['id'], 'Universe Guard');
+        $locked = $lifecycle->apply($universe['id'], 'lock', $enabled['lifecycle']['revision'])['universe'];
+        try { (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0); throw new RuntimeException('Scan succeeded in locked universe.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is locked'), 'Unexpected locked-universe error: ' . $e->getMessage()); }
+        try { (new UniverseService($storage))->updateState($universe['id'], 0, ['type' => 'note_added', 'value' => 'blocked']); throw new RuntimeException('State update succeeded in locked universe.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is locked'), 'Unexpected state-update error: ' . $e->getMessage()); }
+        $equal([], $storage->read('characters', $character['id'])['scans']['systems'] ?? [], 'Rejected scan changed character state.');
+        $equal(0, $storage->read('universes', $universe['id'])['state']['revision'], 'Rejected state update changed universe state.');
+        return 'Character creation, scans, and universe-state writes are blocked when universe is disabled or locked.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Universe lifecycle actions are idempotent and reject stale revisions or invalid actions', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-universe-lifecycle-revision'); $service = new UniverseLifecycleService($storage);
+        $same = $service->apply($universe['id'], 'enable', 0); $equal('unchanged', $same['lifecycle_status'], 'No-op enable should be idempotent.'); $equal(0, $same['universe']['lifecycle']['revision'], 'No-op changed lifecycle revision.');
+        foreach ([['disable', 5, 'revision conflict'], ['remove', 0, 'Action must']] as [$action, $revision, $expected]) {
+            try { $service->apply($universe['id'], $action, $revision); throw new RuntimeException('Invalid lifecycle action accepted.'); }
+            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), $expected), 'Unexpected lifecycle rejection: ' . $e->getMessage()); }
+        }
+        $savedLifecycle = $storage->read('universes', $universe['id'])['lifecycle'] ?? []; $equal(true, $savedLifecycle['enabled'] ?? null, 'Rejected action changed enabled state.'); $equal(false, $savedLifecycle['locked'] ?? null, 'Rejected action changed locked state.'); $equal(0, $savedLifecycle['revision'] ?? null, 'Rejected action changed lifecycle revision.');
+        return 'No-op actions preserve revision; stale revisions and invalid actions are rejected without mutation.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes universe lifecycle controls and API request wiring', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
+    foreach (['disableUniverseButton','enableUniverseButton','lockUniverseButton','unlockUniverseButton','universeLifecycleStatus','api/universe-lifecycle.php','preserve saved data'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing universe lifecycle marker: ' . $needle);
+    $assert(str_contains($app, "'/api/universe/lifecycle'"), 'Universe lifecycle API route is missing.');
+    return 'Universe lifecycle controls, status display, and API wiring are present.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.28', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.30', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

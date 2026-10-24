@@ -70,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.28</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.30</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -109,6 +109,19 @@ declare(strict_types=1);
                 <button id="createButton" class="secondary" type="button">Create / load</button>
             </div>
             <p id="universeStatus" class="status" aria-live="polite">Preview does not save. Create / load writes a JSON record.</p>
+        </section>
+        <section>
+            <h2>Universe lifecycle</h2>
+            <p>Disable a universe to take it out of gameplay, or lock it to freeze gameplay mutations. Both actions are reversible and preserve saved data. Existing characters and records remain available for inspection.</p>
+            <p id="universeLifecycleStatus" class="status" aria-live="polite">Create or load a universe to manage its lifecycle.</p>
+            <div class="actions">
+                <button id="disableUniverseButton" type="button" disabled>Disable universe</button>
+                <button id="enableUniverseButton" type="button" disabled>Enable universe</button>
+                <button id="lockUniverseButton" type="button" disabled>Lock universe</button>
+                <button id="unlockUniverseButton" type="button" disabled>Unlock universe</button>
+            </div>
+            <label for="universeLifecycleRevision">Expected lifecycle revision</label>
+            <input id="universeLifecycleRevision" type="number" min="0" step="1" value="0" readonly>
         </section>
         <section style="grid-column:1/-1">
             <h2>Universe state API (development only)</h2>
@@ -166,6 +179,17 @@ declare(strict_types=1);
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
+            <section style="margin-top:16px;border-color:#526e94;background:#111f35">
+                <h3 style="margin-top:0">Character controls: disable or lock</h3>
+                <p><strong>Disable</strong> temporarily takes a character out of use while preserving all progress. <strong>Lock</strong> freezes gameplay changes while leaving the record visible. Both are reversible; neither deletes data. You can disable and lock independently.</p>
+                <p id="characterLifecycleStatus" class="status" role="status" aria-live="polite">Select a character to view its enabled/locked state.</p>
+                <div class="actions">
+                    <button id="disableCharacterButton" type="button" class="secondary" disabled>Disable character</button>
+                    <button id="enableCharacterButton" type="button" class="secondary" disabled>Enable character</button>
+                    <button id="lockCharacterButton" type="button" class="secondary" disabled>Lock character</button>
+                    <button id="unlockCharacterButton" type="button" class="secondary" disabled>Unlock character</button>
+                </div>
+            </section>
             <section style="margin-top:16px;border-color:#8b4545;background:#211725">
                 <h3 style="color:#ffb8b8;margin-top:0">Danger zone: delete character</h3>
                 <p>This permanently deletes the selected character record, including its location, exploration history, discoveries, inventory, crafting ledger, travel progress, and ship loadout. It does not delete the universe or other characters. This cannot be undone.</p>
@@ -284,6 +308,8 @@ declare(strict_types=1);
     const seedInput = document.getElementById('seed');
     let currentUniverseBaseline = null;
     let currentUniverseState = null;
+    let currentUniverseId = '';
+    let currentUniverseLifecycle = { enabled: true, locked: false, revision: 0 };
     let currentNavigation = null;
     const activityLog = document.getElementById('activityLog');
     let loadedCharacters = [];
@@ -387,6 +413,10 @@ declare(strict_types=1);
         const status = document.getElementById('characterExplorationStatus');
         if (!character) {
             renderCharacterDashboard(null);
+            document.getElementById('characterLifecycleStatus').textContent = 'Select a character to view its enabled/locked state.';
+            for (const id of ['disableCharacterButton','enableCharacterButton','lockCharacterButton','unlockCharacterButton']) document.getElementById(id).disabled = true;
+            document.getElementById('moveCharacterButton').disabled = true;
+            document.getElementById('planRouteButton').disabled = true;
             document.getElementById('scanSystemButton').disabled = true;
             document.getElementById('craftButton').disabled = true;
             document.getElementById('fitModuleButton').disabled = true;
@@ -404,6 +434,24 @@ declare(strict_types=1);
         }
         const names = new Map(systems.map(system => [system.id, system.name]));
         renderCharacterDashboard(character);
+        const lifecycle = character.lifecycle || { enabled: true, locked: false };
+        const isEnabled = lifecycle.enabled !== false;
+        const isLocked = lifecycle.locked === true;
+        const universeEnabled = currentUniverseLifecycle.enabled !== false;
+        const universeLocked = currentUniverseLifecycle.locked === true;
+        const canPlay = isEnabled && !isLocked && universeEnabled && !universeLocked;
+        document.getElementById('characterLifecycleStatus').textContent = 'State: ' + (isEnabled ? 'enabled' : 'DISABLED') + ' · ' + (isLocked ? 'LOCKED' : 'unlocked') + (canPlay ? ' — gameplay actions available.' : ' — gameplay mutations are blocked until both character and universe are enabled and unlocked.');
+        document.getElementById('disableCharacterButton').disabled = !isEnabled;
+        document.getElementById('enableCharacterButton').disabled = isEnabled;
+        document.getElementById('lockCharacterButton').disabled = isLocked;
+        document.getElementById('unlockCharacterButton').disabled = !isLocked;
+        document.getElementById('moveCharacterButton').disabled = !canPlay;
+        document.getElementById('startTravelButton').disabled = !canPlay;
+        document.getElementById('advanceTravelButton').disabled = !canPlay;
+        document.getElementById('planRouteButton').disabled = !canPlay;
+        document.getElementById('scanSystemButton').disabled = !canPlay;
+        document.getElementById('craftButton').disabled = !canPlay;
+        document.getElementById('fitModuleButton').disabled = !canPlay;
         const currentId = character.current_system_id || character.location?.system_id || '';
         const scanRecords = character.scans?.systems || {};
         const currentScan = scanRecords[currentId] || null;
@@ -430,9 +478,9 @@ declare(strict_types=1);
         const fittingList = document.createElement('ul'); fittingList.className = 'dashboard-list';
         for (const slot of ['propulsion','scanner','cargo']) { const item = document.createElement('li'); const installed = fittedModules[slot]; item.textContent = slotLabels[slot] + ': ' + (installed ? installed.label + ' — ' + installed.description : 'Empty'); fittingList.append(item); }
         fittingPanel.append(fittingList); fittingHost.append(fittingPanel);
-        document.getElementById('fitModuleButton').disabled = false;
-        document.getElementById('scanSystemButton').disabled = false;
-        document.getElementById('craftButton').disabled = false;
+        document.getElementById('fitModuleButton').disabled = !canPlay;
+        document.getElementById('scanSystemButton').disabled = !canPlay;
+        document.getElementById('craftButton').disabled = !canPlay;
         document.getElementById('characterScanStatus').textContent = currentScan
             ? 'Current system already scanned on ' + new Date(currentScan.scanned_at).toLocaleString() + '. ' + (currentScan.discoveries || []).length + ' discovery signal(s) recorded.'
             : 'Current system has not been scanned by this character yet.';
@@ -454,7 +502,7 @@ declare(strict_types=1);
                     const outcome = document.createElement('p'); outcome.className = 'dashboard-list'; outcome.textContent = 'Investigation result: ' + (discovery.outcome || 'No result recorded.'); item.append(outcome);
                     if (discovery.reward) { const reward = document.createElement('p'); reward.className = 'dashboard-list'; reward.textContent = 'Reward: +' + discovery.reward.quantity + ' ' + discovery.reward.label; item.append(reward); }
                 } else {
-                    const investigate = document.createElement('button'); investigate.type = 'button'; investigate.className = 'secondary investigate-discovery'; investigate.dataset.discoveryId = discovery.id || ''; investigate.textContent = 'Investigate signal'; investigate.disabled = !characterId; item.append(investigate);
+                    const investigate = document.createElement('button'); investigate.type = 'button'; investigate.className = 'secondary investigate-discovery'; investigate.dataset.discoveryId = discovery.id || ''; investigate.textContent = 'Investigate signal'; investigate.disabled = !canPlay; item.append(investigate);
                 }
                 list.append(item);
             }
@@ -494,18 +542,18 @@ declare(strict_types=1);
             // Keep the control actionable while a character is selected. If route state is
             // stale or malformed, clicking still produces a visible explanation instead of
             // looking like a dead control.
-            advanceButton.disabled = false;
+            advanceButton.disabled = !canPlay;
         } else if (routeProgress && routeProgress.status === 'completed') {
             progressStatus.textContent = 'Last travel route completed at ' + (names.get(currentId) || currentId) + '. Choose a destination and start a new route to travel again.';
-            advanceButton.disabled = !characterId;
+            advanceButton.disabled = !canPlay;
         } else if (routeProgress && routeProgress.status === 'cancelled') {
             progressStatus.textContent = 'Previous route was cancelled. Plan and start a new route to continue travelling.';
-            advanceButton.disabled = !characterId;
+            advanceButton.disabled = !canPlay;
         } else {
             progressStatus.textContent = 'No travel route is active for this character. Plan a route, then click Start travel along route.';
-            advanceButton.disabled = !characterId;
+            advanceButton.disabled = !canPlay;
         }
-        document.getElementById('startTravelButton').disabled = !characterId;
+        document.getElementById('startTravelButton').disabled = !canPlay;
     }
     function populateCharacterChoices() {
         const select = document.getElementById('characterSelect');
@@ -520,7 +568,7 @@ declare(strict_types=1);
         }
         for (const character of loadedCharacters) {
             const option = document.createElement('option'); option.value = character.id;
-            option.textContent = character.name + ' — ' + character.id;
+            option.textContent = character.name + ' — ' + character.id + ((character.lifecycle?.enabled ?? true) ? '' : ' [DISABLED]') + (character.lifecycle?.locked ? ' [LOCKED]' : '');
             option.dataset.revision = String(character.revision ?? 0);
             select.append(option);
         }
@@ -939,6 +987,43 @@ declare(strict_types=1);
         }
     });
 
+    async function applyCharacterLifecycle(action) {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const character = loadedCharacters.find(item => item.id === characterId);
+        const status = document.getElementById('characterLifecycleStatus');
+        const revision = Number(document.getElementById('characterRevision').value);
+        if (!universeId || !character) { status.textContent = 'Load a universe and select a character first.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        const labels = {disable:'Disable', enable:'Enable', lock:'Lock', unlock:'Unlock'};
+        if (!window.confirm(labels[action] + ' character ' + character.name + '? This preserves all character data and can be reversed.')) return;
+        const buttons = ['disableCharacterButton','enableCharacterButton','lockCharacterButton','unlockCharacterButton'].map(id => document.getElementById(id));
+        buttons.forEach(button => button.disabled = true);
+        status.textContent = labels[action] + 'ing character…';
+        try {
+            const response = await fetch('api/character-lifecycle.php', {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({universe_id:universeId, character_id:characterId, action, expected_revision:revision})});
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = {ok:false,error:{message:text || 'Invalid server response'}}; }
+            if (response.ok && data.ok) {
+                await refreshCharacters(); selectCharacterIfPresent(characterId);
+                const updated = loadedCharacters.find(item => item.id === characterId);
+                status.textContent = labels[action] + ' complete. ' + (updated?.lifecycle?.enabled === false ? 'Character disabled' : 'Character enabled') + '; ' + (updated?.lifecycle?.locked === true ? 'locked.' : 'unlocked.');
+                logActivity('info', 'Character lifecycle changed', character.name + ': ' + action + ' (' + data.lifecycle_status + ')');
+            } else {
+                status.textContent = (data.error?.code || 'character_lifecycle_failed') + ': ' + (data.error?.message || 'Lifecycle update failed.');
+                logActivity('error', 'Character lifecycle action rejected', JSON.stringify(data));
+                if (response.status === 409) { await refreshCharacters(); selectCharacterIfPresent(characterId); }
+            }
+        } catch (error) {
+            status.textContent = 'Character lifecycle request failed. Check the server and activity log.';
+            logActivity('error', 'Character lifecycle request failed', error.stack || error.message);
+        } finally { updateCharacterDetails(); }
+    }
+    document.getElementById('disableCharacterButton').addEventListener('click', () => applyCharacterLifecycle('disable'));
+    document.getElementById('enableCharacterButton').addEventListener('click', () => applyCharacterLifecycle('enable'));
+    document.getElementById('lockCharacterButton').addEventListener('click', () => applyCharacterLifecycle('lock'));
+    document.getElementById('unlockCharacterButton').addEventListener('click', () => applyCharacterLifecycle('unlock'));
+
     const deleteCharacterButton = document.getElementById('deleteCharacterButton');
     function updateDeleteCharacterAvailability() { deleteCharacterButton.disabled = !document.getElementById('characterSelect').value; }
     document.getElementById('characterSelect').addEventListener('change', updateDeleteCharacterAvailability);
@@ -1018,6 +1103,51 @@ declare(strict_types=1);
         } finally { button.disabled = false; }
     });
 
+    function updateUniverseLifecycleControls() {
+        const hasUniverse = Boolean(currentUniverseId);
+        const enabled = currentUniverseLifecycle.enabled !== false;
+        const locked = currentUniverseLifecycle.locked === true;
+        document.getElementById('disableUniverseButton').disabled = !hasUniverse || !enabled;
+        document.getElementById('enableUniverseButton').disabled = !hasUniverse || enabled;
+        document.getElementById('lockUniverseButton').disabled = !hasUniverse || locked;
+        document.getElementById('unlockUniverseButton').disabled = !hasUniverse || !locked;
+        document.getElementById('universeLifecycleRevision').value = String(currentUniverseLifecycle.revision || 0);
+        document.getElementById('universeLifecycleStatus').textContent = hasUniverse
+            ? 'Universe ' + currentUniverseId + ' — ' + (enabled ? 'enabled' : 'DISABLED') + ' · ' + (locked ? 'LOCKED' : 'unlocked') + (enabled && !locked ? '. Gameplay mutations are available subject to character state.' : '. Gameplay mutations are blocked; saved records are preserved.')
+            : 'Create or load a universe to manage its lifecycle.';
+    }
+
+    for (const action of ['disable', 'enable', 'lock', 'unlock']) {
+        const button = document.getElementById(action + 'UniverseButton');
+        button.addEventListener('click', async () => {
+            if (!currentUniverseId) return;
+            const status = document.getElementById('universeLifecycleStatus');
+            button.disabled = true;
+            status.textContent = 'Updating universe lifecycle…';
+            try {
+                const response = await fetch('api/universe-lifecycle.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: currentUniverseId, action, expected_revision: Number(currentUniverseLifecycle.revision || 0) }) });
+                const text = await response.text();
+                let data; try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+                if (response.ok && data.ok && data.universe) {
+                    currentUniverseLifecycle = data.universe.lifecycle || { enabled: true, locked: false, revision: 0 };
+                    currentUniverseLifecycle.enabled = currentUniverseLifecycle.enabled !== false;
+                    currentUniverseLifecycle.locked = currentUniverseLifecycle.locked === true;
+                    currentUniverseLifecycle.revision = Number(currentUniverseLifecycle.revision || 0);
+                    updateUniverseLifecycleControls();
+                    updateCharacterDetails();
+                    status.textContent += ' Last action: ' + action + ' (' + data.lifecycle_status + ').';
+                    logActivity('info', 'Universe lifecycle changed', currentUniverseId + ': ' + action + ' (' + data.lifecycle_status + ')');
+                } else {
+                    status.textContent = (data.error?.code || 'universe_lifecycle_failed') + ': ' + (data.error?.message || 'Lifecycle update failed.');
+                    logActivity('error', 'Universe lifecycle action rejected', JSON.stringify(data));
+                }
+            } catch (error) {
+                status.textContent = 'Universe lifecycle request failed. Check the server and activity log.';
+                logActivity('error', 'Universe lifecycle request failed', error.stack || error.message);
+            } finally { updateUniverseLifecycleControls(); }
+        });
+    }
+
     document.getElementById('createButton').addEventListener('click', async () => {
         const seed = seedInput.value.trim();
         if (!seed) { universeStatus.textContent = 'Enter a seed first.'; return; }
@@ -1032,6 +1162,13 @@ declare(strict_types=1);
             if (result.response.ok && result.data.universe) {
                 currentUniverseBaseline = result.data.universe.baseline || null;
                 currentUniverseState = result.data.universe.state || null;
+                currentUniverseId = result.data.universe.id || '';
+                currentUniverseLifecycle = result.data.universe.lifecycle || { enabled: true, locked: false, revision: 0 };
+                currentUniverseLifecycle.enabled = currentUniverseLifecycle.enabled !== false;
+                currentUniverseLifecycle.locked = currentUniverseLifecycle.locked === true;
+                currentUniverseLifecycle.revision = Number(currentUniverseLifecycle.revision || 0);
+                document.getElementById('universeLifecycleRevision').value = String(currentUniverseLifecycle.revision);
+                updateUniverseLifecycleControls();
                 renderCharacterDashboard(null);
                 document.getElementById('stateUniverseId').value = result.data.universe.id || '';
                 document.getElementById('characterUniverseId').value = result.data.universe.id || '';

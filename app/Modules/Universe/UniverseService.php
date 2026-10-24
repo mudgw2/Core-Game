@@ -59,6 +59,7 @@ final class UniverseService
 
         $eventProcessor = $this->eventProcessor;
         return $this->storage->transact('universes', $universeId, static function (array $record) use ($expectedRevision, $change, $eventProcessor): array {
+            UniverseLifecycleGuard::assertCanPerformGameplayAction($record);
             $state = $record['state'] ?? null;
             if (!is_array($state) || !isset($state['revision']) || !is_array($state['changes'] ?? null)) {
                 throw new RuntimeException('Universe state structure is invalid.');

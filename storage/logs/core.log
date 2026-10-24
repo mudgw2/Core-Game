@@ -237,3 +237,22 @@
 {"time":"2026-10-24T06:35:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
 {"time":"2026-10-24T06:35:35+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T06:35:35+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T06:48:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T14:07:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T14:08:25+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T14:08:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T14:08:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T14:08:34+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"lock","status":"updated","revision":1}}
+{"time":"2026-10-24T14:08:34+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:08:36+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"unlock","status":"updated","revision":2}}
+{"time":"2026-10-24T14:08:36+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:08:40+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"lock","status":"updated","revision":3}}
+{"time":"2026-10-24T14:08:40+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:08:41+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"unlock","status":"updated","revision":4}}
+{"time":"2026-10-24T14:08:41+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:08:44+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"disable","status":"updated","revision":5}}
+{"time":"2026-10-24T14:08:44+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:08:46+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"enable","status":"updated","revision":6}}
+{"time":"2026-10-24T14:08:46+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T14:09:13+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T14:09:13+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

@@ -80,6 +80,22 @@ final class JsonStorage
         });
     }
 
+    /** Deletes one record while holding its record lock; the guard validates identity/revision before removal. */
+    public function delete(string $collection, string $id, callable $guard): array
+    {
+        $path = $this->path($collection, $id);
+        return $this->withRecordLock($path, $collection, $id, function () use ($path, $collection, $id, $guard): array {
+            if (!is_file($path)) throw new RuntimeException('Stored JSON record does not exist.');
+            $current = $this->decodeFile($path, $collection, $id);
+            $guard($current);
+            if (!@unlink($path)) {
+                Logger::error('Stored JSON record could not be deleted', ['collection' => $collection, 'record_id' => $id]);
+                throw new RuntimeException('Unable to delete stored JSON record.');
+            }
+            return $current;
+        });
+    }
+
     private function decodeFile(string $path, string $collection, string $id): array
     {
         $raw = @file_get_contents($path);

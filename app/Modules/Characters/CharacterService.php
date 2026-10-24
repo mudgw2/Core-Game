@@ -154,6 +154,35 @@ final class CharacterService
         return $result;
     }
 
+    /** Permanently removes one character after exact-name confirmation and revision validation. */
+    public function deleteCharacter(string $universeId, string $characterId, string $confirmationName, int $expectedRevision): array
+    {
+        $universeId = trim($universeId);
+        $characterId = trim($characterId);
+        $confirmationName = trim($confirmationName);
+        if ($universeId === '' || $characterId === '' || $confirmationName === '') {
+            throw new RuntimeException('universe_id, character_id, and confirmation_name are required.');
+        }
+        if ($expectedRevision < 0) throw new RuntimeException('Expected character revision must be zero or greater.');
+        $universe = $this->storage->read('universes', $universeId);
+        if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
+            throw new RuntimeException('The selected universe does not exist.');
+        }
+        $deleted = $this->storage->delete('characters', $characterId, static function (array $character) use ($universeId, $confirmationName, $expectedRevision): void {
+            if (($character['universe_id'] ?? null) !== $universeId) {
+                throw new RuntimeException('Character does not belong to the selected universe.');
+            }
+            if (!hash_equals((string)($character['name'] ?? ''), $confirmationName)) {
+                throw new RuntimeException('Confirmation name does not match the character name.');
+            }
+            $actualRevision = (int)($character['revision'] ?? 0);
+            if ($actualRevision !== $expectedRevision) {
+                throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
+            }
+        });
+        return ['deleted' => true, 'character_id' => $characterId, 'universe_id' => $universeId, 'name' => (string)($deleted['name'] ?? ''), 'revision' => (int)($deleted['revision'] ?? 0)];
+    }
+
     public function navigationForUniverse(string $universeId): array
     {
         $universeId = trim($universeId);

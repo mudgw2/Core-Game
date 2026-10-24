@@ -70,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.27</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.28</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -166,6 +166,12 @@ declare(strict_types=1);
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
+            <section style="margin-top:16px;border-color:#8b4545;background:#211725">
+                <h3 style="color:#ffb8b8;margin-top:0">Danger zone: delete character</h3>
+                <p>This permanently deletes the selected character record, including its location, exploration history, discoveries, inventory, crafting ledger, travel progress, and ship loadout. It does not delete the universe or other characters. This cannot be undone.</p>
+                <div class="actions"><button id="deleteCharacterButton" type="button" style="background:#ffb8b8;color:#321010" disabled>Delete selected character…</button></div>
+                <p id="deleteCharacterStatus" class="status" role="status" aria-live="polite">Select a character to enable deletion.</p>
+            </section>
             <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Only directly connected systems are valid destinations. Repeating a move to the current system will not increment the revision.</p>
             <p id="characterExplorationStatus" class="status" aria-live="polite">Select a character to view its location and exploration history.</p>
             <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
@@ -509,6 +515,7 @@ declare(strict_types=1);
             const option = document.createElement('option'); option.value = ''; option.textContent = 'No characters in this universe'; select.append(option);
             updateCharacterDetails();
             populateSystemChoices();
+            updateDeleteCharacterAvailability();
             return;
         }
         for (const character of loadedCharacters) {
@@ -521,6 +528,7 @@ declare(strict_types=1);
         document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
         updateCharacterDetails();
         populateSystemChoices();
+        updateDeleteCharacterAvailability();
     }
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
@@ -930,6 +938,50 @@ declare(strict_types=1);
             button.disabled = !selected;
         }
     });
+
+    const deleteCharacterButton = document.getElementById('deleteCharacterButton');
+    function updateDeleteCharacterAvailability() { deleteCharacterButton.disabled = !document.getElementById('characterSelect').value; }
+    document.getElementById('characterSelect').addEventListener('change', updateDeleteCharacterAvailability);
+    deleteCharacterButton.addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const character = loadedCharacters.find(item => item.id === characterId);
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('deleteCharacterStatus');
+        if (!universeId || !character) { status.textContent = 'Load a universe and select a character first.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        if (!window.confirm('Permanently delete ' + character.name + '? This removes all character progress, discoveries, inventory, and ship fitting. The universe and other characters will remain. This cannot be undone.')) return;
+        const confirmationName = window.prompt('To permanently delete this character, type its exact name: ' + character.name);
+        if (confirmationName === null) { status.textContent = 'Deletion cancelled.'; return; }
+        if (confirmationName !== character.name) { status.textContent = 'Deletion cancelled: the name did not match exactly.'; logActivity('warning', 'Character deletion cancelled', 'Confirmation name mismatch for ' + character.name); return; }
+        deleteCharacterButton.disabled = true; status.textContent = 'Deleting character and its saved progress…';
+        try {
+            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, confirmation_name: confirmationName, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                status.textContent = 'Character permanently deleted: ' + data.deletion.name + ' (' + data.deletion.character_id + ').';
+                logActivity('warning', 'Character permanently deleted', data.deletion.name + ' (' + data.deletion.character_id + ')');
+                await refreshCharacters();
+                const select = document.getElementById('characterSelect');
+                if (select.options.length) select.selectedIndex = 0;
+                document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
+                updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability();
+            } else {
+                status.textContent = (data.error?.code || 'character_delete_failed') + ': ' + (data.error?.message || 'Character deletion failed.');
+                logActivity('error', 'Character deletion rejected', JSON.stringify(data));
+                if (response.status === 409) { await refreshCharacters(); selectCharacterIfPresent(characterId); }
+            }
+        } catch (error) { status.textContent = 'Character deletion request failed. Check the server and activity log.'; logActivity('error', 'Character deletion request failed', error.stack || error.message); }
+        finally { updateDeleteCharacterAvailability(); }
+    });
+    function selectCharacterIfPresent(characterId) {
+        const select = document.getElementById('characterSelect');
+        if (loadedCharacters.some(item => item.id === characterId)) select.value = characterId;
+        document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
+        updateCharacterDetails(); populateSystemChoices();
+    }
 
     document.getElementById('createCharacterButton').addEventListener('click', async () => {
         const universeId = document.getElementById('characterUniverseId').value.trim();

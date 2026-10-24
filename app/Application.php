@@ -49,7 +49,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.27',
+            'version' => '0.1.28',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -422,6 +422,44 @@ final class Application
             }
         });
 
+        $this->router->post('/api/characters/delete', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character deletion API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_delete_api_disabled', 'message' => 'Character deletion is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $confirmationName = isset($body['confirmation_name']) && is_string($body['confirmation_name']) ? $body['confirmation_name'] : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || trim($confirmationName) === '' || !is_int($expectedRevision)) {
+                Logger::warning('Character deletion request validation failed', ['error_code' => 'invalid_character_delete_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_delete_request', 'message' => 'Provide universe_id, character_id, confirmation_name, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $characterService->deleteCharacter($universeId, $characterId, $confirmationName, $expectedRevision);
+                Logger::warning('Character permanently deleted', ['character_id' => $characterId, 'universe_id' => $universeId, 'character_name' => $result['name'], 'last_revision' => $result['revision']]);
+                return Response::json(['ok' => true, 'deletion' => $result]);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character deletion revision conflict', ['character_id' => $characterId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'character_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'required') || str_contains($message, 'must be zero') || str_contains($message, 'Confirmation name')) {
+                    Logger::warning('Character deletion rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_delete', 'message' => $message]], 400);
+                }
+                if (str_contains($message, 'does not belong')) {
+                    Logger::warning('Cross-universe character deletion rejected', ['character_id' => $characterId, 'universe_id' => $universeId]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'character_universe_mismatch', 'message' => $message]], 400);
+                }
+                Logger::error('Character deletion failed', ['character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_delete_failed', 'message' => 'Character could not be deleted. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->post('/api/characters', static function (Request $request) use ($characterService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
@@ -465,6 +503,7 @@ final class Application
                 'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (development/private network only)',
                 'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (development/private network only)',
                 'POST /api/characters/fit with universe_id, character_id, module_id, and expected_revision (development/private network only)',
+                'POST /api/characters/delete with universe_id, character_id, confirmation_name, and expected_revision (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

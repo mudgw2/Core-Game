@@ -222,3 +222,18 @@
 {"time":"2026-10-24T06:24:42+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
 {"time":"2026-10-24T06:24:55+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T06:24:55+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T06:34:36+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T06:34:46+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T06:34:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T06:34:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:35:02+00:00","level":"WARNING","message":"Character permanently deleted","context":{"character_id":"chr_afc208a36deb35d066a6d09c","universe_id":"uni_d6aaf47504110dc50b183443","character_name":"Dave","last_revision":0}}
+{"time":"2026-10-24T06:35:02+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/delete"}}
+{"time":"2026-10-24T06:35:02+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:35:14+00:00","level":"WARNING","message":"Character permanently deleted","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","character_name":"David","last_revision":5}}
+{"time":"2026-10-24T06:35:14+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/delete"}}
+{"time":"2026-10-24T06:35:14+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:35:20+00:00","level":"WARNING","message":"Character permanently deleted","context":{"character_id":"chr_750eeeda4cb31db509800923","universe_id":"uni_d6aaf47504110dc50b183443","character_name":"Dave","last_revision":2}}
+{"time":"2026-10-24T06:35:20+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/delete"}}
+{"time":"2026-10-24T06:35:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:35:35+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T06:35:35+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

@@ -1198,7 +1198,52 @@ $run('Workbench exposes ship fitting controls and persisted module slots', stati
     return 'Workbench exposes module selection, installation action, status feedback, and all three fitting slots.';
 });
 
+$run('Character deletion permanently removes only the selected character record', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-delete');
+        $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Delete Me'); $other = $service->create($universe['id'], 'Keep Me');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['raw_ore' => 5], 'ledger' => [['id' => 'test']]]; $storage->write('characters', $character['id'], $record);
+        $result = $service->deleteCharacter($universe['id'], $character['id'], 'Delete Me', 0);
+        $equal(true, $result['deleted'], 'Deletion result did not indicate success.'); $equal(null, $storage->read('characters', $character['id']), 'Deleted character JSON still exists.');
+        $equal($other['id'], $storage->read('characters', $other['id'])['id'] ?? null, 'Another character was affected.'); $equal($universe['id'], $storage->read('universes', $universe['id'])['id'] ?? null, 'Universe was affected.');
+        return 'Target character JSON was removed while sibling character and universe remained intact.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character deletion requires exact name, current revision, and matching universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universes = new UniverseService($storage); $universe = $universes->createOrLoad('core-ui-qa-character-delete-validation'); $otherUniverse = $universes->createOrLoad('core-ui-qa-character-delete-other');
+        $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Guarded Character');
+        foreach ([[$universe['id'], 'Wrong Name', 0, 'Confirmation name'], [$universe['id'], 'Guarded Character', 1, 'revision conflict'], [$otherUniverse['id'], 'Guarded Character', 0, 'does not belong']] as [$uid, $name, $revision, $expected]) {
+            try { $service->deleteCharacter($uid, $character['id'], $name, $revision); throw new RuntimeException('Invalid deletion was accepted: ' . $expected); }
+            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), $expected), 'Unexpected deletion rejection: ' . $e->getMessage()); }
+            $equal($character['id'], $storage->read('characters', $character['id'])['id'] ?? null, 'Rejected deletion removed character.');
+        }
+        return 'Wrong name, stale revision, and cross-universe deletion were rejected without removal.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character deletion reports missing records without affecting other data', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-delete-missing'); $service = new CharacterService($storage);
+        try { $service->deleteCharacter($universe['id'], 'chr_missing123', 'Missing Character', 0); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not exist'), 'Unexpected missing-record error.'); return 'Missing character deletion failed safely and universe remained stored.'; }
+        throw new RuntimeException('Missing character deletion unexpectedly succeeded.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes guarded character deletion controls and request wiring', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
+    foreach (['deleteCharacterButton', 'deleteCharacterStatus', 'api/character-delete.php', 'confirmation_name', 'expected_revision', 'cannot be undone'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing deletion marker: ' . $needle);
+    $assert(str_contains($app, "'/api/characters/delete'"), 'Deletion API route is missing.');
+    return 'Danger-zone UI, explicit confirmation payload, and guarded deletion API route are present.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.27', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.28', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

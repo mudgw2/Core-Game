@@ -1,26 +1,15 @@
-# CORE PHP Foundation 0.1.27 — Crafting Bench
+# CORE PHP Foundation 0.1.28 — Character Deletion
 
-CORE is a browser-based, seed-driven sci-fi sandbox prototype built with PHP, JSON persistence, and a browser Workbench.
+CORE is an early PHP/JSON browser-based sci-fi sandbox foundation. This release adds guarded permanent character deletion.
 
-## What changed in 0.1.27
+## Install
+Extract the package over the existing application using your normal deployment process. **Preserve `storage/data/` and `storage/logs/`; never replace those directories with package contents.** The ZIP contains only `.gitkeep` placeholders for storage directories.
 
-- Added a revision-checked character crafting service and development-only API.
-- Refine 3 raw ore into 1 refined alloy.
-- Assemble 2 salvage parts into 1 ship component.
-- Analyze 2 research data into 1 tech insight.
-- Supports 1–10 batches per operation; input consumption and output production are committed together.
-- Craft input/output transactions are recorded in the character inventory ledger.
-- Workbench crafting controls refresh character inventory and revision after successful crafting.
-- Failed crafting (insufficient materials, invalid quantity, stale revision, or invalid recipe) does not change inventory.
+## Character deletion
+In **Workbench → Characters & Travel**, select a character and use the **Danger zone: delete character** action. The UI asks for confirmation and requires the exact character name. Deletion permanently removes the selected character JSON record, including its progress, scans/discoveries, inventory/ledger, travel state, and ship loadout. Other characters and the universe remain untouched. The API requires the current character revision and matching universe and is restricted to development/private-network access.
 
-## Install / update
+## Important
+This is still a development scaffold; authentication and account ownership are not implemented. Do not expose the application publicly. Character deletion is irreversible. Universe/global cleanup is intentionally not part of this release.
 
-1. Back up the current CORE installation.
-2. Extract this package over the application files.
-3. **Preserve existing `storage/data/` and `storage/logs/` contents. Do not overwrite or delete those directories during an update.**
-4. Open Workbench → Operations & QA → **Run automated tests**. Expected result: **PASS — 70 tests passed**.
-5. Open Scanning & Discoveries. Investigate discoveries to collect resources, then use the Crafting bench when you have enough inputs.
-
-## Safety / scope
-
-This remains a development-only prototype. The crafting API is restricted to development mode on localhost/private networks. Before public exposure, change the application environment and disable browser QA according to `config/app.php`. Accounts, ownership, trade, and multiplayer synchronization are not yet implemented.
+## QA
+Open **Workbench → Operations & QA → Run automated tests**.

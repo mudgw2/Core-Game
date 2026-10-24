@@ -35,6 +35,7 @@ use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
+use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
@@ -808,6 +809,90 @@ $run('System scanning rejects stale revisions and characters from other universe
     } finally { $cleanup($dir); }
 });
 
+$run('Discovery investigation persists a result and increments character revision', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-discovery-investigate');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Signal Investigator');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $discovery = $scan['scan']['discoveries'][0];
+        $result = (new CharacterDiscoveryService($storage))->investigate($universe['id'], $character['id'], $discovery['id'], 1);
+        $equal('investigated', $result['investigation_status'], 'Investigation status mismatch.');
+        $equal('investigated', $result['discovery']['status'] ?? null, 'Discovery status was not persisted.');
+        $assert(!empty($result['discovery']['outcome']), 'Investigation outcome missing.');
+        $equal(2, $result['character']['revision'], 'Investigation did not increment revision once.');
+        $saved = $storage->read('characters', $character['id']);
+        $savedDiscovery = $saved['scans']['systems'][$character['current_system_id']]['discoveries'][0] ?? null;
+        $equal($result['discovery'], $savedDiscovery, 'Investigated discovery not saved in character record.');
+        return 'Investigation status, timestamp, outcome, and revision were persisted.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Repeated discovery investigation is idempotent', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-discovery-repeat');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Repeat Investigator');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $service = new CharacterDiscoveryService($storage); $id = $scan['scan']['discoveries'][0]['id'];
+        $first = $service->investigate($universe['id'], $character['id'], $id, 1);
+        $second = $service->investigate($universe['id'], $character['id'], $id, 2);
+        $equal('already_investigated', $second['investigation_status'], 'Repeat investigation status mismatch.');
+        $equal($first['discovery']['outcome'], $second['discovery']['outcome'], 'Repeat investigation changed the outcome.');
+        $equal(2, $second['character']['revision'], 'Repeat investigation advanced revision.');
+        return 'Repeat investigation returned the saved outcome without changing revision.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Discovery investigation requires the character to be in the discovery system', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-discovery-location');
+        $characters = new CharacterService($storage); $character = $characters->create($universe['id'], 'Remote Investigator');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $discovery = $scan['scan']['discoveries'][0]; $systems = $universe['baseline']['systems']; $graph = NavigationGraph::build($systems); $path = [];
+        foreach ($systems as $system) { $candidate = NavigationGraph::shortestPath($graph, $character['current_system_id'], (string)$system['id']); if (count($candidate) > count($path)) $path = $candidate; }
+        $assert(count($path) > 1, 'No alternate system available in generated navigation graph.');
+        $moved = $characters->move($universe['id'], $character['id'], (string)$path[1], 1);
+        try { (new CharacterDiscoveryService($storage))->investigate($universe['id'], $character['id'], $discovery['id'], $moved['revision']); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'Travel to the discovery'), 'Unexpected location error.');
+            $saved = $storage->read('characters', $character['id']);
+            $equal(2, $saved['revision'], 'Rejected remote investigation changed revision.');
+            return 'Remote investigation rejected without changing the saved character.';
+        }
+        throw new RuntimeException('Discovery was investigated from another system.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Discovery investigation rejects stale revisions and cross-universe characters', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universes = new UniverseService($storage);
+        $one = $universes->createOrLoad('core-ui-qa-discovery-universe-one'); $two = $universes->createOrLoad('core-ui-qa-discovery-universe-two');
+        $character = (new CharacterService($storage))->create($one['id'], 'Revision Investigator');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($one['id'], $character['id'], 0); $id = $scan['scan']['discoveries'][0]['id'];
+        $service = new CharacterDiscoveryService($storage);
+        try { $service->investigate($one['id'], $character['id'], $id, 0); throw new RuntimeException('Stale revision accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error.'); }
+        try { $service->investigate($two['id'], $character['id'], $id, 1); throw new RuntimeException('Cross-universe investigation accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not belong'), 'Unexpected cross-universe error.'); }
+        $saved = $storage->read('characters', $character['id']);
+        $equal(1, $saved['revision'], 'Rejected requests changed revision.');
+        $equal('uninvestigated', $saved['scans']['systems'][$character['current_system_id']]['discoveries'][0]['status'] ?? 'uninvestigated', 'Rejected request changed discovery state.');
+        return 'Stale and cross-universe requests rejected without discovery-state changes.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes investigation actions and result rendering', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['investigate-discovery', 'api/character-discovery-investigate.php', 'investigation_status', 'Investigation result:', 'characterScanResults\').addEventListener(\'click\''] as $needle) {
+        $assert(str_contains($html, $needle), 'Workbench is missing discovery-investigation marker: ' . $needle);
+    }
+    return 'Saved signals expose investigation controls and display persistent investigation outcomes.';
+});
+
 $run('Workbench exposes accessible system-scan controls and saved discovery rendering', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php');
     $assert(is_string($html), 'Workbench HTML could not be read.');
@@ -928,4 +1013,4 @@ $run('Overview dashboard is wired to current universe, character, location, and 
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.23', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.24', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

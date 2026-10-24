@@ -68,7 +68,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.23</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.24</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -378,7 +378,14 @@ declare(strict_types=1);
             for (const discovery of currentScan.discoveries) {
                 const item = document.createElement('li');
                 const title = document.createElement('strong'); title.textContent = discovery.label || discovery.type || 'Unknown signal';
-                item.append(title, document.createTextNode(' — ' + (discovery.description || 'No additional data.')));
+                const details = document.createElement('p'); details.className = 'dashboard-list';
+                details.textContent = (discovery.description || 'No additional data.') + (discovery.status === 'investigated' ? ' Status: Investigated.' : ' Status: Uninvestigated.');
+                item.append(title, details);
+                if (discovery.status === 'investigated') {
+                    const outcome = document.createElement('p'); outcome.className = 'dashboard-list'; outcome.textContent = 'Investigation result: ' + (discovery.outcome || 'No result recorded.'); item.append(outcome);
+                } else {
+                    const investigate = document.createElement('button'); investigate.type = 'button'; investigate.className = 'secondary investigate-discovery'; investigate.dataset.discoveryId = discovery.id || ''; investigate.textContent = 'Investigate signal'; investigate.disabled = !characterId; item.append(investigate);
+                }
                 list.append(item);
             }
             scanPanel.append(list);
@@ -755,6 +762,50 @@ declare(strict_types=1);
             }
         } catch (error) { status.textContent = 'System scan request failed. Check the server and activity log.'; logActivity('error', 'System scan request failed', String(error)); }
         finally { button.disabled = !document.getElementById('characterSelect').value; }
+    });
+
+    document.getElementById('characterScanResults').addEventListener('click', async event => {
+        const button = event.target.closest('button.investigate-discovery');
+        if (!button) return;
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('characterScanStatus');
+        const discoveryId = button.dataset.discoveryId || '';
+        if (!universeId || !characterId || !discoveryId) { status.textContent = 'Load a universe, select a character, and choose a saved discovery.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        button.disabled = true;
+        status.textContent = 'Investigating discovery…';
+        try {
+            const response = await fetch('api/character-discovery-investigate.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, discovery_id: discoveryId, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                status.textContent = data.investigation_status === 'already_investigated' ? 'This discovery was already investigated. Saved result returned; revision unchanged at ' + data.character.revision + '.' : 'Investigation complete: ' + (data.discovery.label || data.discovery.id) + '. Character revision: ' + data.character.revision + '.';
+                logActivity('info', 'Discovery ' + data.investigation_status, (data.discovery.label || discoveryId) + ' — ' + (data.discovery.outcome || 'saved'));
+                await refreshCharacters();
+                document.getElementById('characterSelect').value = characterId;
+                document.getElementById('characterRevision').value = String(data.character.revision);
+                updateCharacterDetails();
+            } else {
+                status.textContent = (data.error?.code || 'investigation_failed') + ': ' + (data.error?.message || 'Discovery investigation failed.');
+                logActivity('error', 'Discovery investigation failed', JSON.stringify(data));
+                if (response.status === 409) {
+                    await refreshCharacters();
+                    document.getElementById('characterSelect').value = characterId;
+                    const latest = loadedCharacters.find(item => item.id === characterId);
+                    if (latest) document.getElementById('characterRevision').value = String(latest.revision ?? 0);
+                    updateCharacterDetails();
+                }
+            }
+        } catch (error) {
+            status.textContent = 'Discovery investigation request failed. Check the server and activity log.';
+            logActivity('error', 'Discovery investigation request failed', String(error));
+        } finally {
+            const selected = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
+            button.disabled = !selected;
+        }
     });
 
     document.getElementById('createCharacterButton').addEventListener('click', async () => {

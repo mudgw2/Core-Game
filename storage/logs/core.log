@@ -33,3 +33,21 @@
 {"time":"2026-10-24T05:51:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
 {"time":"2026-10-24T05:52:02+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T05:52:02+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T05:58:17+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T05:58:25+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T05:58:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T05:58:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:58:45+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_a7117c67fc60fc49bcd5","revision":8}}
+{"time":"2026-10-24T05:58:45+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T05:58:45+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:58:47+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_39911eb40133c3c5f3b0","revision":9}}
+{"time":"2026-10-24T05:58:47+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T05:58:47+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:58:55+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_aa3e0c7901f3a4f39d48","revision":10}}
+{"time":"2026-10-24T05:58:55+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T05:58:55+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:59:00+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_8b76f9bafdcd1d96","discoveries":3,"revision":10}}
+{"time":"2026-10-24T05:59:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T05:59:00+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:59:05+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T05:59:05+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

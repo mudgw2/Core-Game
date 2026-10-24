@@ -887,7 +887,45 @@ $run('Travel next-jump control remains actionable and reports request failures',
     return 'Next-jump control has a click handler, actionable state, and visible error feedback.';
 });
 
+
+$run('Global menu exposes all major Workbench areas with accessible tab relationships', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach ([
+        'role="tablist"', 'role="tab"', 'role="tabpanel"',
+        'id="tab-overview"', 'id="panel-overview"',
+        'id="tab-universe"', 'id="panel-universe"',
+        'id="tab-characters"', 'id="panel-characters"',
+        'id="tab-discoveries"', 'id="panel-discoveries"',
+        'id="tab-operations"', 'id="panel-operations"',
+        'aria-controls="panel-discoveries"', 'aria-labelledby="tab-discoveries"'
+    ] as $needle) {
+        $assert(str_contains($html, $needle), 'Global menu is missing accessibility or panel marker: ' . $needle);
+    }
+    return 'Five major work areas have explicit tab/panel relationships and accessible labels.';
+});
+
+$run('Global menu supports click, arrow-key, Home, and End navigation', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (["tab.addEventListener('click'", "tab.addEventListener('keydown'", "event.key === 'ArrowRight'", "event.key === 'ArrowLeft'", "event.key === 'Home'", "event.key === 'End'", "panel.hidden = panel.dataset.panel !== name", "item.setAttribute('aria-selected'", "item.tabIndex = active ? 0 : -1"] as $needle) {
+        $assert(str_contains($html, $needle), 'Global menu interaction is missing: ' . $needle);
+    }
+    return 'Tabs switch panels, update selected/focus state, and support standard keyboard navigation.';
+});
+
+$run('Overview dashboard is wired to current universe, character, location, and travel status', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['overviewUniverse','overviewCharacter','overviewRole','overviewSystem','overviewTravel'] as $needle) {
+        $assert(str_contains($html, $needle), 'Overview dashboard is missing: ' . $needle);
+    }
+    $assert(str_contains($html, "set('overviewUniverse'") && str_contains($html, "set('overviewCharacter'") && str_contains($html, "set('overviewTravel'"), 'Overview dashboard fields are not updated by the character dashboard renderer.');
+    $assert(str_contains($html, "activateTab('overview')"), 'Workbench does not initialize to a valid default tab.');
+    return 'Overview tiles are updated alongside the existing character/travel dashboard and a default tab is initialized.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.22', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.23', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

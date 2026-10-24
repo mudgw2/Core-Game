@@ -48,21 +48,56 @@ declare(strict_types=1);
         .dashboard-lists > div { background:#101a2e; border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
         .dashboard-lists h4 { margin:0 0 6px; font-size:.95rem; }
         .dashboard-list { margin:0; color:#d5e2f7; overflow-wrap:anywhere; }
+
+        .app-header { padding-top:38px; }
+        .app-header h1 { font-size:clamp(2.5rem,7vw,4.2rem); line-height:1; margin:.5rem 0 1rem; letter-spacing:-.04em; }
+        .global-menu { display:flex; flex-wrap:wrap; gap:8px; padding:10px; margin:24px 0 0; border:1px solid #334564; border-radius:14px; background:#0d1628; }
+        .global-menu button { margin:0; min-height:46px; background:transparent; color:#d8e4f7; border:1px solid transparent; }
+        .global-menu button[aria-selected="true"] { background:var(--accent); color:#08201d; border-color:var(--accent); }
+        .global-menu button:hover { border-color:#7e94b7; }
+        .global-menu button:focus-visible { outline:3px solid #fff; outline-offset:2px; }
+        .tab-summary { display:flex; align-items:center; flex-wrap:wrap; gap:9px; padding:10px 4px 0; color:#e5edfb; font-size:.9rem; }
+        .menu-indicator { width:8px; height:8px; border-radius:50%; background:var(--accent); display:inline-block; }
+        .tab-summary-hint { color:var(--muted); margin-left:auto; }
+        .tab-panel { margin-top:14px; background:transparent; border:0; padding:0; }
+        .tab-panel[hidden] { display:none !important; }
+        .tab-panel > section { align-self:start; }
+        @media (max-width:600px) { main { width:min(100% - 20px,1000px); padding-top:20px; } .global-menu { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .global-menu button { width:100%; padding:8px; } .global-menu button:last-child { grid-column:1/-1; } .tab-summary-hint { margin-left:0; flex-basis:100%; } }
     </style>
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.22</div>
-    <h1>CORE</h1>
-    <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
-
-    <div class="grid">
+    <header class="app-header">
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.23</div>
+        <h1>CORE</h1>
+        <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
+    </header>
+    <nav class="global-menu" aria-label="CORE main menu" role="tablist">
+        <button type="button" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" tabindex="0" data-tab="overview">Overview</button>
+        <button type="button" role="tab" id="tab-universe" aria-controls="panel-universe" aria-selected="false" tabindex="-1" data-tab="universe">Universe</button>
+        <button type="button" role="tab" id="tab-characters" aria-controls="panel-characters" aria-selected="false" tabindex="-1" data-tab="characters">Characters &amp; Travel</button>
+        <button type="button" role="tab" id="tab-discoveries" aria-controls="panel-discoveries" aria-selected="false" tabindex="-1" data-tab="discoveries">Scanning &amp; Discoveries</button>
+        <button type="button" role="tab" id="tab-operations" aria-controls="panel-operations" aria-selected="false" tabindex="-1" data-tab="operations">Operations &amp; QA</button>
+    </nav>
+    <div class="tab-summary" aria-live="polite"><span class="menu-indicator"></span><span id="activeSectionLabel">Overview</span><span class="tab-summary-hint">Use the main menu to switch work areas.</span></div>
+    <section class="tab-panel grid" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" data-panel="overview">
+        <section>
+            <h2>Workbench overview</h2>
+            <p>Choose a work area from the global menu. Your loaded universe and character stay selected while you move between tabs.</p>
+            <div class="dashboard-grid">
+                <div class="dashboard-tile"><span class="dashboard-label">Selected universe</span><strong id="overviewUniverse">None loaded</strong><span class="dashboard-detail">Seed-driven universe context</span></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Selected character</span><strong id="overviewCharacter">None selected</strong><span class="dashboard-detail" id="overviewRole">Choose a character in Characters &amp; Travel.</span></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Current system</span><strong id="overviewSystem">—</strong><span class="dashboard-detail" id="overviewTravel">No travel route loaded.</span></div>
+            </div>
+        </section>
         <section>
             <h2>Server status</h2>
             <p>Check that the PHP application and API are responding.</p>
             <div class="actions"><button id="healthButton" type="button">Check server</button></div>
             <p id="healthStatus" class="status" aria-live="polite">Not checked yet.</p>
         </section>
+    </section>
+    <section class="tab-panel grid" id="panel-universe" role="tabpanel" aria-labelledby="tab-universe" data-panel="universe" hidden>
         <section>
             <h2>Universe seed</h2>
             <label for="seed">Seed phrase</label>
@@ -88,6 +123,8 @@ declare(strict_types=1);
             <div class="actions"><button id="stateUpdateButton" type="button">Append state change</button><button id="explorationExampleButton" class="secondary" type="button">Use first system as exploration event</button></div>
             <p id="stateStatus" class="status" aria-live="polite">No state update submitted.</p>
         </section>
+    </section>
+    <section class="tab-panel grid" id="panel-characters" role="tabpanel" aria-labelledby="tab-characters" data-panel="characters" hidden>
         <section style="grid-column:1/-1">
             <h2>Player characters (development only)</h2>
             <p>Create a basic character record linked to the currently selected universe. This is a prototype registry, not an account-owned character system; do not expose it publicly.</p>
@@ -129,13 +166,19 @@ declare(strict_types=1);
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
             <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Only directly connected systems are valid destinations. Repeating a move to the current system will not increment the revision.</p>
             <p id="characterExplorationStatus" class="status" aria-live="polite">Select a character to view its location and exploration history.</p>
-            <h3>System scanning &amp; discoveries</h3>
+            <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
+        </section>
+    </section>
+    <section class="tab-panel grid" id="panel-discoveries" role="tabpanel" aria-labelledby="tab-discoveries" data-panel="discoveries" hidden>
+        <section style="grid-column:1/-1">
+            <h2>System scanning &amp; discoveries</h2>
             <p>Scan the character’s current system to reveal deterministic signals. Results are saved to the character; scanning a system again returns the existing record without advancing its revision.</p>
             <div class="actions"><button id="scanSystemButton" type="button" disabled>Scan current system</button></div>
             <p id="characterScanStatus" class="status" aria-live="polite">Select a character to scan its current system.</p>
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
-            <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
         </section>
+    </section>
+    <section class="tab-panel grid" id="panel-operations" role="tabpanel" aria-labelledby="tab-operations" data-panel="operations" hidden>
         <section style="grid-column:1/-1">
             <h2>Response</h2>
             <pre id="output" aria-live="polite">Ready. Choose an action above.</pre>
@@ -164,11 +207,39 @@ declare(strict_types=1);
             </ul>
             <p class="status">This is an early development scaffold, not a finished game. Accounts, character ownership, gameplay progression, and access control are not implemented yet.</p>
         </section>
-    </div>
+    </section>
     <footer>CORE · Local development workbench · Do not expose publicly until authentication and access controls are implemented.</footer>
 </main>
 <script>
 (() => {
+    const tabs = Array.from(document.querySelectorAll('[role="tab"][data-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-panel]'));
+    const sectionLabel = document.getElementById('activeSectionLabel');
+    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', operations: 'Operations & QA' };
+    function activateTab(name, moveFocus = false) {
+        const tab = tabs.find(item => item.dataset.tab === name);
+        if (!tab) return;
+        tabs.forEach(item => {
+            const active = item === tab;
+            item.setAttribute('aria-selected', active ? 'true' : 'false');
+            item.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach(panel => { panel.hidden = panel.dataset.panel !== name; });
+        if (sectionLabel) sectionLabel.textContent = sectionNames[name] || name;
+        if (moveFocus) tab.focus();
+    }
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+        tab.addEventListener('keydown', event => {
+            let next = null;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % tabs.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + tabs.length) % tabs.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = tabs.length - 1;
+            if (next !== null) { event.preventDefault(); activateTab(tabs[next].dataset.tab, true); }
+        });
+    });
+    activateTab('overview');
     const output = document.getElementById('output');
     const healthStatus = document.getElementById('healthStatus');
     const universeStatus = document.getElementById('universeStatus');
@@ -244,6 +315,10 @@ declare(strict_types=1);
         const currentId = character ? (character.current_system_id || character.location?.system_id || '') : '';
         const set = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = value; };
         set('dashboardCharacter', character?.name || 'None selected');
+        set('overviewUniverse', currentUniverseBaseline ? (currentUniverseBaseline.name || document.getElementById('seed').value.trim() || 'Loaded universe') : 'None loaded');
+        set('overviewCharacter', character?.name || 'None selected');
+        set('overviewRole', character ? ((character.role || 'Role not set') + ' · ' + character.id) : 'Choose a character in Characters & Travel.');
+        set('overviewSystem', character ? (names.get(currentId) || currentId || 'Unknown') : '—');
         set('dashboardRole', character ? (character.role || 'Role not set') + ' · ' + character.id : 'Choose a character below.');
         set('dashboardLocation', character ? (names.get(currentId) || currentId || 'Unknown') : '—');
         set('dashboardRevision', character ? 'Character revision: ' + (character.revision ?? 0) : 'Revision: —');
@@ -253,6 +328,7 @@ declare(strict_types=1);
         const statusLabel = !route ? 'No route' : ({active:'In transit',completed:'Route completed',cancelled:'Route cancelled'}[route.status] || 'Route status: ' + route.status);
         set('dashboardTravelStatus', statusLabel);
         set('dashboardTravelDetail', !character ? 'Select a character.' : route?.status === 'active' ? `${done} of ${total} jumps complete · Next: ${names.get(nextId) || nextId || 'Unavailable'}` : route?.status === 'completed' ? `${done} of ${total} jumps complete · Arrived at ${names.get(currentId) || currentId}` : route?.status === 'cancelled' ? 'Previous route was cancelled.' : 'Plan a route to begin multi-hop travel.');
+        set('overviewTravel', !character ? 'No travel route loaded.' : route?.status === 'active' ? `${done}/${total} jumps complete · Next: ${names.get(nextId) || nextId || 'Unavailable'}` : route?.status === 'completed' ? 'Travel completed.' : route?.status === 'cancelled' ? 'Route cancelled.' : 'No active route.');
         set('dashboardExploration', `${visited.length} character / ${globallyExplored.length} universe`);
         set('dashboardVisitedList', character ? (visited.length ? visited.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).join(' · ') : 'No systems recorded yet.') : 'Select a character to see visited systems.');
         set('dashboardGlobalList', currentUniverseBaseline ? (globallyExplored.length ? globallyExplored.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).join(' · ') : 'No universe-wide exploration events recorded yet.') : 'Load a universe to see global discoveries.');

@@ -46,6 +46,7 @@ use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Core\Modules\DataManagementService;
 use Core\Modules\UniverseBackupService;
+use Core\Modules\ContentCatalog;
 use Core\Modules\UniverseDeletionService;
 
 $results = [];
@@ -981,7 +982,7 @@ $run('Crafting rejects insufficient materials without changing inventory', stati
         $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['raw_ore' => 2], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
         try { (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'refine_ore', 1, 0); }
         catch (RuntimeException $e) {
-            $assert(str_contains($e->getMessage(), 'Insufficient raw ore'), 'Unexpected insufficient-material error.');
+            $assert(str_contains(strtolower($e->getMessage()), 'insufficient raw ore'), 'Unexpected insufficient-material error.');
             $saved = $storage->read('characters', $character['id']);
             $equal(2, $saved['inventory']['resources']['raw_ore'], 'Rejected craft consumed raw ore.');
             $equal(0, $saved['revision'], 'Rejected craft changed revision.');
@@ -1012,7 +1013,7 @@ $run('Crafting rejects stale revisions and invalid quantities', static function 
 $run('Workbench exposes crafting recipes, quantity controls, and result handling', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php');
     $assert(is_string($html), 'Workbench HTML could not be read.');
-    foreach (['craftRecipe','craftQuantity','craftButton','craftStatus','api/character-craft.php','refined_alloy','ship_components','tech_insights','Crafting completed'] as $needle) {
+    foreach (['craftRecipe','craftQuantity','craftButton','craftStatus','api/character-craft.php','api/content-recipes.php','api/content-items.php','gameContent.recipes','loadGameContent','Crafting completed'] as $needle) {
         $assert(str_contains($html, $needle), 'Workbench is missing crafting marker: ' . $needle);
     }
     return 'Workbench contains recipe selection, bounded batch input, crafting action, status, and saved result refresh wiring.';
@@ -1190,7 +1191,7 @@ $run('Ship fitting rejects insufficient materials and stale revisions', static f
         $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-fitting-validation');
         $character = (new CharacterService($storage))->create($universe['id'], 'Fitting Validation');
         $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['ship_components' => 1], 'ledger' => []]; $storage->write('characters', $character['id'], $record); $service = new CharacterFittingService($storage);
-        try { $service->install($universe['id'], $character['id'], 'propulsion_array', 0); } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Insufficient refined alloy'), 'Unexpected insufficient-resource error.'); }
+        try { $service->install($universe['id'], $character['id'], 'propulsion_array', 0); } catch (RuntimeException $e) { $assert(str_contains(strtolower($e->getMessage()), 'insufficient refined alloy'), 'Unexpected insufficient-resource error.'); }
         try { $service->install($universe['id'], $character['id'], 'survey_scanner', 5); } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale-revision error.'); }
         $saved = $storage->read('characters', $character['id']); $equal(0, $saved['revision'], 'Rejected fitting changed revision.'); $equal(['ship_components' => 1], $saved['inventory']['resources'], 'Rejected fitting changed resources.'); $equal([], $saved['inventory']['ledger'], 'Rejected fitting added ledger entries.');
         return 'Insufficient materials and stale revisions leave ship and inventory unchanged.';
@@ -1199,7 +1200,7 @@ $run('Ship fitting rejects insufficient materials and stale revisions', static f
 
 $run('Workbench exposes ship fitting controls and persisted module slots', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php'); $assert(is_string($html), 'Workbench HTML could not be read.');
-    foreach (['fitModule','fitModuleButton','fitModuleStatus','shipFittingPanel','api/character-fit.php','propulsion_array','survey_scanner','expanded_cargo_rack','character.ship?.modules'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing ship fitting marker: ' . $needle);
+    foreach (['fitModule','fitModuleButton','fitModuleStatus','shipFittingPanel','api/character-fit.php','api/content-ship-modules.php','gameContent.ship_modules','character.ship?.modules'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing ship fitting marker: ' . $needle);
     return 'Workbench exposes module selection, installation action, status feedback, and all three fitting slots.';
 });
 
@@ -1647,7 +1648,31 @@ $run('Focused logging and deletion permission preflight are implemented', static
     return 'Central and focused logs are retained; deletion verifies that each existing lock can be opened and exclusively locked before creating a backup. Readable read-only lock files are supported without unlinking or changing their permissions.';
 });
 
+$run('Game item, recipe, discovery, and ship-module definitions are external JSON catalogs', static function () use ($assert): string {
+    $docs = ContentCatalog::allDocuments();
+    foreach (['items','recipes','discoveries','ship_modules'] as $name) $assert(is_array($docs[$name]['entries'] ?? null) && count($docs[$name]['entries']) > 0, 'Missing JSON content catalog: ' . $name);
+    $assert(is_array($docs['discoveries']['scan_rules'] ?? null), 'Scan generation rules are not externally configured in discoveries.json.');
+    return 'All current gameplay definitions load from config/content JSON files.';
+});
+
+$run('Content API wrappers expose the editable JSON catalogs', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    foreach (['content.php','content-items.php','content-recipes.php','content-discoveries.php','content-ship-modules.php'] as $file) $assert(is_file($root . '/api/' . $file), 'Missing content API wrapper: ' . $file);
+    foreach (['items.json','recipes.json','discoveries.json','ship-modules.json'] as $file) $assert(is_file($root . '/config/content/' . $file), 'Missing content JSON: ' . $file);
+    return 'Aggregate and individual read-only content API wrappers are present.';
+});
+
+$run('Complete character-record API is available for saved player state', static function () use ($assert): string {
+    $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $wrapper = dirname(__DIR__) . '/api/character-record.php';
+    $assert(is_string($app) && str_contains($app, "'/api/characters/record'"), 'Single-character read route is missing.');
+    $assert(is_file($wrapper), 'Single-character API wrapper is missing.');
+    $assert(str_contains($app, "getById"), 'Character API does not return the complete persisted record.');
+    return 'A character can be read as one JSON API record including inventory, scans, exploration, ledger, and ship state.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.39', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.40', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

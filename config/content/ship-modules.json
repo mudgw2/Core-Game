@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.40",
+  "description": "Ship module definitions and their installation requirements.",
+  "entries": {
+    "propulsion_array": {"label":"Propulsion array","slot":"propulsion","inputs":{"ship_components":1,"refined_alloy":1},"description":"A tuned propulsion assembly for the ship’s propulsion slot."},
+    "survey_scanner": {"label":"Survey scanner","slot":"scanner","inputs":{"ship_components":1,"tech_insights":1},"description":"An upgraded sensor package for the ship’s scanner slot."},
+    "expanded_cargo_rack": {"label":"Expanded cargo rack","slot":"cargo","inputs":{"ship_components":1,"refined_alloy":2},"description":"A reinforced storage rack for the ship’s cargo slot."}
+  }
+}

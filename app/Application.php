@@ -11,6 +11,7 @@ use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\UniverseLifecycleService;
 use Core\Modules\Universe\UniverseLifecycleGuard;
 use Core\Modules\Characters\CharacterService;
+use Core\Modules\ContentCatalog;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
@@ -147,8 +148,20 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.39',
+            'version' => '0.1.40',
         ]));
+
+        // Read-only game definitions are externalized to config/content/*.json and exposed through the API.
+        $this->router->get('/api/content', static function (): Response {
+            try { return Response::json(['ok' => true, 'content' => ContentCatalog::allDocuments()]); }
+            catch (Throwable $e) { Logger::error('Game content catalog request failed', ['exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_catalog_failed', 'message' => 'Game content definitions could not be loaded. Check CORE logs.']], 500); }
+        });
+        foreach (['items' => 'items', 'recipes' => 'recipes', 'discoveries' => 'discoveries', 'ship-modules' => 'ship_modules'] as $pathName => $catalogName) {
+            $this->router->get('/api/content/' . $pathName, static function () use ($catalogName): Response {
+                try { return Response::json(['ok' => true, 'catalog' => $catalogName, 'document' => ContentCatalog::document($catalogName)]); }
+                catch (Throwable $e) { Logger::error('Game content catalog request failed', ['catalog' => $catalogName, 'exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_catalog_failed', 'message' => 'Game content definitions could not be loaded. Check CORE logs.']], 500); }
+            });
+        }
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
             $seed = trim((string)$request->query('seed', ''));
@@ -304,6 +317,18 @@ final class Application
                 }
                 Logger::error('Route planning failed', ['universe_id' => trim($universeId), 'exception' => $e::class, 'message' => $message]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'route_planning_failed', 'message' => 'Route could not be planned. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->get('/api/characters/record', static function (Request $request) use ($characterService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character records are available only in development mode from a local/private network.']], 403);
+            $characterId = $request->query('character_id', '');
+            if (!is_string($characterId) || trim($characterId) === '') return Response::json(['ok' => false, 'error' => ['code' => 'missing_character_id', 'message' => 'Provide a character_id query parameter.']], 400);
+            try { return Response::json(['ok' => true, 'character' => $characterService->getById($characterId)]); }
+            catch (Throwable $e) {
+                if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'character_not_found', 'message' => $e->getMessage()]], 404);
+                Logger::error('Character record read failed', ['character_id' => $characterId, 'exception' => $e::class, 'message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_read_failed', 'message' => 'Character record could not be read. Check CORE logs.']], 500);
             }
         });
 
@@ -656,6 +681,12 @@ final class Application
             'message' => 'CORE foundation is running.',
             'endpoints' => [
                 'GET /api/health',
+                'GET /api/content (items, recipes, discoveries, and ship modules from JSON definitions)',
+                'GET /api/content/items',
+                'GET /api/content/recipes',
+                'GET /api/content/discoveries',
+                'GET /api/content/ship-modules',
+                'GET /api/characters/record?character_id=... (development/private network only; full persisted character state)',
                 'GET /api/universe/preview?seed=your-seed',
                 'POST /api/universe with JSON {"seed":"your-seed"}',
                 'GET /api/characters?universe_id=... (development/private network only)',

@@ -17,6 +17,11 @@ use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Universe\UniverseService;
 use Core\Storage\JsonStorage;
 use Core\Modules\UniverseBackupService;
+use Core\Modules\ContentCatalog;
+use Core\Modules\Characters\CharacterService;
+use Core\Modules\Characters\CharacterScanService;
+use Core\Modules\Characters\CharacterDiscoveryService;
+use Core\Modules\Characters\CharacterCraftingService;
 
 $passed = 0;
 $failed = 0;
@@ -287,6 +292,84 @@ $test('storage mutation preflight validates collection write access', static fun
         $assert(is_dir($dir . '/data/characters') && is_dir($dir . '/data/universes'), 'Preflight did not ensure collection directories exist.');
     } finally {
         if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+
+$test('game content catalogs load from editable JSON files', static function () use ($assert): void {
+    $docs = ContentCatalog::allDocuments();
+    $assert(isset($docs['items']['entries']['raw_ore'], $docs['recipes']['entries']['refine_ore'], $docs['discoveries']['entries']['mineral_signature'], $docs['ship_modules']['entries']['propulsion_array']), 'Expected game definitions are missing from JSON catalogs.');
+    foreach ($docs as $name => $doc) $assert(($doc['schema_version'] ?? null) === 1 && is_array($doc['entries'] ?? null), 'Invalid JSON catalog structure: ' . $name);
+});
+
+$test('JSON recipes reference known items and positive quantities', static function () use ($assert): void {
+    $items = ContentCatalog::entries('items');
+    foreach (ContentCatalog::entries('recipes') as $id => $recipe) {
+        $assert(is_array($recipe['inputs'] ?? null) && $recipe['inputs'] !== [], 'Recipe has no inputs: ' . $id);
+        foreach ($recipe['inputs'] as $itemId => $quantity) $assert(isset($items[$itemId]) && is_int($quantity) && $quantity > 0, 'Recipe input is invalid: ' . $id . '/' . $itemId);
+        $output = $recipe['output'] ?? [];
+        $assert(isset($items[$output['resource'] ?? '']) && is_int($output['quantity'] ?? null) && $output['quantity'] > 0, 'Recipe output is invalid: ' . $id);
+    }
+});
+
+$test('JSON discovery rewards reference known items and valid deterministic ranges', static function () use ($assert): void {
+    $items = ContentCatalog::entries('items');
+    foreach (ContentCatalog::entries('discoveries') as $id => $discovery) {
+        $reward = $discovery['reward'] ?? [];
+        $assert(isset($items[$reward['resource'] ?? '']), 'Discovery reward references unknown item: ' . $id);
+        $assert(is_int($reward['minimum'] ?? null) && is_int($reward['maximum'] ?? null) && $reward['minimum'] > 0 && $reward['maximum'] >= $reward['minimum'], 'Discovery reward range is invalid: ' . $id);
+    }
+});
+
+$test('JSON ship modules reference known items and unique slots', static function () use ($assert): void {
+    $items = ContentCatalog::entries('items'); $slots = [];
+    foreach (ContentCatalog::entries('ship_modules') as $id => $module) {
+        $slot = $module['slot'] ?? '';
+        $assert(is_string($slot) && $slot !== '' && !isset($slots[$slot]), 'Ship module slot is missing or duplicated: ' . $id);
+        $slots[$slot] = true;
+        foreach (($module['inputs'] ?? []) as $itemId => $quantity) $assert(isset($items[$itemId]) && is_int($quantity) && $quantity > 0, 'Ship module input is invalid: ' . $id . '/' . $itemId);
+    }
+});
+
+$test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-content-persist-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('content-persistence-seed');
+        $characters = new CharacterService($storage);
+        $character = $characters->create($universe['id'], 'Content Tester');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $definitions = ContentCatalog::entries('discoveries');
+        $assert(count($scan['scan']['discoveries']) >= 1, 'Scan returned no discoveries.');
+        foreach ($scan['scan']['discoveries'] as $discovery) $assert(isset($definitions[$discovery['type']]), 'Scan generated a signal absent from JSON definitions.');
+        $first = $scan['scan']['discoveries'][0];
+        $investigated = (new CharacterDiscoveryService($storage))->investigate($universe['id'], $character['id'], $first['id'], 1);
+        $saved = $storage->read('characters', $character['id']);
+        $assert(isset($saved['scans']['systems'][$first['system_id']]['discoveries'][0]['status']), 'Discovery status was not saved to character JSON.');
+        $assert(!empty($saved['inventory']['ledger']), 'Discovery reward ledger was not saved to character JSON.');
+        $assert(($investigated['reward']['resource'] ?? '') === ($definitions[$first['type']]['reward']['resource'] ?? null), 'Investigation reward did not follow the JSON definition.');
+    } finally {
+        if (is_dir($dir)) { $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('crafting consumes JSON recipe and persists inventory changes to character JSON', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-content-craft-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('content-crafting-seed');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Crafter');
+        $character['inventory'] = ['resources' => ['raw_ore' => 6], 'ledger' => []];
+        $storage->write('characters', $character['id'], $character);
+        $recipe = ContentCatalog::entries('recipes')['refine_ore'];
+        $result = (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'refine_ore', 2, 0);
+        $saved = $storage->read('characters', $character['id']);
+        $equal(0, $saved['inventory']['resources']['raw_ore'] ?? null, 'Input resource not consumed');
+        $equal($recipe['output']['quantity'] * 2, $saved['inventory']['resources'][$recipe['output']['resource']] ?? null, 'Output resource not persisted');
+        $assert(count($saved['inventory']['ledger']) === 2, 'Craft ledger entries were not persisted.');
+        $assert(($result['recipe']['output']['resource'] ?? '') === $recipe['output']['resource'], 'Craft result differs from JSON recipe.');
+    } finally {
+        if (is_dir($dir)) { $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
     }
 });
 

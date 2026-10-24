@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Core\Modules\Characters;
 
 use Core\Modules\Universe\UniverseLifecycleGuard;
+use Core\Modules\ContentCatalog;
 
 use Core\Storage\JsonStorage;
 use RuntimeException;
@@ -11,15 +12,6 @@ use RuntimeException;
 /** Deterministic, character-persistent scan results for the character's current system. */
 final class CharacterScanService
 {
-    private const SIGNALS = [
-        ['type' => 'mineral_signature', 'label' => 'Mineral signature', 'description' => 'A concentrated mineral trace suitable for a future resource-survey system.'],
-        ['type' => 'derelict_signal', 'label' => 'Derelict transmission', 'description' => 'A repeating automated signal with no confirmed active crew.'],
-        ['type' => 'spatial_anomaly', 'label' => 'Spatial anomaly', 'description' => 'A localized distortion in the system’s background telemetry.'],
-        ['type' => 'energy_residue', 'label' => 'Energy residue', 'description' => 'Residual energy readings that may indicate a recent high-output event.'],
-        ['type' => 'unusual_asteroid', 'label' => 'Unusual asteroid body', 'description' => 'An asteroid body with an atypical spectral profile.'],
-        ['type' => 'unknown_beacon', 'label' => 'Unidentified beacon', 'description' => 'A beacon is broadcasting a short, repeating identification burst.'],
-    ];
-
     public function __construct(private JsonStorage $storage) {}
 
     /** @return array{scan_status:string,scan:array,character:array} */
@@ -38,10 +30,16 @@ final class CharacterScanService
         $systemsById = [];
         foreach ($systems as $system) if (is_array($system) && isset($system['id'])) $systemsById[(string)$system['id']] = $system;
         $fingerprint = (string)($universe['baseline']['seed_fingerprint'] ?? $universe['id']);
+        $discoveryDocument = ContentCatalog::document('discoveries');
+        $signals = $discoveryDocument['entries'];
+        $scanRules = $discoveryDocument['scan_rules'] ?? ['minimum_signals' => 1, 'maximum_signals' => 3];
+        $minimumSignals = (int)($scanRules['minimum_signals'] ?? 1);
+        $maximumSignals = (int)($scanRules['maximum_signals'] ?? 3);
+        if ($minimumSignals < 1 || $maximumSignals < $minimumSignals) throw new RuntimeException('Discovery scan_rules in config/content/discoveries.json are invalid.');
         $scanStatus = 'scanned';
         $scanResult = [];
 
-        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $systemsById, $fingerprint, &$scanStatus, &$scanResult): array {
+        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $systemsById, $fingerprint, $signals, $minimumSignals, $maximumSignals, &$scanStatus, &$scanResult): array {
             if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
@@ -61,14 +59,19 @@ final class CharacterScanService
 
             $system = $systemsById[$systemId];
             $hash = hash('sha256', $fingerprint . ':scan:' . $systemId);
-            $count = 1 + (hexdec(substr($hash, 0, 2)) % 3);
+            $signalEntries = [];
+            foreach ($signals as $type => $definition) $signalEntries[] = ['type' => $type] + $definition;
+            if ($signalEntries === []) throw new RuntimeException('No discovery signal definitions are configured.');
+            $effectiveMinimum = min($minimumSignals, count($signalEntries));
+            $effectiveMaximum = min($maximumSignals, count($signalEntries));
+            $count = $effectiveMinimum + (hexdec(substr($hash, 0, 2)) % ($effectiveMaximum - $effectiveMinimum + 1));
             $discoveries = [];
             $used = [];
             for ($i = 0; $i < $count; $i++) {
-                $offset = (hexdec(substr($hash, 2 + ($i * 2), 2)) + $i) % count(self::SIGNALS);
-                while (isset($used[$offset])) $offset = ($offset + 1) % count(self::SIGNALS);
+                $offset = (hexdec(substr($hash, 2 + ($i * 2), 2)) + $i) % count($signalEntries);
+                while (isset($used[$offset])) $offset = ($offset + 1) % count($signalEntries);
                 $used[$offset] = true;
-                $signal = self::SIGNALS[$offset];
+                $signal = $signalEntries[$offset];
                 $discoveries[] = [
                     'id' => 'dsc_' . substr(hash('sha256', $fingerprint . ':' . $systemId . ':' . $signal['type']), 0, 20),
                     'type' => $signal['type'],

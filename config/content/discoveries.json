@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.40",
+  "description": "Signal types, descriptions, investigation outcomes, and deterministic reward ranges.",
+  "entries": {
+    "mineral_signature": {
+      "label": "Mineral signature",
+      "description": "A concentrated mineral trace suitable for a resource survey.",
+      "outcome": "Survey complete: recoverable mineral fragments have been collected and logged in the ship inventory.",
+      "reward": {
+        "resource": "raw_ore",
+        "minimum": 2,
+        "maximum": 5
+      }
+    },
+    "derelict_signal": {
+      "label": "Derelict transmission",
+      "description": "A repeating automated signal with no confirmed active crew.",
+      "outcome": "The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.",
+      "reward": {
+        "resource": "salvage_parts",
+        "minimum": 1,
+        "maximum": 3
+      }
+    },
+    "spatial_anomaly": {
+      "label": "Spatial anomaly",
+      "description": "A localized distortion in the system’s background telemetry.",
+      "outcome": "Telemetry captured useful anomaly research data. The research sample is now in inventory.",
+      "reward": {
+        "resource": "research_data",
+        "minimum": 1,
+        "maximum": 2
+      }
+    },
+    "energy_residue": {
+      "label": "Energy residue",
+      "description": "Residual energy readings that may indicate a recent high-output event.",
+      "outcome": "The residue yielded intact energy cells. The recovered cells are now in inventory.",
+      "reward": {
+        "resource": "energy_cells",
+        "minimum": 1,
+        "maximum": 3
+      }
+    },
+    "unusual_asteroid": {
+      "label": "Unusual asteroid body",
+      "description": "An asteroid body with an atypical spectral profile.",
+      "outcome": "A sample of the unusual asteroid was recovered and catalogued in inventory.",
+      "reward": {
+        "resource": "rare_ore",
+        "minimum": 1,
+        "maximum": 2
+      }
+    },
+    "unknown_beacon": {
+      "label": "Unidentified beacon",
+      "description": "A beacon is broadcasting a short, repeating identification burst.",
+      "outcome": "The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.",
+      "reward": {
+        "resource": "intel_fragments",
+        "minimum": 1,
+        "maximum": 2
+      }
+    }
+  },
+  "scan_rules": {
+    "minimum_signals": 1,
+    "maximum_signals": 3,
+    "description": "Minimum and maximum distinct signals generated per first scan of a system."
+  }
+}

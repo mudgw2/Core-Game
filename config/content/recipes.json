@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "content_version": "0.1.40",
+  "description": "Crafting recipes. Edit this JSON to add or balance recipes without editing PHP.",
+  "entries": {
+    "refine_ore": {"label":"Refine raw ore","description":"Refine raw mineral into usable alloy.","inputs":{"raw_ore":3},"output":{"resource":"refined_alloy","quantity":1}},
+    "assemble_components": {"label":"Assemble ship components","description":"Recoverable salvage is assembled into ship components.","inputs":{"salvage_parts":2},"output":{"resource":"ship_components","quantity":1}},
+    "analyze_research": {"label":"Analyze research data","description":"Convert research data into technical insight.","inputs":{"research_data":2},"output":{"resource":"tech_insights","quantity":1}}
+  }
+}

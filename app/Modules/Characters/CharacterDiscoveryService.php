@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Core\Modules\Characters;
 
 use Core\Modules\Universe\UniverseLifecycleGuard;
+use Core\Modules\ContentCatalog;
 
 use Core\Storage\JsonStorage;
 use RuntimeException;
@@ -11,25 +12,6 @@ use RuntimeException;
 /** Persists character investigations of previously scanned signals. */
 final class CharacterDiscoveryService
 {
-    private const OUTCOMES = [
-        'mineral_signature' => 'Survey complete: recoverable mineral fragments have been collected and logged in the ship inventory.',
-        'derelict_signal' => 'The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.',
-        'spatial_anomaly' => 'Telemetry captured useful anomaly research data. The research sample is now in inventory.',
-        'energy_residue' => 'The residue yielded intact energy cells. The recovered cells are now in inventory.',
-        'unusual_asteroid' => 'A sample of the unusual asteroid was recovered and catalogued in inventory.',
-        'unknown_beacon' => 'The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.',
-    ];
-
-    /** Resource key, display name, minimum and maximum quantity per discovery type. */
-    private const REWARDS = [
-        'mineral_signature' => ['raw_ore', 'Raw ore', 2, 5],
-        'derelict_signal' => ['salvage_parts', 'Salvage parts', 1, 3],
-        'spatial_anomaly' => ['research_data', 'Research data', 1, 2],
-        'energy_residue' => ['energy_cells', 'Energy cells', 1, 3],
-        'unusual_asteroid' => ['rare_ore', 'Rare ore', 1, 2],
-        'unknown_beacon' => ['intel_fragments', 'Intel fragments', 1, 2],
-    ];
-
     public function __construct(private JsonStorage $storage) {}
 
     /** @return array{investigation_status:string,discovery:array,character:array} */
@@ -49,10 +31,12 @@ final class CharacterDiscoveryService
         }
         UniverseLifecycleGuard::assertCanPerformGameplayAction($universe);
 
+        $discoveryDefinitions = ContentCatalog::entries('discoveries');
+        $items = ContentCatalog::entries('items');
         $investigationStatus = 'investigated';
         $resultDiscovery = [];
         $resultReward = null;
-        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $discoveryId, $expectedRevision, &$investigationStatus, &$resultDiscovery, &$resultReward): array {
+        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $discoveryId, $expectedRevision, $discoveryDefinitions, $items, &$investigationStatus, &$resultDiscovery, &$resultReward): array {
             if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
@@ -79,11 +63,16 @@ final class CharacterDiscoveryService
                     $type = (string)($discovery['type'] ?? '');
                     $discovery['status'] = 'investigated';
                     $discovery['investigated_at'] = gmdate('c');
-                    $discovery['outcome'] = self::OUTCOMES[$type] ?? 'The signal was examined and catalogued.';
+                    $definition = $discoveryDefinitions[$type] ?? null;
+                    if (!is_array($definition) || !is_array($definition['reward'] ?? null)) throw new RuntimeException('Discovery type is missing from config/content/discoveries.json: ' . $type);
+                    $discovery['outcome'] = (string)($definition['outcome'] ?? 'The signal was examined and catalogued.');
 
                     // Reward quantity is stable for this discovery ID, so retries cannot reroll it.
-                    $rewardDefinition = self::REWARDS[$type] ?? ['intel_fragments', 'Intel fragments', 1, 1];
-                    [$resourceKey, $resourceLabel, $minimum, $maximum] = $rewardDefinition;
+                    $resourceKey = (string)($definition['reward']['resource'] ?? '');
+                    $minimum = (int)($definition['reward']['minimum'] ?? 0);
+                    $maximum = (int)($definition['reward']['maximum'] ?? 0);
+                    if ($resourceKey === '' || !isset($items[$resourceKey]) || $minimum < 1 || $maximum < $minimum) throw new RuntimeException('Discovery reward definition is invalid for type: ' . $type);
+                    $resourceLabel = (string)($items[$resourceKey]['label'] ?? $resourceKey);
                     $roll = hexdec(substr(hash('sha256', $discoveryId . ':reward'), 0, 8));
                     $quantity = $minimum + ($roll % ($maximum - $minimum + 1));
                     $inventory = $character['inventory'] ?? [];

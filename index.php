@@ -74,7 +74,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.39</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.40</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -216,28 +216,20 @@ declare(strict_types=1);
             <p>Recovered materials are character-bound for now. Each discovery can award its reward only once.</p>
             <div id="characterInventory" class="dashboard-lists" aria-live="polite"><div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div></div>
             <h3>Crafting bench</h3>
-            <p>Convert recovered materials into useful intermediate goods. Crafting consumes the listed inputs and saves all changes in one character transaction.</p>
+            <p>Convert recovered materials into useful intermediate goods. Crafting consumes the listed inputs and saves all changes in one character JSON transaction. Recipe definitions are editable JSON, not PHP constants: <a href="api/content-recipes.php" target="_blank" rel="noopener">view recipe API</a> · <a href="api/content-items.php" target="_blank" rel="noopener">view item API</a>.</p>
             <div class="form-row">
                 <label for="craftRecipe">Recipe</label>
-                <select id="craftRecipe">
-                    <option value="refine_ore">Refine raw ore — 3 raw ore → 1 refined alloy</option>
-                    <option value="assemble_components">Assemble ship components — 2 salvage parts → 1 ship component</option>
-                    <option value="analyze_research">Analyze research data — 2 research data → 1 tech insight</option>
-                </select>
+                <select id="craftRecipe"><option value="">Loading JSON recipe catalog…</option></select>
                 <label for="craftQuantity">Batches (1–10)</label>
                 <input id="craftQuantity" type="number" min="1" max="10" step="1" value="1">
                 <button id="craftButton" type="button" disabled>Craft selected recipe</button>
             </div>
             <p id="craftStatus" class="status" role="status" aria-live="polite">Select a character and collect materials to use the crafting bench.</p>
             <h3>Ship fitting</h3>
-            <p>Install one module per slot. Installation consumes inventory materials permanently and is saved to the selected character.</p>
+            <p>Install one module per slot. Installation consumes inventory materials permanently and is saved to the selected character JSON. Module definitions are editable JSON: <a href="api/content-ship-modules.php" target="_blank" rel="noopener">view ship-module API</a>. Discovery and reward definitions: <a href="api/content-discoveries.php" target="_blank" rel="noopener">view discovery API</a>.</p>
             <div class="form-row">
                 <label for="fitModule">Ship module</label>
-                <select id="fitModule">
-                    <option value="propulsion_array">Propulsion array — 1 ship component + 1 refined alloy</option>
-                    <option value="survey_scanner">Survey scanner — 1 ship component + 1 tech insight</option>
-                    <option value="expanded_cargo_rack">Expanded cargo rack — 1 ship component + 2 refined alloy</option>
-                </select>
+                <select id="fitModule"><option value="">Loading JSON ship-module catalog…</option></select>
                 <button id="fitModuleButton" type="button" disabled>Install module</button>
             </div>
             <p id="fitModuleStatus" class="status" role="status" aria-live="polite">Collect materials and select a character to install ship modules.</p>
@@ -248,7 +240,7 @@ declare(strict_types=1);
     <section class="tab-panel grid" id="panel-data" role="tabpanel" aria-labelledby="tab-data" data-panel="data" hidden>
         <section style="grid-column:1/-1">
             <h2>Saved-data inventory</h2>
-            <p>Inspect saved universes and characters without changing them. This tool only reads the JSON collections; it never lists or touches operational logs.</p>
+            <p>Inspect saved universes and characters without changing them. Player inventory, scan discoveries, exploration history, crafting ledger, and installed ship modules are stored in each character JSON record. Read a complete saved character through <code>api/character-record.php?character_id=...</code> or list complete records through <code>api/characters.php?universe_id=...</code>. This tool only reads the JSON collections; it never lists or touches operational logs.</p>
             <div class="actions"><button id="refreshDataInventoryButton" type="button">Refresh inventory</button></div>
             <p id="dataInventoryStatus" class="status" aria-live="polite">Inventory not loaded yet.</p>
             <div class="dashboard-grid" aria-live="polite">
@@ -387,6 +379,38 @@ declare(strict_types=1);
     let currentNavigation = null;
     const activityLog = document.getElementById('activityLog');
     let loadedCharacters = [];
+    let gameContent = { items: {}, recipes: {}, discoveries: {}, ship_modules: {} };
+    async function loadGameContent() {
+        const craftSelect = document.getElementById('craftRecipe');
+        const moduleSelect = document.getElementById('fitModule');
+        try {
+            const response = await fetch('api/content.php', { headers: { 'Accept': 'application/json' } });
+            const data = await response.json();
+            if (!response.ok || !data.ok || !data.content) throw new Error(data.error?.message || 'Content catalog request failed.');
+            for (const name of ['items', 'recipes', 'discoveries', 'ship_modules']) gameContent[name] = data.content[name]?.entries || {};
+            const fill = (select, entries, describe) => {
+                const previous = select.value; select.replaceChildren();
+                for (const [id, definition] of Object.entries(entries)) select.add(new Option(describe(id, definition), id));
+                if (previous && entries[previous]) select.value = previous;
+                if (!select.options.length) select.add(new Option('No definitions configured', ''));
+            };
+            const itemLabel = id => gameContent.items[id]?.label || id.replaceAll('_', ' ');
+            const requirements = inputs => Object.entries(inputs || {}).map(([id, amount]) => `${amount} ${itemLabel(id)}`).join(' + ');
+            fill(craftSelect, gameContent.recipes, (id, recipe) => `${recipe.label || id} — ${requirements(recipe.inputs)} → ${(recipe.output?.quantity ?? 0)} ${itemLabel(recipe.output?.resource || '')}`);
+            fill(moduleSelect, gameContent.ship_modules, (id, module) => `${module.label || id} — ${requirements(module.inputs)}`);
+            document.getElementById('craftButton').disabled = !craftSelect.value || !document.getElementById('characterSelect').value;
+            document.getElementById('fitModuleButton').disabled = !moduleSelect.value || !document.getElementById('characterSelect').value;
+            logActivity('info', 'Game content loaded', `${Object.keys(gameContent.items).length} items, ${Object.keys(gameContent.recipes).length} recipes, ${Object.keys(gameContent.discoveries).length} discovery types, ${Object.keys(gameContent.ship_modules).length} ship modules from JSON.`);
+        } catch (error) {
+            craftSelect.replaceChildren(new Option('Content catalog unavailable', ''));
+            moduleSelect.replaceChildren(new Option('Content catalog unavailable', ''));
+            document.getElementById('craftButton').disabled = true; document.getElementById('fitModuleButton').disabled = true;
+            document.getElementById('craftStatus').textContent = 'Game content JSON could not be loaded: ' + error.message;
+            document.getElementById('fitModuleStatus').textContent = 'Game content JSON could not be loaded: ' + error.message;
+            logActivity('error', 'Game content loading failed', error.stack || error.message);
+        }
+    }
+    loadGameContent();
     function populateSystemChoices() {
         const select = document.getElementById('characterSystemSelect');
         const help = document.getElementById('movementChoicesHelp');
@@ -538,8 +562,7 @@ declare(strict_types=1);
         const resourceEntries = Object.entries(resources).filter(([, quantity]) => Number(quantity) > 0).sort(([a], [b]) => a.localeCompare(b));
         if (resourceEntries.length) {
             const resourceList = document.createElement('ul'); resourceList.className = 'dashboard-list';
-            const labels = {raw_ore:'Raw ore', salvage_parts:'Salvage parts', research_data:'Research data', energy_cells:'Energy cells', rare_ore:'Rare ore', intel_fragments:'Intel fragments', refined_alloy:'Refined alloy', ship_components:'Ship components', tech_insights:'Tech insights'};
-            for (const [key, quantity] of resourceEntries) { const item = document.createElement('li'); item.textContent = (labels[key] || key.replaceAll('_', ' ')) + ': ' + quantity; resourceList.append(item); }
+            for (const [key, quantity] of resourceEntries) { const item = document.createElement('li'); item.textContent = (gameContent.items[key]?.label || key.replaceAll('_', ' ')) + ': ' + quantity; resourceList.append(item); }
             inventoryPanel.append(resourceList);
         } else { const empty = document.createElement('p'); empty.className = 'dashboard-list'; empty.textContent = 'No resources recovered yet. Investigate a discovery to collect its reward.'; inventoryPanel.append(empty); }
         const ledgerCount = Array.isArray(inventory.ledger) ? inventory.ledger.length : 0;
@@ -548,9 +571,10 @@ declare(strict_types=1);
         const fittingHost = document.getElementById('shipFittingPanel'); fittingHost.replaceChildren();
         const fittingPanel = document.createElement('div'); const fittingHeading = document.createElement('h4'); fittingHeading.textContent = 'Installed modules'; fittingPanel.append(fittingHeading);
         const fittedModules = character.ship?.modules || {};
-        const slotLabels = {propulsion:'Propulsion', scanner:'Scanner', cargo:'Cargo'};
+        const slotSet = new Set(Object.values(gameContent.ship_modules).map(module => module.slot).filter(Boolean));
+        for (const slot of Object.keys(fittedModules)) slotSet.add(slot);
         const fittingList = document.createElement('ul'); fittingList.className = 'dashboard-list';
-        for (const slot of ['propulsion','scanner','cargo']) { const item = document.createElement('li'); const installed = fittedModules[slot]; item.textContent = slotLabels[slot] + ': ' + (installed ? installed.label + ' — ' + installed.description : 'Empty'); fittingList.append(item); }
+        for (const slot of Array.from(slotSet).sort()) { const item = document.createElement('li'); const installed = fittedModules[slot]; const slotLabel = slot.replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase()); item.textContent = slotLabel + ': ' + (installed ? installed.label + ' — ' + installed.description : 'Empty'); fittingList.append(item); }
         fittingPanel.append(fittingList); fittingHost.append(fittingPanel);
         document.getElementById('fitModuleButton').disabled = !canPlay;
         document.getElementById('scanSystemButton').disabled = !canPlay;

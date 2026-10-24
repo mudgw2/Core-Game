@@ -204,6 +204,16 @@ final class CharacterService
         return NavigationGraph::build($universe['baseline']['systems'] ?? []);
     }
 
+    /** Return the complete persisted character record, including inventory, exploration, scans, and ship fittings. */
+    public function getById(string $characterId): array
+    {
+        $characterId = trim($characterId);
+        if ($characterId === '') throw new RuntimeException('A character_id is required.');
+        $character = $this->storage->read('characters', $characterId);
+        if ($character === null || ($character['id'] ?? null) !== $characterId) throw new RuntimeException('The selected character does not exist.');
+        return $character;
+    }
+
     public function listForUniverse(string $universeId): array
     {
         $universeId = trim($universeId);

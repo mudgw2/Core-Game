@@ -70,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.30</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.31</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -79,6 +79,7 @@ declare(strict_types=1);
         <button type="button" role="tab" id="tab-universe" aria-controls="panel-universe" aria-selected="false" tabindex="-1" data-tab="universe">Universe</button>
         <button type="button" role="tab" id="tab-characters" aria-controls="panel-characters" aria-selected="false" tabindex="-1" data-tab="characters">Characters &amp; Travel</button>
         <button type="button" role="tab" id="tab-discoveries" aria-controls="panel-discoveries" aria-selected="false" tabindex="-1" data-tab="discoveries">Scanning &amp; Discoveries</button>
+        <button type="button" role="tab" id="tab-data" aria-controls="panel-data" aria-selected="false" tabindex="-1" data-tab="data">Data Management</button>
         <button type="button" role="tab" id="tab-operations" aria-controls="panel-operations" aria-selected="false" tabindex="-1" data-tab="operations">Operations &amp; QA</button>
     </nav>
     <div class="tab-summary" aria-live="polite"><span class="menu-indicator"></span><span id="activeSectionLabel">Overview</span><span class="tab-summary-hint">Use the main menu to switch work areas.</span></div>
@@ -240,6 +241,43 @@ declare(strict_types=1);
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
         </section>
     </section>
+    <section class="tab-panel grid" id="panel-data" role="tabpanel" aria-labelledby="tab-data" data-panel="data" hidden>
+        <section style="grid-column:1/-1">
+            <h2>Saved-data inventory</h2>
+            <p>Inspect saved universes and characters without changing them. This tool only reads the JSON collections; it never lists or touches operational logs.</p>
+            <div class="actions"><button id="refreshDataInventoryButton" type="button">Refresh inventory</button></div>
+            <p id="dataInventoryStatus" class="status" aria-live="polite">Inventory not loaded yet.</p>
+            <div class="dashboard-grid" aria-live="polite">
+                <div class="dashboard-tile"><span class="dashboard-label">Universes</span><strong id="dataUniverseCount">—</strong></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Characters</span><strong id="dataCharacterCount">—</strong></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Generated systems</span><strong id="dataSystemCount">—</strong></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Universe events</span><strong id="dataEventCount">—</strong></div>
+            </div>
+            <div class="dashboard-lists">
+                <div><h4>Saved universes</h4><div id="dataUniverseList" class="dashboard-list">Refresh inventory to list saved universes.</div></div>
+                <div><h4>Saved characters</h4><div id="dataCharacterList" class="dashboard-list">Refresh inventory to list saved characters.</div></div>
+            </div>
+        </section>
+        <section>
+            <h2>Cleanup impact preview</h2>
+            <p>Preview the records and embedded gameplay data affected by a cleanup. Previewing never deletes or modifies data.</p>
+            <label for="cleanupScope">Record type</label>
+            <select id="cleanupScope"><option value="character">Character</option><option value="universe">Universe</option></select>
+            <label for="cleanupRecordId">Record</label>
+            <select id="cleanupRecordId"><option value="">Load inventory first</option></select>
+            <div class="actions"><button id="previewCleanupButton" type="button">Preview impact</button></div>
+            <p id="cleanupPreviewStatus" class="status" aria-live="polite">No preview generated.</p>
+            <pre id="cleanupPreviewOutput" aria-live="polite">Choose a record and preview its cleanup impact.</pre>
+        </section>
+        <section>
+            <h2>Permanent character removal</h2>
+            <p>Only characters can be permanently deleted from this panel in this release. Type the exact character name and confirm. Universe deletion remains preview-only until safe cascading deletion and recovery are implemented.</p>
+            <label for="cleanupConfirmationName">Exact character name confirmation</label>
+            <input id="cleanupConfirmationName" maxlength="40" autocomplete="off" placeholder="Type the selected character name">
+            <div class="actions"><button id="deleteManagedCharacterButton" type="button" disabled>Delete selected character permanently</button></div>
+            <p id="cleanupDeleteStatus" class="status" aria-live="polite">Select a character and generate a character deletion preview first.</p>
+        </section>
+    </section>
     <section class="tab-panel grid" id="panel-operations" role="tabpanel" aria-labelledby="tab-operations" data-panel="operations" hidden>
         <section style="grid-column:1/-1">
             <h2>Response</h2>
@@ -277,7 +315,7 @@ declare(strict_types=1);
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-panel]'));
     const sectionLabel = document.getElementById('activeSectionLabel');
-    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', operations: 'Operations & QA' };
+    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', data: 'Data Management', operations: 'Operations & QA' };
     function activateTab(name, moveFocus = false) {
         const tab = tabs.find(item => item.dataset.tab === name);
         if (!tab) return;
@@ -1147,6 +1185,119 @@ declare(strict_types=1);
             } finally { updateUniverseLifecycleControls(); }
         });
     }
+
+    let dataInventoryCache = null;
+    let lastCleanupPreview = null;
+    function populateCleanupRecords() {
+        const scope = document.getElementById('cleanupScope').value;
+        const select = document.getElementById('cleanupRecordId');
+        const prior = select.value;
+        select.replaceChildren();
+        const records = scope === 'character' ? (dataInventoryCache?.characters || []) : (dataInventoryCache?.universes || []);
+        if (!records.length) {
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'No ' + (scope === 'character' ? 'characters' : 'universes') + ' found'; select.append(option);
+        } else {
+            for (const record of records) {
+                const option = document.createElement('option'); option.value = record.id;
+                option.textContent = (record.name || record.id) + ' — ' + record.id;
+                select.append(option);
+            }
+            if (records.some(record => record.id === prior)) select.value = prior;
+        }
+        lastCleanupPreview = null;
+        document.getElementById('deleteManagedCharacterButton').disabled = true;
+        document.getElementById('cleanupConfirmationName').value = '';
+        document.getElementById('cleanupPreviewOutput').textContent = 'Choose a record and preview its cleanup impact.';
+        document.getElementById('cleanupPreviewStatus').textContent = 'No preview generated.';
+    }
+    async function refreshDataInventory() {
+        const status = document.getElementById('dataInventoryStatus');
+        const button = document.getElementById('refreshDataInventoryButton');
+        button.disabled = true; status.textContent = 'Reading saved JSON records…';
+        try {
+            const response = await fetch('api/data-management.php', { headers: { 'Accept': 'application/json' } });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Inventory request failed.');
+            dataInventoryCache = data.inventory;
+            const summary = data.inventory.summary || {};
+            document.getElementById('dataUniverseCount').textContent = String(summary.universes ?? 0);
+            document.getElementById('dataCharacterCount').textContent = String(summary.characters ?? 0);
+            document.getElementById('dataSystemCount').textContent = String(summary.systems ?? 0);
+            document.getElementById('dataEventCount').textContent = String(summary.events ?? 0);
+            const universeList = document.getElementById('dataUniverseList'); universeList.replaceChildren();
+            if (!(data.inventory.universes || []).length) universeList.textContent = 'No saved universes.';
+            for (const universe of (data.inventory.universes || [])) {
+                const item = document.createElement('p'); item.className = 'dashboard-list';
+                item.textContent = universe.name + ' (' + universe.id + ') — ' + universe.systems + ' systems, ' + universe.events + ' events, ' + universe.characters + ' character(s) · ' + ((universe.lifecycle?.enabled ?? true) ? 'enabled' : 'disabled') + (universe.lifecycle?.locked ? ' / locked' : '');
+                universeList.append(item);
+            }
+            const characterList = document.getElementById('dataCharacterList'); characterList.replaceChildren();
+            if (!(data.inventory.characters || []).length) characterList.textContent = 'No saved characters.';
+            for (const character of (data.inventory.characters || [])) {
+                const item = document.createElement('p'); item.className = 'dashboard-list';
+                item.textContent = character.name + ' (' + character.id + ') — universe ' + character.universe_id + ', revision ' + character.revision + ', ' + character.discoveries + ' discoveries, ' + character.inventory_stacks + ' resource type(s) · ' + ((character.lifecycle?.enabled ?? true) ? 'enabled' : 'disabled') + (character.lifecycle?.locked ? ' / locked' : '');
+                characterList.append(item);
+            }
+            populateCleanupRecords();
+            status.textContent = 'Inventory refreshed at ' + new Date(data.inventory.generated_at).toLocaleString() + '. No data was changed.';
+            logActivity('info', 'Saved-data inventory refreshed', summary.universes + ' universe(s), ' + summary.characters + ' character(s).');
+        } catch (error) {
+            status.textContent = 'Could not load inventory: ' + error.message;
+            logActivity('error', 'Saved-data inventory failed', error.stack || error.message);
+        } finally { button.disabled = false; }
+    }
+    document.getElementById('refreshDataInventoryButton').addEventListener('click', refreshDataInventory);
+    document.getElementById('cleanupScope').addEventListener('change', populateCleanupRecords);
+    document.getElementById('previewCleanupButton').addEventListener('click', async () => {
+        const scope = document.getElementById('cleanupScope').value;
+        const id = document.getElementById('cleanupRecordId').value;
+        const status = document.getElementById('cleanupPreviewStatus');
+        if (!id) { status.textContent = 'Choose a saved record first.'; return; }
+        const button = document.getElementById('previewCleanupButton'); button.disabled = true; status.textContent = 'Calculating impact…';
+        try {
+            const response = await fetch('api/data-management-preview.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ scope, id }) });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Preview failed.');
+            lastCleanupPreview = data.preview;
+            document.getElementById('cleanupPreviewOutput').textContent = JSON.stringify(data.preview, null, 2);
+            status.textContent = data.preview.executable ? 'Preview ready. Character deletion is available after exact-name confirmation.' : 'Preview ready — execution is intentionally disabled for this scope.';
+            document.getElementById('deleteManagedCharacterButton').disabled = !(scope === 'character' && data.preview.executable);
+            document.getElementById('cleanupConfirmationName').value = '';
+            logActivity('info', 'Cleanup impact preview', scope + ' ' + id + '; executable=' + data.preview.executable);
+        } catch (error) {
+            lastCleanupPreview = null; document.getElementById('deleteManagedCharacterButton').disabled = true;
+            status.textContent = 'Preview failed: ' + error.message; logActivity('error', 'Cleanup preview failed', error.stack || error.message);
+        } finally { button.disabled = false; }
+    });
+    document.getElementById('deleteManagedCharacterButton').addEventListener('click', async () => {
+        const id = document.getElementById('cleanupRecordId').value;
+        const confirmationName = document.getElementById('cleanupConfirmationName').value;
+        const character = dataInventoryCache?.characters?.find(item => item.id === id);
+        const status = document.getElementById('cleanupDeleteStatus');
+        if (!lastCleanupPreview || lastCleanupPreview.scope !== 'character' || !lastCleanupPreview.executable || !character) { status.textContent = 'Generate a fresh character deletion preview first.'; return; }
+        if (confirmationName !== character.name) { status.textContent = 'The confirmation must exactly match the character name.'; return; }
+        if (!window.confirm('Permanently delete character "' + character.name + '" and all data embedded in its record? This cannot be undone.')) return;
+        const button = document.getElementById('deleteManagedCharacterButton'); button.disabled = true; status.textContent = 'Deleting character…';
+        try {
+            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: character.universe_id, character_id: character.id, confirmation_name: confirmationName, expected_revision: character.revision }) });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Character deletion failed. Refresh inventory and preview again.');
+            status.textContent = 'Character permanently deleted: ' + character.name + '. Other records were not targeted.';
+            document.getElementById('cleanupPreviewOutput').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('cleanupConfirmationName').value = ''; lastCleanupPreview = null;
+            logActivity('warning', 'Character permanently deleted through Data Management', character.name + ' (' + character.id + ')');
+            if (document.getElementById('characterSelect').value === character.id) {
+                loadedCharacters = loadedCharacters.filter(item => item.id !== character.id); populateCharacterChoices();
+            }
+            await refreshDataInventory();
+            if (document.getElementById('characterUniverseId').value === character.universe_id) await refreshCharacters();
+            status.textContent = 'Character permanently deleted: ' + character.name + '. Inventory refreshed.';
+        } catch (error) {
+            status.textContent = 'Deletion rejected or failed: ' + error.message;
+            logActivity('error', 'Managed character deletion failed', error.stack || error.message);
+            await refreshDataInventory();
+        }
+    });
 
     document.getElementById('createButton').addEventListener('click', async () => {
         const seed = seedInput.value.trim();

@@ -44,6 +44,7 @@ use Core\Modules\Universe\UniverseLifecycleService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
+use Core\Modules\DataManagementService;
 
 $results = [];
 $run = static function (string $name, callable $test) use (&$results): void {
@@ -1366,7 +1367,81 @@ $run('Workbench exposes universe lifecycle controls and API request wiring', sta
     return 'Universe lifecycle controls, status display, and API wiring are present.';
 });
 
+$run('Data management inventory summarizes saved universes and characters without changing records', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-data-inventory-qa');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Inventory QA');
+        $beforeUniverse = $storage->read('universes', $universe['id']); $beforeCharacter = $storage->read('characters', $character['id']);
+        $inventory = (new DataManagementService($storage))->inventory();
+        $equal(1, $inventory['summary']['universes'], 'Inventory universe count mismatch.');
+        $equal(1, $inventory['summary']['characters'], 'Inventory character count mismatch.');
+        $equal($universe['id'], $inventory['universes'][0]['id'], 'Inventory universe identity mismatch.');
+        $equal($character['id'], $inventory['characters'][0]['id'], 'Inventory character identity mismatch.');
+        $equal($beforeUniverse, $storage->read('universes', $universe['id']), 'Inventory changed the universe record.');
+        $equal($beforeCharacter, $storage->read('characters', $character['id']), 'Inventory changed the character record.');
+        return 'Inventory counts and identities matched; saved records remained unchanged.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character deletion preview counts embedded gameplay data and remains read-only', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-character-preview-qa');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Preview QA');
+        $character['inventory'] = ['resources' => ['raw_ore' => 3, 'salvage_parts' => 1], 'ledger' => []];
+        $character['ship'] = ['modules' => ['scanner' => ['module_id' => 'survey_scanner']]];
+        $character['scans'] = ['systems' => ['sys_1' => ['discoveries' => [['id' => 'dsc_1'], ['id' => 'dsc_2']]]]];
+        $storage->write('characters', $character['id'], $character);
+        $preview = (new DataManagementService($storage))->preview('character', $character['id']);
+        $equal(true, $preview['executable'], 'Character preview should mark existing character deletion executable.');
+        $equal(1, $preview['impact']['character_records'], 'Character record count mismatch.');
+        $equal(2, $preview['impact']['inventory_stacks'], 'Inventory stack count mismatch.');
+        $equal(1, $preview['impact']['scan_records'], 'Scan record count mismatch.');
+        $equal(2, $preview['impact']['discoveries'], 'Discovery count mismatch.');
+        $equal(1, $preview['impact']['fitted_modules'], 'Fitted module count mismatch.');
+        $equal($character, $storage->read('characters', $character['id']), 'Preview mutated or deleted the character.');
+        return 'Impact counts are correct and preview leaves the character unchanged.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Universe deletion preview is explicitly non-executable and reports dependent characters', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-universe-preview-qa');
+        (new CharacterService($storage))->create($universe['id'], 'Dependent QA One');
+        (new CharacterService($storage))->create($universe['id'], 'Dependent QA Two');
+        $preview = (new DataManagementService($storage))->preview('universe', $universe['id']);
+        $equal(false, $preview['executable'], 'Universe deletion must not be executable yet.');
+        $equal(2, $preview['impact']['related_character_records'], 'Dependent character count mismatch.');
+        $assert(str_contains($preview['warning'], 'Preview only'), 'Preview-only safety warning missing.');
+        $equal(2, count($storage->all('characters')), 'Universe preview changed character records.');
+        $assert($storage->read('universes', $universe['id']) !== null, 'Universe preview deleted the universe.');
+        return 'Universe impact is visible, but execution is safely disabled and data remains intact.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Data management rejects unknown records and invalid scopes', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $service = new DataManagementService(new JsonStorage($dir));
+        foreach ([['character', 'missing'], ['planet', 'missing']] as [$scope, $id]) {
+            try { $service->preview($scope, $id); throw new RuntimeException('Invalid preview request was accepted.'); }
+            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not exist') || str_contains($e->getMessage(), 'Scope must'), 'Unexpected preview validation message.'); }
+        }
+        return 'Missing records and unsupported scopes are rejected.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes data inventory, cleanup previews, and guarded character removal', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
+    foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Exact character name confirmation','preview-only'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
+    $assert(str_contains($app, "'/api/data-management'") && str_contains($app, "'/api/data-management/preview'"), 'Data management API routes missing.');
+    return 'Inventory, impact preview, exact-name deletion controls, and API routes are present.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.30', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.31', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

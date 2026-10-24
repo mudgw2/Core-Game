@@ -17,6 +17,7 @@ use Core\Modules\Characters\CharacterDiscoveryService;
 use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Characters\CharacterFittingService;
 use Core\Modules\Characters\CharacterLifecycleService;
+use Core\Modules\DataManagementService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -50,11 +51,49 @@ final class Application
         $fittingService = new CharacterFittingService($storage);
         $lifecycleService = new CharacterLifecycleService($storage);
         $routeService = new NavigationRouteService($storage);
+        $dataManagementService = new DataManagementService($storage);
+
+        $this->router->get('/api/data-management', static function () use ($dataManagementService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Data management inventory access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Data management is available only in development mode from a local/private network.']], 403);
+            }
+            try { return Response::json(['ok' => true, 'inventory' => $dataManagementService->inventory()]); }
+            catch (Throwable $e) {
+                Logger::error('Data management inventory failed', ['exception' => $e::class, 'message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'inventory_failed', 'message' => 'Saved-data inventory could not be loaded. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->post('/api/data-management/preview', static function (Request $request) use ($dataManagementService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Data management preview access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Data management is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $scope = isset($body['scope']) && is_string($body['scope']) ? trim($body['scope']) : '';
+            $id = isset($body['id']) && is_string($body['id']) ? trim($body['id']) : '';
+            if (!in_array($scope, ['character', 'universe'], true) || $id === '') {
+                Logger::warning('Data management preview validation failed', ['scope' => $scope, 'error_code' => 'invalid_cleanup_preview']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_cleanup_preview', 'message' => 'Provide scope (character or universe) and record ID.']], 400);
+            }
+            try {
+                $preview = $dataManagementService->preview($scope, $id);
+                Logger::info('Data management cleanup preview generated', ['scope' => $scope, 'record_id' => $id, 'executable' => $preview['executable']]);
+                return Response::json(['ok' => true, 'preview' => $preview]);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'record_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'required') || str_contains($message, 'Scope must')) return Response::json(['ok' => false, 'error' => ['code' => 'invalid_cleanup_preview', 'message' => $message]], 400);
+                Logger::error('Data management cleanup preview failed', ['scope' => $scope, 'record_id' => $id, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'cleanup_preview_failed', 'message' => 'Cleanup preview failed. Check CORE logs.']], 500);
+            }
+        });
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.30',
+            'version' => '0.1.31',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {

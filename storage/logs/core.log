@@ -256,3 +256,13 @@
 {"time":"2026-10-24T14:08:46+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
 {"time":"2026-10-24T14:09:13+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T14:09:13+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T14:16:40+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T14:16:44+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:16:55+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"character","record_id":"chr_19fd4d9c547ff46031236c51","executable":true}}
+{"time":"2026-10-24T14:16:55+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T14:17:13+00:00","level":"WARNING","message":"Character permanently deleted","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","character_name":"Dave","last_revision":22}}
+{"time":"2026-10-24T14:17:13+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/delete"}}
+{"time":"2026-10-24T14:17:13+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:17:17+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:17:21+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T14:17:21+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

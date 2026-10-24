@@ -1,0 +1,165 @@
+{
+    "id": "chr_8bb0779264e323c2fcb6d5ae",
+    "schema_version": 1,
+    "universe_id": "uni_d6aaf47504110dc50b183443",
+    "name": "bob",
+    "role": "Explorer",
+    "current_system_id": "sys_4e73e6f3d1201a58",
+    "location": {
+        "system_id": "sys_4e73e6f3d1201a58",
+        "updated_at": "2026-10-24T05:43:25+00:00"
+    },
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_3a9a93b845899e87",
+                "name": "System 01",
+                "first_visited_at": "2026-10-24T05:34:16+00:00",
+                "first_visited_revision": 0
+            },
+            {
+                "system_id": "sys_da0a436f57a9a273",
+                "name": "System 15",
+                "first_visited_at": "2026-10-24T05:43:18+00:00",
+                "first_visited_revision": 30
+            },
+            {
+                "system_id": "sys_3f7ece5fe99144c5",
+                "name": "System 03",
+                "first_visited_at": "2026-10-24T05:43:19+00:00",
+                "first_visited_revision": 31
+            },
+            {
+                "system_id": "sys_8b76f9bafdcd1d96",
+                "name": "System 02",
+                "first_visited_at": "2026-10-24T05:43:20+00:00",
+                "first_visited_revision": 32
+            },
+            {
+                "system_id": "sys_c4baa3bdb58d1749",
+                "name": "System 06",
+                "first_visited_at": "2026-10-24T05:43:21+00:00",
+                "first_visited_revision": 33
+            },
+            {
+                "system_id": "sys_c3b215af045af847",
+                "name": "System 11",
+                "first_visited_at": "2026-10-24T05:43:21+00:00",
+                "first_visited_revision": 34
+            },
+            {
+                "system_id": "sys_217a1a52629b4abd",
+                "name": "System 14",
+                "first_visited_at": "2026-10-24T05:43:22+00:00",
+                "first_visited_revision": 35
+            },
+            {
+                "system_id": "sys_61c2842b7b8e65f2",
+                "name": "System 05",
+                "first_visited_at": "2026-10-24T05:43:23+00:00",
+                "first_visited_revision": 36
+            },
+            {
+                "system_id": "sys_a39bd5dec357b9aa",
+                "name": "System 10",
+                "first_visited_at": "2026-10-24T05:43:23+00:00",
+                "first_visited_revision": 37
+            },
+            {
+                "system_id": "sys_edf93ac2c6062a69",
+                "name": "System 09",
+                "first_visited_at": "2026-10-24T05:43:24+00:00",
+                "first_visited_revision": 38
+            },
+            {
+                "system_id": "sys_4e73e6f3d1201a58",
+                "name": "System 12",
+                "first_visited_at": "2026-10-24T05:43:25+00:00",
+                "first_visited_revision": 39
+            }
+        ]
+    },
+    "created_at": "2026-10-24T05:34:16+00:00",
+    "revision": 40,
+    "scans": {
+        "systems": {
+            "sys_3a9a93b845899e87": {
+                "system_id": "sys_3a9a93b845899e87",
+                "system_name": "System 01",
+                "scanned_at": "2026-10-24T05:34:28+00:00",
+                "scan_revision": 1,
+                "discoveries": [
+                    {
+                        "id": "dsc_33fb1eb7a3d625178418",
+                        "type": "spatial_anomaly",
+                        "label": "Spatial anomaly",
+                        "description": "A localized distortion in the system\u2019s background telemetry.",
+                        "system_id": "sys_3a9a93b845899e87",
+                        "system_name": "System 01",
+                        "classification": "binary"
+                    }
+                ]
+            },
+            "sys_4e73e6f3d1201a58": {
+                "system_id": "sys_4e73e6f3d1201a58",
+                "system_name": "System 12",
+                "scanned_at": "2026-10-24T05:43:30+00:00",
+                "scan_revision": 40,
+                "discoveries": [
+                    {
+                        "id": "dsc_af0dd0e85e880c2c10ed",
+                        "type": "unusual_asteroid",
+                        "label": "Unusual asteroid body",
+                        "description": "An asteroid body with an atypical spectral profile.",
+                        "system_id": "sys_4e73e6f3d1201a58",
+                        "system_name": "System 12",
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "dsc_d7ea64550d2e0482a33f",
+                        "type": "derelict_signal",
+                        "label": "Derelict transmission",
+                        "description": "A repeating automated signal with no confirmed active crew.",
+                        "system_id": "sys_4e73e6f3d1201a58",
+                        "system_name": "System 12",
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "dsc_15b6b0f00d16e001697c",
+                        "type": "unknown_beacon",
+                        "label": "Unidentified beacon",
+                        "description": "A beacon is broadcasting a short, repeating identification burst.",
+                        "system_id": "sys_4e73e6f3d1201a58",
+                        "system_name": "System 12",
+                        "classification": "binary"
+                    }
+                ]
+            }
+        }
+    },
+    "route_progress": {
+        "route_id": "rte_20e05d5d97fa92f0934b",
+        "destination_system_id": "sys_4e73e6f3d1201a58",
+        "destination_name": "System 12",
+        "path_system_ids": [
+            "sys_3a9a93b845899e87",
+            "sys_da0a436f57a9a273",
+            "sys_3f7ece5fe99144c5",
+            "sys_8b76f9bafdcd1d96",
+            "sys_c4baa3bdb58d1749",
+            "sys_c3b215af045af847",
+            "sys_217a1a52629b4abd",
+            "sys_61c2842b7b8e65f2",
+            "sys_a39bd5dec357b9aa",
+            "sys_edf93ac2c6062a69",
+            "sys_4e73e6f3d1201a58"
+        ],
+        "current_step_index": 10,
+        "total_hops": 10,
+        "status": "completed",
+        "planned_from_system_id": "sys_3a9a93b845899e87",
+        "planned_at": "2026-10-24T05:43:17+00:00",
+        "updated_at": "2026-10-24T05:43:25+00:00",
+        "completed_at": "2026-10-24T05:43:25+00:00"
+    }
+}

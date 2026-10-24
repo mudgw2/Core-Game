@@ -1,34 +1,98 @@
-{"time":"2026-10-24T00:04:17+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T00:04:17+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-24T00:04:24+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
-{"time":"2026-10-24T00:04:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
-{"time":"2026-10-24T00:09:41+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T00:09:41+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
-{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
-{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Character created","context":{"character_id":"chr_643c239ab98077b5aa66e863","universe_id":"uni_d6aaf47504110dc50b183443"}}
-{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters"}}
-{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T00:10:49+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
-{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_643c239ab98077b5aa66e863","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":0}}
-{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
-{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T00:10:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T00:10:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-24T04:22:33+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
-{"time":"2026-10-24T04:22:37+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
-{"time":"2026-10-24T04:22:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
-{"time":"2026-10-24T04:22:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T04:23:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
-{"time":"2026-10-24T04:23:28+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":4}}
-{"time":"2026-10-24T04:23:28+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
-{"time":"2026-10-24T04:23:28+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T04:23:35+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","revision":5,"current_system_id":"sys_3a9a93b845899e87"}}
-{"time":"2026-10-24T04:23:35+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
-{"time":"2026-10-24T04:23:35+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T04:23:38+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_520b7fc1e3df23a7e43dd558","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":5}}
-{"time":"2026-10-24T04:23:38+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
-{"time":"2026-10-24T04:23:38+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-24T04:23:43+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-24T04:23:43+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T05:38:49+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":12,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:49+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:49+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:53+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":13,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:53+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:53+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:54+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":14,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:54+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:54+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":15,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":16,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:55+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:56+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":17,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:56+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":18,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":19,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:57+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":20,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":21,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:38:59+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":22,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":23,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:00+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:01+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":24,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:01+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":25,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":26,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:02+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":27,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"already_at_destination","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":28,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:39:03+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:42:47+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T05:42:49+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T05:42:49+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T05:42:49+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:42:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:15+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
+{"time":"2026-10-24T05:43:17+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"route_started","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":29,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T05:43:17+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:17+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:18+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":30,"current_system_id":"sys_da0a436f57a9a273"}}
+{"time":"2026-10-24T05:43:18+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:18+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:19+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":31,"current_system_id":"sys_3f7ece5fe99144c5"}}
+{"time":"2026-10-24T05:43:19+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:19+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:20+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":32,"current_system_id":"sys_8b76f9bafdcd1d96"}}
+{"time":"2026-10-24T05:43:20+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":33,"current_system_id":"sys_c4baa3bdb58d1749"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":34,"current_system_id":"sys_c3b215af045af847"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:22+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":35,"current_system_id":"sys_217a1a52629b4abd"}}
+{"time":"2026-10-24T05:43:22+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":36,"current_system_id":"sys_61c2842b7b8e65f2"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":37,"current_system_id":"sys_a39bd5dec357b9aa"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:23+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:24+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":38,"current_system_id":"sys_edf93ac2c6062a69"}}
+{"time":"2026-10-24T05:43:24+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:25+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"route_completed","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","revision":39,"current_system_id":"sys_4e73e6f3d1201a58"}}
+{"time":"2026-10-24T05:43:25+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T05:43:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:28+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4e73e6f3d1201a58","revision":39}}
+{"time":"2026-10-24T05:43:28+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-24T05:43:28+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:30+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"scanned","character_id":"chr_8bb0779264e323c2fcb6d5ae","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4e73e6f3d1201a58","discoveries":3,"revision":40}}
+{"time":"2026-10-24T05:43:30+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T05:43:30+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T05:43:34+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T05:43:34+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

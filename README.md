@@ -1,37 +1,31 @@
-# CORE PHP Foundation 0.1.19 — Multi-Hop Travel
+# CORE PHP Foundation 0.1.22 — Travel Control Reliability
 
-CORE is an early browser-based sci-fi sandbox foundation using PHP, JSON persistence, HTML, CSS, and JavaScript.
+## What's new in 0.1.22
 
-## What's new in 0.1.19
+- Characters can scan their current system from the Workbench.
+- Scans generate 1–3 deterministic signal discoveries from the universe seed fingerprint and system ID, so the same universe/system produces stable findings.
+- Scan records are persisted on the character under `scans.systems`, including timestamp, system identity, and discovery details.
+- Scanning a system for the first time increments the character revision. Repeating a scan returns the saved results with `already_scanned` and does not increment revision.
+- The scan API checks character ownership by universe and expected character revision; invalid/stale requests are rejected and logged.
+- The Workbench shows current-system scan status, accessible discovery descriptions, and the character’s scan history; it refreshes the character revision after scanning.
+- Added isolated browser QA coverage for persistence, repeat-scan idempotency, stale revisions, cross-universe rejection, and UI wiring.
 
-- Start a travel route from a character's current system to any system in the same universe.
-- Execute travel one connected jump at a time using **Travel next jump**.
-- Each successful jump updates character location, revision, and character exploration history.
-- Route progress tracks the saved path, current step, hop count, and active/completed state.
-- Stale revisions are rejected; completed routes cannot be advanced again.
-- Manual movement cancels an active multi-hop route so the old route cannot be mistaken for a valid continuation.
-- The Workbench displays route progress and the next system.
-- Browser QA now covers route start, one-hop execution, final destination, stale revisions, and cancellation after manual movement.
+## Install / update
 
-## Install
+1. Back up the current CORE installation.
+2. Extract this package over the application files.
+3. **Preserve existing `storage/data/` and `storage/logs/` contents. Do not overwrite or delete those directories during an update.**
+4. Open the Workbench, load a test universe, select or create a character, and use **Scan current system**.
+5. Run **Workbench → Run automated tests**. Expected result: **PASS — 53 tests passed**.
 
-1. Extract the ZIP.
-2. Copy the package contents into the existing CORE project directory, overwriting matching application files.
-3. Preserve your existing `storage/data/` and `storage/logs/` contents. This package contains only `.gitkeep` placeholders in those directories.
-4. Open the Workbench and click **Run automated tests**.
+## Current scope
 
-## Try multi-hop travel
+This remains a development-only prototype. Character scans are character-specific; the scan result catalogue is deterministic but currently informational. Resource extraction, combat, accounts, ownership, and public access controls are not implemented. Do not expose development APIs publicly.
 
-1. Create or load a universe and select a character.
-2. Choose a distant destination under **Route destination** and click **Plan route** to preview it.
-3. Click **Start travel along route**. The character remains in the starting system while the route is stored.
-4. Click **Travel next jump** to execute one jump. Each click advances one connected hop, updates location and exploration history, and increments the character revision.
-5. Repeat until the Workbench reports that travel is complete.
 
-If you use the regular **Move character** control while a route is active, CORE cancels that route. Plan and start a new route to continue.
-
-## Current limitations and security
-
-This is a development foundation, not a finished game. Character accounts, ownership, authentication, and authorization are not implemented. Character, navigation, travel, and browser QA endpoints are restricted to development mode and local/private-network clients. Do not expose this application publicly until proper authentication and access controls are implemented.
-
-All browser QA tests use isolated temporary storage and should not modify saved universe data.
+## What's new in 0.1.22
+- Fixed Workbench travel-control feedback: **Travel next jump** remains clickable whenever a character is selected, so stale/missing route state produces an explicit status message instead of a silently disabled control.
+- Active routes keep the next-jump control enabled.
+- Travel request exceptions are shown in the travel status area and written to the Activity Log.
+- Added a regression test for next-jump event wiring, enabled state, and visible error feedback.
+- Existing travel API revision checks and route validation remain unchanged.

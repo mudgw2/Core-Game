@@ -1,0 +1,45 @@
+{
+    "id": "chr_e9c197c0908fc0b00acb5e9e",
+    "schema_version": 1,
+    "universe_id": "uni_6427cd68383eddbbecb0218d",
+    "name": "Release Scanner",
+    "role": "Explorer",
+    "current_system_id": "sys_aaef0270ac8888ea",
+    "location": {
+        "system_id": "sys_aaef0270ac8888ea",
+        "updated_at": "2026-10-24T05:31:28+00:00"
+    },
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_aaef0270ac8888ea",
+                "name": "System 01",
+                "first_visited_at": "2026-10-24T05:31:28+00:00",
+                "first_visited_revision": 0
+            }
+        ]
+    },
+    "created_at": "2026-10-24T05:31:28+00:00",
+    "revision": 1,
+    "scans": {
+        "systems": {
+            "sys_aaef0270ac8888ea": {
+                "system_id": "sys_aaef0270ac8888ea",
+                "system_name": "System 01",
+                "scanned_at": "2026-10-24T05:31:29+00:00",
+                "scan_revision": 1,
+                "discoveries": [
+                    {
+                        "id": "dsc_e4040a88f3a30d136473",
+                        "type": "unusual_asteroid",
+                        "label": "Unusual asteroid body",
+                        "description": "An asteroid body with an atypical spectral profile.",
+                        "system_id": "sys_aaef0270ac8888ea",
+                        "system_name": "System 01",
+                        "classification": "ordinary"
+                    }
+                ]
+            }
+        }
+    }
+}

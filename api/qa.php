@@ -34,6 +34,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
+use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
@@ -761,7 +762,132 @@ $run('Travel rejects a route after manual movement changes the route origin', st
     } finally { $cleanup($dir); }
 });
 
+$run('System scan persists deterministic discoveries and increments revision once', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-scan-persistence');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Signal Seeker');
+        $scanner = new CharacterScanService($storage); $first = $scanner->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $equal('scanned', $first['scan_status'], 'First scan did not report scanned status.');
+        $assert(count($first['scan']['discoveries'] ?? []) >= 1 && count($first['scan']['discoveries']) <= 3, 'Discovery count outside expected range.');
+        $equal(1, $first['character']['revision'], 'First scan did not increment character revision.');
+        $saved = $storage->read('characters', $character['id']);
+        $equal($first['scan'], $saved['scans']['systems'][$character['current_system_id']] ?? null, 'Scan results were not persisted.');
+        return count($first['scan']['discoveries']) . ' deterministic discovery signal(s) persisted on the character record.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Repeated scan is idempotent and returns saved results', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-scan-repeat');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Repeat Scanner'); $scanner = new CharacterScanService($storage);
+        $first = $scanner->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $second = $scanner->scanCurrentSystem($universe['id'], $character['id'], 1);
+        $equal('already_scanned', $second['scan_status'], 'Repeat scan did not identify an existing scan.');
+        $equal($first['scan'], $second['scan'], 'Repeat scan did not return the original discoveries.');
+        $equal(1, $second['character']['revision'], 'Repeat scan unexpectedly incremented character revision.');
+        return 'Repeated scan returned identical saved discoveries without advancing revision.';
+    } finally { $cleanup($dir); }
+});
+
+$run('System scanning rejects stale revisions and characters from other universes', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universes = new UniverseService($storage);
+        $one = $universes->createOrLoad('core-ui-qa-scan-universe-one'); $two = $universes->createOrLoad('core-ui-qa-scan-universe-two');
+        $character = (new CharacterService($storage))->create($one['id'], 'Revision Guard'); $scanner = new CharacterScanService($storage);
+        try { $scanner->scanCurrentSystem($one['id'], $character['id'], 4); throw new RuntimeException('Stale scan revision was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error.'); }
+        try { $scanner->scanCurrentSystem($two['id'], $character['id'], 0); throw new RuntimeException('Cross-universe scan was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not belong'), 'Unexpected cross-universe error.'); }
+        $saved = $storage->read('characters', $character['id']);
+        $equal(0, $saved['revision'], 'Rejected scan changed revision.');
+        $assert(empty($saved['scans']['systems']), 'Rejected scan wrote discovery data.');
+        return 'Stale revision and cross-universe scans rejected without persistence changes.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes accessible system-scan controls and saved discovery rendering', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['scanSystemButton','characterScanStatus','characterScanResults','api/character-scan.php','already_scanned'] as $needle) {
+        $assert(str_contains($html, $needle), 'Workbench is missing scan feature marker: ' . $needle);
+    }
+    return 'Scan action, status region, result rendering, and repeat-scan feedback are wired into the Workbench.';
+});
+
+$run('Character dashboard exposes status, travel, and distinct exploration summaries', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['dashboardCharacter','dashboardLocation','dashboardRevision','dashboardTravelStatus','dashboardTravelDetail','dashboardExploration','dashboardVisitedList','dashboardGlobalList','renderCharacterDashboard'] as $needle) {
+        $assert(str_contains($html, $needle), 'Dashboard is missing required field or renderer: ' . $needle);
+    }
+    $assert(str_contains($html, 'updateCharacterDetails();') && str_contains($html, 'populateCharacterChoices();'), 'Dashboard is not connected to character selection refresh.');
+    return 'Dashboard status fields and character-selection refresh hooks are present.';
+});
+
+$run('Dashboard source data changes after movement, travel completion, and global exploration', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universes = new UniverseService($storage);
+        $universe = $universes->createOrLoad('core-ui-qa-dashboard-data');
+        $systems = $universe['baseline']['systems'];
+        $graph = NavigationGraph::build($systems);
+        $characters = new CharacterService($storage);
+        $character = $characters->create($universe['id'], 'Dashboard Explorer');
+        $from = $character['current_system_id'];
+        $longestPath = [];
+        foreach ($systems as $system) {
+            $candidate = NavigationGraph::shortestPath($graph, $from, (string)$system['id']);
+            if (count($candidate) > count($longestPath)) $longestPath = $candidate;
+        }
+        $assert(count($longestPath) >= 3, 'Dashboard fixture needs a route of at least two hops.');
+        $firstDestination = (string)$longestPath[1];
+        $moved = $characters->move($universe['id'], $character['id'], $firstDestination, 0);
+        $visitedIds = array_column($moved['exploration']['explored_systems'], 'system_id');
+        $assert(in_array($firstDestination, $visitedIds, true), 'Movement did not update character exploration data.');
+        $equal(1, $moved['revision'], 'Movement revision not reflected in dashboard source data.');
+
+        $travel = new CharacterTravelService($storage);
+        $fresh = $storage->read('characters', $character['id']);
+        $route = [];
+        foreach ($systems as $system) {
+            $candidate = NavigationGraph::shortestPath($graph, $fresh['current_system_id'], (string)$system['id']);
+            if (count($candidate) > count($route)) $route = $candidate;
+        }
+        $started = $travel->start($universe['id'], $character['id'], (string)end($route), (int)$fresh['revision']);
+        $current = $started['character'];
+        $iterations = 0;
+        while (($current['route_progress']['status'] ?? '') === 'active' && $iterations < 20) {
+            $result = $travel->advance($universe['id'], $character['id'], (int)$current['revision']);
+            $current = $result['character'];
+            $iterations++;
+        }
+        $equal('completed', $current['route_progress']['status'] ?? null, 'Completed route status missing from dashboard source data.');
+        $equal((string)end($route), $current['current_system_id'], 'Dashboard location source did not reach the destination.');
+
+        $globalTarget = (string)$systems[count($systems) - 1]['id'];
+        $updatedUniverse = $universes->updateState($universe['id'], (int)$universe['state']['revision'], ['type' => 'system_explored', 'system_id' => $globalTarget]);
+        $globalIds = array_column($updatedUniverse['state']['projections']['explored_systems'] ?? [], 'system_id');
+        $assert(in_array($globalTarget, $globalIds, true), 'Global exploration projection was not updated.');
+        return 'Character visit history, completed travel progress, and universe-wide exploration projection all update in persisted source data.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Travel next-jump control remains actionable and reports request failures', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    $assert(str_contains($html, "document.getElementById('advanceTravelButton').addEventListener('click', () => submitTravelAction('advance'))"), 'Travel next-jump click handler is missing.');
+    $assert(str_contains($html, "advanceButton.disabled = false;"), 'Active route does not leave next-jump control enabled.');
+    $assert(str_contains($html, "advanceButton.disabled = !characterId;"), 'Next-jump control does not remain actionable for a selected character.');
+    $assert(str_contains($html, "status.textContent = 'Travel request failed: ' + String(error);"), 'Travel request errors are not visible in the Workbench.');
+    $assert(str_contains($html, "button.disabled = !selectedCharacter;"), 'Next-jump control can remain disabled after a failed or stale request.');
+    return 'Next-jump control has a click handler, actionable state, and visible error feedback.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.19', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.22', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

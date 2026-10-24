@@ -39,11 +39,20 @@ declare(strict_types=1);
         ul { color:var(--muted); padding-left:20px; }
         code { color:#b8f4e7; }
         footer { color:var(--muted); font-size:.85rem; margin-top:24px; }
+        .dashboard-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); gap:10px; margin:14px 0; }
+        .dashboard-tile { background:#0b1325; border:1px solid #526585; border-radius:10px; padding:14px; min-width:0; }
+        .dashboard-label { display:block; color:#b9c9e4; font-size:.82rem; margin-bottom:5px; }
+        .dashboard-tile strong { display:block; overflow-wrap:anywhere; font-size:1.05rem; }
+        .dashboard-detail { display:block; color:#c3d0e5; font-size:.9rem; margin-top:4px; overflow-wrap:anywhere; }
+        .dashboard-lists { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:12px; }
+        .dashboard-lists > div { background:#101a2e; border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+        .dashboard-lists h4 { margin:0 0 6px; font-size:.95rem; }
+        .dashboard-list { margin:0; color:#d5e2f7; overflow-wrap:anywhere; }
     </style>
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.19</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.22</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -90,6 +99,17 @@ declare(strict_types=1);
             <input id="characterRole" maxlength="40" value="Explorer" autocomplete="off">
             <div class="actions"><button id="createCharacterButton" type="button">Create character</button><button id="refreshCharactersButton" class="secondary" type="button">Refresh character list</button></div>
             <p id="characterStatus" class="status" aria-live="polite">Select a universe before creating a character.</p>
+            <h3>Character Status &amp; Travel Dashboard</h3>
+            <div class="dashboard-grid" aria-live="polite" aria-atomic="true">
+                <div class="dashboard-tile"><span class="dashboard-label">Selected character</span><strong id="dashboardCharacter">None selected</strong><span id="dashboardRole" class="dashboard-detail">Choose a character below.</span></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Current system</span><strong id="dashboardLocation">—</strong><span id="dashboardRevision" class="dashboard-detail">Revision: —</span></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Travel status</span><strong id="dashboardTravelStatus">No route</strong><span id="dashboardTravelDetail" class="dashboard-detail">No travel route loaded.</span></div>
+                <div class="dashboard-tile"><span class="dashboard-label">Exploration</span><strong id="dashboardExploration">0 character / 0 universe</strong><span class="dashboard-detail">Visited by character / explored globally</span></div>
+            </div>
+            <div class="dashboard-lists">
+                <div><h4>Character-visited systems</h4><p id="dashboardVisitedList" class="dashboard-list">Select a character to see visited systems.</p></div>
+                <div><h4>Universe-wide explored systems</h4><p id="dashboardGlobalList" class="dashboard-list">Load a universe to see global discoveries.</p></div>
+            </div>
             <h3>Character location</h3>
             <label for="characterSelect">Character</label>
             <select id="characterSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Load characters first</option></select>
@@ -109,6 +129,11 @@ declare(strict_types=1);
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
             <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Only directly connected systems are valid destinations. Repeating a move to the current system will not increment the revision.</p>
             <p id="characterExplorationStatus" class="status" aria-live="polite">Select a character to view its location and exploration history.</p>
+            <h3>System scanning &amp; discoveries</h3>
+            <p>Scan the character’s current system to reveal deterministic signals. Results are saved to the character; scanning a system again returns the existing record without advancing its revision.</p>
+            <div class="actions"><button id="scanSystemButton" type="button" disabled>Scan current system</button></div>
+            <p id="characterScanStatus" class="status" aria-live="polite">Select a character to scan its current system.</p>
+            <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
             <pre id="characterOutput" aria-live="polite">No characters loaded.</pre>
         </section>
         <section style="grid-column:1/-1">
@@ -149,6 +174,7 @@ declare(strict_types=1);
     const universeStatus = document.getElementById('universeStatus');
     const seedInput = document.getElementById('seed');
     let currentUniverseBaseline = null;
+    let currentUniverseState = null;
     let currentNavigation = null;
     const activityLog = document.getElementById('activityLog');
     let loadedCharacters = [];
@@ -209,6 +235,29 @@ declare(strict_types=1);
             const option = document.createElement('option'); option.value = ''; option.textContent = 'Navigation data unavailable'; select.append(option);
         }
     }
+    function renderCharacterDashboard(character = null) {
+        const systems = currentUniverseBaseline?.systems || [];
+        const names = new Map(systems.map(system => [system.id, system.name]));
+        const globallyExplored = currentUniverseState?.projections?.explored_systems || [];
+        const visited = character?.exploration?.explored_systems || [];
+        const route = character?.route_progress || null;
+        const currentId = character ? (character.current_system_id || character.location?.system_id || '') : '';
+        const set = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = value; };
+        set('dashboardCharacter', character?.name || 'None selected');
+        set('dashboardRole', character ? (character.role || 'Role not set') + ' · ' + character.id : 'Choose a character below.');
+        set('dashboardLocation', character ? (names.get(currentId) || currentId || 'Unknown') : '—');
+        set('dashboardRevision', character ? 'Character revision: ' + (character.revision ?? 0) : 'Revision: —');
+        const total = route ? Number(route.total_hops ?? Math.max(0, (route.path_system_ids || []).length - 1)) : 0;
+        const done = route ? Number(route.current_step_index || 0) : 0;
+        const nextId = route?.status === 'active' ? (route.path_system_ids || [])[done + 1] : '';
+        const statusLabel = !route ? 'No route' : ({active:'In transit',completed:'Route completed',cancelled:'Route cancelled'}[route.status] || 'Route status: ' + route.status);
+        set('dashboardTravelStatus', statusLabel);
+        set('dashboardTravelDetail', !character ? 'Select a character.' : route?.status === 'active' ? `${done} of ${total} jumps complete · Next: ${names.get(nextId) || nextId || 'Unavailable'}` : route?.status === 'completed' ? `${done} of ${total} jumps complete · Arrived at ${names.get(currentId) || currentId}` : route?.status === 'cancelled' ? 'Previous route was cancelled.' : 'Plan a route to begin multi-hop travel.');
+        set('dashboardExploration', `${visited.length} character / ${globallyExplored.length} universe`);
+        set('dashboardVisitedList', character ? (visited.length ? visited.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).join(' · ') : 'No systems recorded yet.') : 'Select a character to see visited systems.');
+        set('dashboardGlobalList', currentUniverseBaseline ? (globallyExplored.length ? globallyExplored.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).join(' · ') : 'No universe-wide exploration events recorded yet.') : 'Load a universe to see global discoveries.');
+    }
+
     function updateCharacterDetails() {
         const systems = currentUniverseBaseline?.systems || [];
         const routeSelect = document.getElementById('routeDestinationSelect');
@@ -223,6 +272,10 @@ declare(strict_types=1);
         const character = loadedCharacters.find(item => item.id === characterId);
         const status = document.getElementById('characterExplorationStatus');
         if (!character) {
+            renderCharacterDashboard(null);
+            document.getElementById('scanSystemButton').disabled = true;
+            document.getElementById('characterScanStatus').textContent = 'Select a character to scan its current system.';
+            document.getElementById('characterScanResults').innerHTML = '<div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div>';
             status.textContent = 'Select a character to view its location and exploration history.';
             document.getElementById('travelProgressStatus').textContent = 'Select a character before starting or continuing travel.';
             document.getElementById('startTravelButton').disabled = true;
@@ -230,7 +283,48 @@ declare(strict_types=1);
             return;
         }
         const names = new Map(systems.map(system => [system.id, system.name]));
+        renderCharacterDashboard(character);
         const currentId = character.current_system_id || character.location?.system_id || '';
+        const scanRecords = character.scans?.systems || {};
+        const currentScan = scanRecords[currentId] || null;
+        document.getElementById('scanSystemButton').disabled = false;
+        document.getElementById('characterScanStatus').textContent = currentScan
+            ? 'Current system already scanned on ' + new Date(currentScan.scanned_at).toLocaleString() + '. ' + (currentScan.discoveries || []).length + ' discovery signal(s) recorded.'
+            : 'Current system has not been scanned by this character yet.';
+        const scanResults = document.getElementById('characterScanResults');
+        scanResults.replaceChildren();
+        const scanPanel = document.createElement('div');
+        const scanHeading = document.createElement('h4');
+        scanHeading.textContent = currentScan ? 'Scan: ' + (currentScan.system_name || currentId) : 'Current-system scan';
+        scanPanel.append(scanHeading);
+        if (currentScan && Array.isArray(currentScan.discoveries) && currentScan.discoveries.length) {
+            const list = document.createElement('ul'); list.className = 'dashboard-list';
+            for (const discovery of currentScan.discoveries) {
+                const item = document.createElement('li');
+                const title = document.createElement('strong'); title.textContent = discovery.label || discovery.type || 'Unknown signal';
+                item.append(title, document.createTextNode(' — ' + (discovery.description || 'No additional data.')));
+                list.append(item);
+            }
+            scanPanel.append(list);
+        } else {
+            const message = document.createElement('p'); message.className = 'dashboard-list'; message.textContent = 'No saved scan results for the current system.'; scanPanel.append(message);
+        }
+        scanResults.append(scanPanel);
+        const historyPanel = document.createElement('div');
+        const historyHeading = document.createElement('h4'); historyHeading.textContent = 'Character scan history'; historyPanel.append(historyHeading);
+        const scanEntries = Object.values(scanRecords).filter(entry => entry && typeof entry === 'object');
+        if (scanEntries.length) {
+            const historyList = document.createElement('ul'); historyList.className = 'dashboard-list';
+            for (const entry of scanEntries) {
+                const item = document.createElement('li');
+                item.textContent = (entry.system_name || entry.system_id || 'Unknown system') + ' — ' + (entry.discoveries || []).length + ' signal(s)';
+                historyList.append(item);
+            }
+            historyPanel.append(historyList);
+        } else {
+            const emptyHistory = document.createElement('p'); emptyHistory.className = 'dashboard-list'; emptyHistory.textContent = 'No systems scanned yet.'; historyPanel.append(emptyHistory);
+        }
+        scanResults.append(historyPanel);
         const visited = character.exploration?.explored_systems || [];
         const visitedNames = visited.map(entry => entry.name || names.get(entry.system_id) || entry.system_id).filter(Boolean);
         status.textContent = 'Current system: ' + (names.get(currentId) || currentId || 'Unknown') + ' (' + currentId + '). Explored systems (' + visited.length + '): ' + (visitedNames.length ? visitedNames.join(', ') : 'none recorded');
@@ -244,16 +338,19 @@ declare(strict_types=1);
             const totalHops = Number(routeProgress.total_hops || Math.max(0, path.length - 1));
             const nextId = path[index + 1] || '';
             progressStatus.textContent = 'Travel active: ' + completedHops + ' of ' + totalHops + ' jump(s) complete. Current: ' + (names.get(currentId) || currentId) + (nextId ? '. Next jump: ' + (names.get(nextId) || nextId) + ' (' + nextId + ').' : '.');
-            advanceButton.disabled = !nextId;
+            // Keep the control actionable while a character is selected. If route state is
+            // stale or malformed, clicking still produces a visible explanation instead of
+            // looking like a dead control.
+            advanceButton.disabled = false;
         } else if (routeProgress && routeProgress.status === 'completed') {
             progressStatus.textContent = 'Last travel route completed at ' + (names.get(currentId) || currentId) + '. Choose a destination and start a new route to travel again.';
-            advanceButton.disabled = true;
+            advanceButton.disabled = !characterId;
         } else if (routeProgress && routeProgress.status === 'cancelled') {
             progressStatus.textContent = 'Previous route was cancelled. Plan and start a new route to continue travelling.';
-            advanceButton.disabled = true;
+            advanceButton.disabled = !characterId;
         } else {
             progressStatus.textContent = 'No travel route is active for this character. Plan a route, then click Start travel along route.';
-            advanceButton.disabled = true;
+            advanceButton.disabled = !characterId;
         }
         document.getElementById('startTravelButton').disabled = !characterId;
     }
@@ -388,6 +485,8 @@ declare(strict_types=1);
             output.textContent = JSON.stringify(data, null, 2);
             if (response.ok && data.ok) {
                 document.getElementById('stateRevision').value = data.state.revision;
+                currentUniverseState = { ...(currentUniverseState || {}), ...data.state };
+                renderCharacterDashboard(loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value) || null);
                 status.textContent = 'Change saved. Current revision: ' + data.state.revision + '.';
                 logActivity('info', 'Universe state updated', universeId + ' → revision ' + data.state.revision);
             } else {
@@ -506,14 +605,16 @@ declare(strict_types=1);
                         : 'Jump completed. ' + (progress.current_step_index || 0) + ' of ' + (progress.total_hops || 0) + ' jump(s) complete.';
             logActivity('info', 'Character travel ' + action, characterId + ' → ' + character.current_system_id + ' (' + data.travel_status + ', revision ' + character.revision + ')');
         } catch (error) {
-            status.textContent = 'Travel request failed. Check the server and activity log.';
+            status.textContent = 'Travel request failed: ' + String(error);
             logActivity('error', 'Character travel request failed', String(error));
         } finally {
             if (action === 'start') {
                 button.disabled = !document.getElementById('characterSelect').value;
             } else {
                 const selectedCharacter = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
-                button.disabled = !(selectedCharacter?.route_progress?.status === 'active');
+                // Do not leave a selected character with an apparently dead button. If no
+                // route is active, the next click will return a visible explanation.
+                button.disabled = !selectedCharacter;
             }
         }
     }
@@ -549,6 +650,37 @@ declare(strict_types=1);
         } catch (error) { status.textContent = 'Character move request failed.'; logActivity('error', 'Character move request failed', String(error)); }
         finally { button.disabled = false; }
     });
+    document.getElementById('scanSystemButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('characterScanStatus');
+        if (!universeId || !characterId) { status.textContent = 'Create or load a universe and select a character first.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        const button = document.getElementById('scanSystemButton'); button.disabled = true; status.textContent = 'Scanning current system and saving discoveries…';
+        try {
+            const response = await fetch('api/character-scan.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                const discoveries = data.scan?.discoveries || [];
+                status.textContent = data.scan_status === 'already_scanned'
+                    ? 'This system was already scanned. Returning ' + discoveries.length + ' saved discovery signal(s); revision unchanged at ' + data.character.revision + '.'
+                    : 'Scan complete in ' + (data.scan?.system_name || data.scan?.system_id) + ': ' + discoveries.length + ' discovery signal(s). Character revision: ' + data.character.revision + '.';
+                await refreshCharacters();
+                document.getElementById('characterSelect').value = characterId;
+                document.getElementById('characterRevision').value = String(data.character.revision);
+                updateCharacterDetails();
+                logActivity('info', 'System scan ' + data.scan_status, (data.scan?.system_name || data.scan?.system_id || '') + ' — ' + discoveries.length + ' discovery signal(s)');
+            } else {
+                status.textContent = (data.error?.code || 'request_failed') + ': ' + (data.error?.message || 'System scan failed.');
+                logActivity('error', 'System scan failed', JSON.stringify(data));
+            }
+        } catch (error) { status.textContent = 'System scan request failed. Check the server and activity log.'; logActivity('error', 'System scan request failed', String(error)); }
+        finally { button.disabled = !document.getElementById('characterSelect').value; }
+    });
+
     document.getElementById('createCharacterButton').addEventListener('click', async () => {
         const universeId = document.getElementById('characterUniverseId').value.trim();
         const name = document.getElementById('characterName').value.trim();
@@ -597,6 +729,8 @@ declare(strict_types=1);
             universeStatus.textContent = result.response.ok ? 'Universe created or loaded.' : 'Create/load request failed.';
             if (result.response.ok && result.data.universe) {
                 currentUniverseBaseline = result.data.universe.baseline || null;
+                currentUniverseState = result.data.universe.state || null;
+                renderCharacterDashboard(null);
                 document.getElementById('stateUniverseId').value = result.data.universe.id || '';
                 document.getElementById('characterUniverseId').value = result.data.universe.id || '';
                 document.getElementById('characterStatus').textContent = 'Universe selected. You can create or list its characters.';

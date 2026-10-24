@@ -10,6 +10,7 @@ use Core\Http\Router;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
+use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -36,12 +37,13 @@ final class Application
         $universeService = new UniverseService($storage);
         $characterService = new CharacterService($storage);
         $travelService = new CharacterTravelService($storage);
+        $scanService = new CharacterScanService($storage);
         $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.19',
+            'version' => '0.1.22',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -187,6 +189,39 @@ final class Application
                 if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
                 Logger::error('Character list failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $e->getMessage()]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_list_failed', 'message' => 'Characters could not be loaded. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->post('/api/characters/scan', static function (Request $request) use ($scanService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character scan API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'scan_api_disabled', 'message' => 'Character scanning is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || !is_int($expectedRevision)) {
+                Logger::warning('Character scan request validation failed', ['error_code' => 'invalid_character_scan_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_scan_request', 'message' => 'Provide universe_id, character_id, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $scanService->scanCurrentSystem($universeId, $characterId, $expectedRevision);
+                Logger::info('Character system scan completed', ['scan_status' => $result['scan_status'], 'character_id' => $characterId, 'universe_id' => $universeId, 'system_id' => $result['scan']['system_id'] ?? null, 'discoveries' => count($result['scan']['discoveries'] ?? []), 'revision' => $result['character']['revision'] ?? null]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character scan revision conflict', ['character_id' => $characterId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
+                if (str_contains($message, 'do not belong') || str_contains($message, 'not valid') || str_contains($message, 'required') || str_contains($message, 'Expected character revision')) {
+                    Logger::warning('Character scan rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_scan_request', 'message' => $message]], 400);
+                }
+                Logger::error('Character system scan failed', ['character_id' => $characterId, 'universe_id' => $universeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_scan_failed', 'message' => 'System scan could not be saved. Check CORE logs.']], 500);
             }
         });
 

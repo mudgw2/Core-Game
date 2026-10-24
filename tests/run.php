@@ -18,6 +18,7 @@ use Core\Modules\Universe\UniverseService;
 use Core\Storage\JsonStorage;
 use Core\Modules\UniverseBackupService;
 use Core\Modules\ContentCatalog;
+use Core\Modules\ContentManagementService;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
@@ -321,14 +322,17 @@ $test('JSON discovery rewards reference known items and valid deterministic rang
     }
 });
 
-$test('JSON ship modules reference known items and unique slots', static function () use ($assert): void {
-    $items = ContentCatalog::entries('items'); $slots = [];
-    foreach (ContentCatalog::entries('ship_modules') as $id => $module) {
+$test('JSON ship modules reference known items and support multiple modules per slot', static function () use ($assert): void {
+    $docs = ContentCatalog::allDocuments(); $items = $docs['items']['entries'];
+    foreach ($docs['ship_modules']['entries'] as $id => $module) {
         $slot = $module['slot'] ?? '';
-        $assert(is_string($slot) && $slot !== '' && !isset($slots[$slot]), 'Ship module slot is missing or duplicated: ' . $id);
-        $slots[$slot] = true;
+        $assert(is_string($slot) && $slot !== '', 'Ship module slot is missing: ' . $id);
         foreach (($module['inputs'] ?? []) as $itemId => $quantity) $assert(isset($items[$itemId]) && is_int($quantity) && $quantity > 0, 'Ship module input is invalid: ' . $id . '/' . $itemId);
     }
+    $modules = $docs['ship_modules']['entries']; $first = reset($modules);
+    $modules['qa_alternate_module'] = $first; $docs['ship_modules']['entries'] = $modules;
+    ContentCatalog::validateDocuments($docs);
+    $assert($modules['qa_alternate_module']['slot'] === $first['slot'], 'Regression fixture did not share a slot.');
 });
 
 $test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
@@ -370,6 +374,62 @@ $test('crafting consumes JSON recipe and persists inventory changes to character
         $assert(($result['recipe']['output']['resource'] ?? '') === $recipe['output']['resource'], 'Craft result differs from JSON recipe.');
     } finally {
         if (is_dir($dir)) { $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+
+$test('content management validates cross-catalog references before saving', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-content-manager-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $recipes = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $recipes['entries']['refine_ore']['inputs']['missing_resource'] = 1;
+        try { $manager->validate('recipes', $recipes); throw new RuntimeException('Unknown item reference was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid recipe input'), 'Unexpected validation error: ' . $e->getMessage()); }
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('content management atomically saves revisions and verifies previous catalog backup', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-content-manager-save-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['refine_ore']['description'] = 'Updated by regression test.';
+        $result = $manager->save('recipes', 1, $doc);
+        $equal(2, $result['revision']);
+        $saved = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $equal('Updated by regression test.', $saved['entries']['refine_ore']['description']);
+        $backupPath = $dir . '/backups/content/' . $result['backup_file'];
+        $assert(is_file($backupPath), 'Previous content backup is missing.');
+        $old = json_decode((string)file_get_contents($backupPath), true, 512, JSON_THROW_ON_ERROR);
+        $assert($old['entries']['refine_ore']['description'] !== $saved['entries']['refine_ore']['description'], 'Backup does not contain the previous definition.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('content management rejects stale revisions without overwriting newer content', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-content-manager-stale-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['refine_ore']['description'] = 'First update.';
+        $manager->save('recipes', 1, $doc);
+        $doc['entries']['refine_ore']['description'] = 'Stale update.';
+        try { $manager->save('recipes', 1, $doc); throw new RuntimeException('Stale content revision was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision response: ' . $e->getMessage()); }
+        $saved = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $assert($saved['entries']['refine_ore']['description'] === 'First update.', 'Stale update overwrote newer content.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
     }
 });
 

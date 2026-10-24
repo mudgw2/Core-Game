@@ -148,7 +148,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.40',
+            'version' => '0.1.41',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.
@@ -162,6 +162,35 @@ final class Application
                 catch (Throwable $e) { Logger::error('Game content catalog request failed', ['catalog' => $catalogName, 'exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_catalog_failed', 'message' => 'Game content definitions could not be loaded. Check CORE logs.']], 500); }
             });
         }
+
+        $contentManager = new \Core\Modules\ContentManagementService(
+            CORE_ROOT . '/config/content',
+            dirname((string)$config['storage']['path']) . '/backups'
+        );
+        $this->router->post('/api/content/validate', static function (Request $request) use ($contentManager, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'content_management_disabled', 'message' => 'Content editing is available only in development mode from a local/private network.']], 403);
+            $body = $request->jsonBody();
+            $catalog = isset($body['catalog']) && is_string($body['catalog']) ? trim($body['catalog']) : '';
+            $document = $body['document'] ?? null;
+            if ($catalog === '' || !is_array($document)) return Response::json(['ok' => false, 'error' => ['code' => 'invalid_content_request', 'message' => 'Provide an allow-listed catalog name and a JSON document object.']], 400);
+            try { return Response::json(['ok' => true, 'validation' => $contentManager->validate($catalog, $document)]); }
+            catch (Throwable $e) { Logger::warning('Game content draft validation failed', ['catalog' => $catalog, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_validation_failed', 'message' => $e->getMessage()]], 400); }
+        });
+        $this->router->post('/api/content/save', static function (Request $request) use ($contentManager, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'content_management_disabled', 'message' => 'Content editing is available only in development mode from a local/private network.']], 403);
+            $body = $request->jsonBody();
+            $catalog = isset($body['catalog']) && is_string($body['catalog']) ? trim($body['catalog']) : '';
+            $revision = $body['expected_revision'] ?? null;
+            $document = $body['document'] ?? null;
+            if ($catalog === '' || !is_int($revision) || !is_array($document)) return Response::json(['ok' => false, 'error' => ['code' => 'invalid_content_request', 'message' => 'Provide catalog, integer expected_revision, and a JSON document object.']], 400);
+            try { return Response::json(['ok' => true, 'saved' => $contentManager->save($catalog, $revision, $document)]); }
+            catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) return Response::json(['ok' => false, 'error' => ['code' => 'content_revision_conflict', 'message' => $message]], 409);
+                Logger::warning('Game content save failed', ['catalog' => $catalog, 'expected_revision' => $revision, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'content_save_rejected', 'message' => $message]], 400);
+            }
+        });
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
             $seed = trim((string)$request->query('seed', ''));

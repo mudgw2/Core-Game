@@ -403,3 +403,21 @@
 {"time":"2026-10-24T19:00:34+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024190034_406e62a617","universe_id":"universe_delete_test","characters":1}}
 {"time":"2026-10-24T19:00:34+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_dc0813ad42ea5408864a5c20","record_count":3,"cleanup_complete":true}}
 {"time":"2026-10-24T19:00:34+00:00","level":"WARNING","message":"Atomic universe deletion aborted before any live record was moved","context":{"transaction_id":"ud_7e677905115454829be38ec2","failure":"Injected final-guard rejection."}}
+{"time":"2026-10-24T19:12:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:12:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:12:43+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-24T19:15:38+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T19:15:39+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_backup_test","backup_id":"bkp_20261024191541_9490ea28e3","characters":1}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261024191541_5b842dc6ae","characters":1}}
+{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024191541_5b842dc6ae","universe_id":"universe_restore_test","characters":1}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261024191541_d172846296","characters":0}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_delete_test","backup_id":"bkp_20261024191541_a1837ec5ea","characters":1}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_310b38121c76c81254ec230a","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Universe and associated characters permanently deleted","context":{"universe_id":"universe_delete_test","deleted_characters":1,"backup_id":"bkp_20261024191541_a1837ec5ea","transaction_id":"ud_310b38121c76c81254ec230a","verified":true}}
+{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024191541_a1837ec5ea","universe_id":"universe_delete_test","characters":1}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_62b6416834eba46c65d35b8c","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Atomic universe deletion aborted before any live record was moved","context":{"transaction_id":"ud_eff9e35c3363a97dea97a6d4","failure":"Injected final-guard rejection."}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-save-qa-5bcb014cd3b98984/backups/content/recipes_r1_20261024_191541_42aaf1.json"}}
+{"time":"2026-10-24T19:15:41+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-stale-qa-aa1a544e55db5540/backups/content/recipes_r1_20261024_191541_5e7ebc.json"}}
+{"time":"2026-10-24T19:15:41+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}

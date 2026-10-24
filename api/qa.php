@@ -47,6 +47,7 @@ use Core\Storage\JsonStorage;
 use Core\Modules\DataManagementService;
 use Core\Modules\UniverseBackupService;
 use Core\Modules\ContentCatalog;
+use Core\Modules\ContentManagementService;
 use Core\Modules\UniverseDeletionService;
 
 $results = [];
@@ -1671,8 +1672,69 @@ $run('Complete character-record API is available for saved player state', static
     return 'A character can be read as one JSON API record including inventory, scans, exploration, ledger, and ship state.';
 });
 
+
+$run('Content manager validates references across all JSON catalogs', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-content-manager-qa-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['refine_ore']['inputs']['unknown_item'] = 1;
+        try { $manager->validate('recipes', $doc); throw new RuntimeException('Unknown recipe input was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid recipe input'), 'Unexpected validation error: ' . $e->getMessage()); }
+        return 'Invalid cross-catalog item reference rejected before save.';
+    } finally { $cleanup($dir); }
+});
+$run('Content manager saves atomically and keeps verified previous version', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-content-save-qa-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['refine_ore']['description'] = 'QA changed description';
+        $saved = $manager->save('recipes', 1, $doc);
+        $equal(2, $saved['revision'], 'Content revision did not increment.');
+        $backup = $dir . '/backups/content/' . $saved['backup_file'];
+        $assert(is_file($backup), 'Previous content backup is missing.');
+        $old = json_decode((string)file_get_contents($backup), true, 512, JSON_THROW_ON_ERROR);
+        $assert($old['entries']['refine_ore']['description'] !== 'QA changed description', 'Backup was not the previous catalog.');
+        return 'Catalog revision incremented and prior JSON was backed up and verified.';
+    } finally { $cleanup($dir); }
+});
+$run('Content manager rejects stale revision without overwriting newer edit', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-content-stale-qa-' . bin2hex(random_bytes(8));
+    try {
+        $content = $dir . '/content'; mkdir($content, 0770, true);
+        foreach (['items.json', 'recipes.json', 'discoveries.json', 'ship-modules.json'] as $file) copy(CORE_ROOT . '/config/content/' . $file, $content . '/' . $file);
+        $manager = new ContentManagementService($content, $dir . '/backups');
+        $doc = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $doc['entries']['refine_ore']['description'] = 'New edit'; $manager->save('recipes', 1, $doc);
+        $doc['entries']['refine_ore']['description'] = 'Stale edit';
+        try { $manager->save('recipes', 1, $doc); throw new RuntimeException('Stale content revision was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error: ' . $e->getMessage()); }
+        $saved = json_decode((string)file_get_contents($content . '/recipes.json'), true, 512, JSON_THROW_ON_ERROR);
+        $assert($saved['entries']['refine_ore']['description'] === 'New edit', 'Stale edit overwrote current catalog.');
+        return 'Stale revision rejected and current catalog preserved.';
+    } finally { $cleanup($dir); }
+});
+
+
+$run('Workbench exposes revision-checked JSON content management', static function () use ($assert): string {
+    $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
+    foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
+        if (str_starts_with($needle, 'api/')) $assert(is_file($root . '/' . $needle), 'Missing content management API wrapper: ' . $needle);
+        else $assert(str_contains($html, $needle), 'Workbench content editor is missing: ' . $needle);
+    }
+    $service = new ContentManagementService($root . '/config/content', $root . '/storage/backups');
+    $docs = $service->documents();
+    $assert(count($docs) === 4, 'Content manager did not load all four catalogs.');
+    return 'Workbench editor controls, API wrappers, and four JSON catalogs are present.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.40', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.41', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

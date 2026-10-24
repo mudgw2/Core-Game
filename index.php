@@ -74,7 +74,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.40</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.41</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -83,6 +83,7 @@ declare(strict_types=1);
         <button type="button" role="tab" id="tab-universe" aria-controls="panel-universe" aria-selected="false" tabindex="-1" data-tab="universe">Universe</button>
         <button type="button" role="tab" id="tab-characters" aria-controls="panel-characters" aria-selected="false" tabindex="-1" data-tab="characters">Characters &amp; Travel</button>
         <button type="button" role="tab" id="tab-discoveries" aria-controls="panel-discoveries" aria-selected="false" tabindex="-1" data-tab="discoveries">Scanning &amp; Discoveries</button>
+        <button type="button" role="tab" id="tab-content" aria-controls="panel-content" aria-selected="false" tabindex="-1" data-tab="content">Content Management</button>
         <button type="button" role="tab" id="tab-data" aria-controls="panel-data" aria-selected="false" tabindex="-1" data-tab="data">Data Management</button>
         <button type="button" role="tab" id="tab-operations" aria-controls="panel-operations" aria-selected="false" tabindex="-1" data-tab="operations">Operations &amp; QA</button>
     </nav>
@@ -237,6 +238,32 @@ declare(strict_types=1);
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
         </section>
     </section>
+    <section class="tab-panel grid" id="panel-content" role="tabpanel" aria-labelledby="tab-content" data-panel="content" hidden>
+        <section style="grid-column:1/-1">
+            <h2>JSON content management</h2>
+            <p>Edit the external game-content definitions used by exploration, rewards, crafting, and ship fitting. Changes are validated against all related catalogs, revision-checked, backed up, and atomically saved. Gameplay services reload definitions from JSON on each request.</p>
+            <p class="status info">Development-only management. Keep content IDs stable after players have saved inventory or installed modules that reference them.</p>
+            <div class="form-row">
+                <label for="contentCatalogSelect">Catalog</label>
+                <select id="contentCatalogSelect">
+                    <option value="items">Items &amp; resources</option>
+                    <option value="recipes">Crafting recipes</option>
+                    <option value="discoveries">Exploration &amp; rewards</option>
+                    <option value="ship_modules">Ship modules</option>
+                </select>
+                <div class="actions">
+                    <button id="contentLoadButton" type="button">Load current JSON</button>
+                    <button id="contentValidateButton" type="button" class="secondary">Validate draft</button>
+                    <button id="contentSaveButton" type="button">Validate &amp; save</button>
+                </div>
+            </div>
+            <label for="contentJsonEditor">Catalog JSON</label>
+            <textarea id="contentJsonEditor" rows="22" spellcheck="false" autocomplete="off" style="width:100%;min-height:360px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2" aria-describedby="contentEditorHelp"></textarea>
+            <p id="contentEditorHelp" class="dashboard-list">The current catalog is loaded from config/content. Saving creates a verified previous-version copy under storage/backups/content/.</p>
+            <p id="contentManagementStatus" class="status" role="status" aria-live="polite">Load a catalog to begin.</p>
+            <pre id="contentManagementOutput" aria-live="polite">Content management API responses will appear here.</pre>
+        </section>
+    </section>
     <section class="tab-panel grid" id="panel-data" role="tabpanel" aria-labelledby="tab-data" data-panel="data" hidden>
         <section style="grid-column:1/-1">
             <h2>Saved-data inventory</h2>
@@ -343,7 +370,7 @@ declare(strict_types=1);
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-panel]'));
     const sectionLabel = document.getElementById('activeSectionLabel');
-    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', data: 'Data Management', operations: 'Operations & QA' };
+    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', content: 'Content Management', data: 'Data Management', operations: 'Operations & QA' };
     function activateTab(name, moveFocus = false) {
         const tab = tabs.find(item => item.dataset.tab === name);
         if (!tab) return;
@@ -411,6 +438,81 @@ declare(strict_types=1);
         }
     }
     loadGameContent();
+
+    const contentCatalogSelect = document.getElementById('contentCatalogSelect');
+    const contentJsonEditor = document.getElementById('contentJsonEditor');
+    const contentManagementStatus = document.getElementById('contentManagementStatus');
+    const contentManagementOutput = document.getElementById('contentManagementOutput');
+    let contentRevisions = { items: 1, recipes: 1, discoveries: 1, ship_modules: 1 };
+    let loadedContentDocuments = {};
+    function selectedContentDocument() {
+        try {
+            const parsed = JSON.parse(contentJsonEditor.value);
+            if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('The catalog must be a JSON object.');
+            return parsed;
+        } catch (error) { throw new Error('JSON parse error: ' + error.message); }
+    }
+    async function contentApiRequest(endpoint, body) {
+        const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(body) });
+        const data = await response.json();
+        contentManagementOutput.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Content API request failed.');
+        return data;
+    }
+    async function loadContentEditor() {
+        const catalog = contentCatalogSelect.value;
+        contentManagementStatus.textContent = 'Loading ' + catalog + ' from the content API…';
+        try {
+            const response = await fetch('api/content.php', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+            const data = await response.json();
+            if (!response.ok || !data.ok || !data.content?.[catalog]) throw new Error(data.error?.message || 'Could not load content catalogs.');
+            loadedContentDocuments = data.content;
+            for (const key of Object.keys(contentRevisions)) contentRevisions[key] = Number.isInteger(data.content[key]?.revision) ? data.content[key].revision : 1;
+            const doc = { ...data.content[catalog], revision: contentRevisions[catalog] };
+            delete doc.catalog;
+            contentJsonEditor.value = JSON.stringify(doc, null, 2);
+            contentManagementStatus.textContent = 'Loaded ' + catalog + ' · revision ' + contentRevisions[catalog] + ' · ' + Object.keys(doc.entries || {}).length + ' entries.';
+            logActivity('info', 'Content catalog loaded', catalog + ' revision ' + contentRevisions[catalog]);
+        } catch (error) {
+            contentManagementStatus.textContent = 'Load failed: ' + error.message;
+            logActivity('error', 'Content catalog load failed', error.message);
+        }
+    }
+    async function validateContentDraft() {
+        try {
+            const catalog = contentCatalogSelect.value;
+            contentManagementStatus.textContent = 'Validating catalog and cross-catalog references…';
+            const data = await contentApiRequest('api/content-validate.php', { catalog, document: selectedContentDocument() });
+            contentManagementStatus.textContent = 'VALID — ' + data.validation.entry_count + ' entries; all catalog references passed validation.';
+            logActivity('info', 'Content draft validated', catalog + ': ' + data.validation.entry_count + ' entries');
+            return true;
+        } catch (error) {
+            contentManagementStatus.textContent = 'Validation failed: ' + error.message;
+            logActivity('error', 'Content draft validation failed', error.message);
+            return false;
+        }
+    }
+    document.getElementById('contentLoadButton').addEventListener('click', loadContentEditor);
+    contentCatalogSelect.addEventListener('change', loadContentEditor);
+    document.getElementById('contentValidateButton').addEventListener('click', validateContentDraft);
+    document.getElementById('contentSaveButton').addEventListener('click', async () => {
+        if (!await validateContentDraft()) return;
+        const catalog = contentCatalogSelect.value;
+        try {
+            contentManagementStatus.textContent = 'Saving validated catalog with revision check…';
+            const data = await contentApiRequest('api/content-save.php', { catalog, expected_revision: contentRevisions[catalog], document: selectedContentDocument() });
+            contentRevisions[catalog] = data.saved.revision;
+            await loadGameContent();
+            contentManagementStatus.textContent = 'SAVED — ' + catalog + ' revision ' + data.saved.revision + ', ' + data.saved.entry_count + ' entries. Previous definition backed up as ' + data.saved.backup_file + '.';
+            logActivity('info', 'Content catalog saved', catalog + ' revision ' + data.saved.revision + '; backup ' + data.saved.backup_file);
+            await loadContentEditor();
+        } catch (error) {
+            contentManagementStatus.textContent = 'Save failed: ' + error.message;
+            logActivity('error', 'Content catalog save failed', error.message);
+        }
+    });
+    loadContentEditor();
+
     function populateSystemChoices() {
         const select = document.getElementById('characterSystemSelect');
         const help = document.getElementById('movementChoicesHelp');

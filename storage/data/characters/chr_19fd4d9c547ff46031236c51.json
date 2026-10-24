@@ -4,10 +4,10 @@
     "universe_id": "uni_d6aaf47504110dc50b183443",
     "name": "Dave",
     "role": "Explorer",
-    "current_system_id": "sys_3a9a93b845899e87",
+    "current_system_id": "sys_3f7ece5fe99144c5",
     "location": {
-        "system_id": "sys_3a9a93b845899e87",
-        "updated_at": "2026-10-24T00:00:29+00:00"
+        "system_id": "sys_3f7ece5fe99144c5",
+        "updated_at": "2026-10-24T06:17:29+00:00"
     },
     "exploration": {
         "explored_systems": [
@@ -16,9 +16,362 @@
                 "name": "System 01",
                 "first_visited_at": "2026-10-24T00:00:29+00:00",
                 "first_visited_revision": 0
+            },
+            {
+                "system_id": "sys_da0a436f57a9a273",
+                "name": "System 15",
+                "first_visited_at": "2026-10-24T06:15:58+00:00",
+                "first_visited_revision": 4
+            },
+            {
+                "system_id": "sys_4a75940074ad3a72",
+                "name": "System 08",
+                "first_visited_at": "2026-10-24T06:16:09+00:00",
+                "first_visited_revision": 7
+            },
+            {
+                "system_id": "sys_3f7ece5fe99144c5",
+                "name": "System 03",
+                "first_visited_at": "2026-10-24T06:17:29+00:00",
+                "first_visited_revision": 14
             }
         ]
     },
     "created_at": "2026-10-24T00:00:29+00:00",
-    "revision": 0
+    "revision": 21,
+    "scans": {
+        "systems": {
+            "sys_3a9a93b845899e87": {
+                "system_id": "sys_3a9a93b845899e87",
+                "system_name": "System 01",
+                "scanned_at": "2026-10-24T06:15:33+00:00",
+                "scan_revision": 1,
+                "discoveries": [
+                    {
+                        "id": "dsc_33fb1eb7a3d625178418",
+                        "type": "spatial_anomaly",
+                        "label": "Spatial anomaly",
+                        "description": "A localized distortion in the system\u2019s background telemetry.",
+                        "system_id": "sys_3a9a93b845899e87",
+                        "system_name": "System 01",
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:15:36+00:00",
+                        "outcome": "Telemetry captured useful anomaly research data. The research sample is now in inventory.",
+                        "reward": {
+                            "resource": "research_data",
+                            "label": "Research data",
+                            "quantity": 1
+                        }
+                    }
+                ]
+            },
+            "sys_da0a436f57a9a273": {
+                "system_id": "sys_da0a436f57a9a273",
+                "system_name": "System 15",
+                "scanned_at": "2026-10-24T06:16:00+00:00",
+                "scan_revision": 5,
+                "discoveries": [
+                    {
+                        "id": "dsc_25f5138ce275a1c0bc8a",
+                        "type": "energy_residue",
+                        "label": "Energy residue",
+                        "description": "Residual energy readings that may indicate a recent high-output event.",
+                        "system_id": "sys_da0a436f57a9a273",
+                        "system_name": "System 15",
+                        "classification": "anomalous",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:16:02+00:00",
+                        "outcome": "The residue yielded intact energy cells. The recovered cells are now in inventory.",
+                        "reward": {
+                            "resource": "energy_cells",
+                            "label": "Energy cells",
+                            "quantity": 2
+                        }
+                    }
+                ]
+            },
+            "sys_4a75940074ad3a72": {
+                "system_id": "sys_4a75940074ad3a72",
+                "system_name": "System 08",
+                "scanned_at": "2026-10-24T06:16:13+00:00",
+                "scan_revision": 8,
+                "discoveries": [
+                    {
+                        "id": "dsc_f33bee21d0a2981eaa3a",
+                        "type": "spatial_anomaly",
+                        "label": "Spatial anomaly",
+                        "description": "A localized distortion in the system\u2019s background telemetry.",
+                        "system_id": "sys_4a75940074ad3a72",
+                        "system_name": "System 08",
+                        "classification": "ordinary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:16:15+00:00",
+                        "outcome": "Telemetry captured useful anomaly research data. The research sample is now in inventory.",
+                        "reward": {
+                            "resource": "research_data",
+                            "label": "Research data",
+                            "quantity": 1
+                        }
+                    },
+                    {
+                        "id": "dsc_9583a5a95991695d4cfb",
+                        "type": "energy_residue",
+                        "label": "Energy residue",
+                        "description": "Residual energy readings that may indicate a recent high-output event.",
+                        "system_id": "sys_4a75940074ad3a72",
+                        "system_name": "System 08",
+                        "classification": "ordinary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:16:16+00:00",
+                        "outcome": "The residue yielded intact energy cells. The recovered cells are now in inventory.",
+                        "reward": {
+                            "resource": "energy_cells",
+                            "label": "Energy cells",
+                            "quantity": 3
+                        }
+                    },
+                    {
+                        "id": "dsc_489af9009b0df2991c6f",
+                        "type": "unknown_beacon",
+                        "label": "Unidentified beacon",
+                        "description": "A beacon is broadcasting a short, repeating identification burst.",
+                        "system_id": "sys_4a75940074ad3a72",
+                        "system_name": "System 08",
+                        "classification": "ordinary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:16:17+00:00",
+                        "outcome": "The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.",
+                        "reward": {
+                            "resource": "intel_fragments",
+                            "label": "Intel fragments",
+                            "quantity": 1
+                        }
+                    }
+                ]
+            },
+            "sys_3f7ece5fe99144c5": {
+                "system_id": "sys_3f7ece5fe99144c5",
+                "system_name": "System 03",
+                "scanned_at": "2026-10-24T06:17:38+00:00",
+                "scan_revision": 15,
+                "discoveries": [
+                    {
+                        "id": "dsc_77a1b46ebc4fbe135648",
+                        "type": "unusual_asteroid",
+                        "label": "Unusual asteroid body",
+                        "description": "An asteroid body with an atypical spectral profile.",
+                        "system_id": "sys_3f7ece5fe99144c5",
+                        "system_name": "System 03",
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:17:40+00:00",
+                        "outcome": "A sample of the unusual asteroid was recovered and catalogued in inventory.",
+                        "reward": {
+                            "resource": "rare_ore",
+                            "label": "Rare ore",
+                            "quantity": 1
+                        }
+                    },
+                    {
+                        "id": "dsc_549e2a35f293753157e6",
+                        "type": "mineral_signature",
+                        "label": "Mineral signature",
+                        "description": "A concentrated mineral trace suitable for a future resource-survey system.",
+                        "system_id": "sys_3f7ece5fe99144c5",
+                        "system_name": "System 03",
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:17:41+00:00",
+                        "outcome": "Survey complete: recoverable mineral fragments have been collected and logged in the ship inventory.",
+                        "reward": {
+                            "resource": "raw_ore",
+                            "label": "Raw ore",
+                            "quantity": 3
+                        }
+                    },
+                    {
+                        "id": "dsc_4bc4fb9404f7da611859",
+                        "type": "derelict_signal",
+                        "label": "Derelict transmission",
+                        "description": "A repeating automated signal with no confirmed active crew.",
+                        "system_id": "sys_3f7ece5fe99144c5",
+                        "system_name": "System 03",
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:17:42+00:00",
+                        "outcome": "The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.",
+                        "reward": {
+                            "resource": "salvage_parts",
+                            "label": "Salvage parts",
+                            "quantity": 2
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "inventory": {
+        "resources": {
+            "research_data": 0,
+            "energy_cells": 5,
+            "intel_fragments": 1,
+            "rare_ore": 1,
+            "raw_ore": 0,
+            "salvage_parts": 0,
+            "refined_alloy": 1,
+            "ship_components": 1,
+            "tech_insights": 1
+        },
+        "ledger": [
+            {
+                "id": "inv_28b81697cea428f40967",
+                "discovery_id": "dsc_33fb1eb7a3d625178418",
+                "resource": "research_data",
+                "label": "Research data",
+                "quantity": 1,
+                "system_id": "sys_3a9a93b845899e87",
+                "recorded_at": "2026-10-24T06:15:36+00:00"
+            },
+            {
+                "id": "inv_ab5da0716b9ff6e3de02",
+                "discovery_id": "dsc_25f5138ce275a1c0bc8a",
+                "resource": "energy_cells",
+                "label": "Energy cells",
+                "quantity": 2,
+                "system_id": "sys_da0a436f57a9a273",
+                "recorded_at": "2026-10-24T06:16:02+00:00"
+            },
+            {
+                "id": "inv_7f159d36c5d2c84d974e",
+                "discovery_id": "dsc_f33bee21d0a2981eaa3a",
+                "resource": "research_data",
+                "label": "Research data",
+                "quantity": 1,
+                "system_id": "sys_4a75940074ad3a72",
+                "recorded_at": "2026-10-24T06:16:15+00:00"
+            },
+            {
+                "id": "inv_05fa28f9512fdd4e6ff8",
+                "discovery_id": "dsc_9583a5a95991695d4cfb",
+                "resource": "energy_cells",
+                "label": "Energy cells",
+                "quantity": 3,
+                "system_id": "sys_4a75940074ad3a72",
+                "recorded_at": "2026-10-24T06:16:16+00:00"
+            },
+            {
+                "id": "inv_ec83893cd8050e7988c8",
+                "discovery_id": "dsc_489af9009b0df2991c6f",
+                "resource": "intel_fragments",
+                "label": "Intel fragments",
+                "quantity": 1,
+                "system_id": "sys_4a75940074ad3a72",
+                "recorded_at": "2026-10-24T06:16:17+00:00"
+            },
+            {
+                "id": "inv_926a9fb7e2e03467dc7a",
+                "discovery_id": "dsc_77a1b46ebc4fbe135648",
+                "resource": "rare_ore",
+                "label": "Rare ore",
+                "quantity": 1,
+                "system_id": "sys_3f7ece5fe99144c5",
+                "recorded_at": "2026-10-24T06:17:40+00:00"
+            },
+            {
+                "id": "inv_0a22ab835d67e39dfda5",
+                "discovery_id": "dsc_549e2a35f293753157e6",
+                "resource": "raw_ore",
+                "label": "Raw ore",
+                "quantity": 3,
+                "system_id": "sys_3f7ece5fe99144c5",
+                "recorded_at": "2026-10-24T06:17:41+00:00"
+            },
+            {
+                "id": "inv_0e7afd88e53e3bda74f9",
+                "discovery_id": "dsc_4bc4fb9404f7da611859",
+                "resource": "salvage_parts",
+                "label": "Salvage parts",
+                "quantity": 2,
+                "system_id": "sys_3f7ece5fe99144c5",
+                "recorded_at": "2026-10-24T06:17:42+00:00"
+            },
+            {
+                "id": "craft_bc5a07f99db21a2a73c7",
+                "type": "craft_input",
+                "recipe_id": "refine_ore",
+                "resource": "raw_ore",
+                "label": "Raw Ore",
+                "quantity": -3,
+                "recorded_at": "2026-10-24T06:17:47+00:00"
+            },
+            {
+                "id": "craft_c72613ac05317d8b5709",
+                "type": "craft_output",
+                "recipe_id": "refine_ore",
+                "resource": "refined_alloy",
+                "label": "Refined alloy",
+                "quantity": 1,
+                "recorded_at": "2026-10-24T06:17:47+00:00"
+            },
+            {
+                "id": "craft_c0319bef23a7d4c7476c",
+                "type": "craft_input",
+                "recipe_id": "assemble_components",
+                "resource": "salvage_parts",
+                "label": "Salvage Parts",
+                "quantity": -2,
+                "recorded_at": "2026-10-24T06:17:54+00:00"
+            },
+            {
+                "id": "craft_cee1461017dc08fe3167",
+                "type": "craft_output",
+                "recipe_id": "assemble_components",
+                "resource": "ship_components",
+                "label": "Ship components",
+                "quantity": 1,
+                "recorded_at": "2026-10-24T06:17:54+00:00"
+            },
+            {
+                "id": "craft_01dfd765d86e8e02a1f1",
+                "type": "craft_input",
+                "recipe_id": "analyze_research",
+                "resource": "research_data",
+                "label": "Research Data",
+                "quantity": -2,
+                "recorded_at": "2026-10-24T06:18:01+00:00"
+            },
+            {
+                "id": "craft_f5bab4a35321b4bfc2eb",
+                "type": "craft_output",
+                "recipe_id": "analyze_research",
+                "resource": "tech_insights",
+                "label": "Tech insights",
+                "quantity": 1,
+                "recorded_at": "2026-10-24T06:18:01+00:00"
+            }
+        ]
+    },
+    "route_progress": {
+        "route_id": "rte_22bf0436c186d2214958",
+        "destination_system_id": "sys_a39bd5dec357b9aa",
+        "destination_name": "System 10",
+        "path_system_ids": [
+            "sys_4a75940074ad3a72",
+            "sys_da0a436f57a9a273",
+            "sys_3f7ece5fe99144c5",
+            "sys_8b76f9bafdcd1d96",
+            "sys_c4baa3bdb58d1749",
+            "sys_c3b215af045af847",
+            "sys_217a1a52629b4abd",
+            "sys_61c2842b7b8e65f2",
+            "sys_a39bd5dec357b9aa"
+        ],
+        "current_step_index": 2,
+        "total_hops": 8,
+        "status": "active",
+        "planned_from_system_id": "sys_4a75940074ad3a72",
+        "planned_at": "2026-10-24T06:17:14+00:00",
+        "updated_at": "2026-10-24T06:17:29+00:00"
+    }
 }

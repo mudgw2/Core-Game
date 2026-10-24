@@ -97,3 +97,119 @@
 {"time":"2026-10-24T06:05:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
 {"time":"2026-10-24T06:05:46+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-24T06:05:46+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T06:15:19+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T06:15:22+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T06:15:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T06:15:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:15:33+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","discoveries":1,"revision":1}}
+{"time":"2026-10-24T06:15:33+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:15:33+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:15:36+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_33fb1eb7a3d625178418","revision":2}}
+{"time":"2026-10-24T06:15:36+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:15:36+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:15:46+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","discoveries":1,"revision":2}}
+{"time":"2026-10-24T06:15:46+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:15:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:15:55+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
+{"time":"2026-10-24T06:15:57+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"route_started","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":3,"current_system_id":"sys_3a9a93b845899e87"}}
+{"time":"2026-10-24T06:15:57+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:15:57+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:15:58+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":4,"current_system_id":"sys_da0a436f57a9a273"}}
+{"time":"2026-10-24T06:15:58+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:15:58+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:00+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_da0a436f57a9a273","discoveries":1,"revision":5}}
+{"time":"2026-10-24T06:16:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:16:00+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:03+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_25f5138ce275a1c0bc8a","revision":6}}
+{"time":"2026-10-24T06:16:03+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:16:03+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:09+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"route_completed","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":7,"current_system_id":"sys_4a75940074ad3a72"}}
+{"time":"2026-10-24T06:16:09+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:16:09+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:13+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4a75940074ad3a72","discoveries":3,"revision":8}}
+{"time":"2026-10-24T06:16:13+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:16:13+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:15+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_f33bee21d0a2981eaa3a","revision":9}}
+{"time":"2026-10-24T06:16:15+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:16:15+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:16+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_9583a5a95991695d4cfb","revision":10}}
+{"time":"2026-10-24T06:16:16+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:16:16+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:17+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_489af9009b0df2991c6f","revision":11}}
+{"time":"2026-10-24T06:16:17+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:16:17+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:30+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:16:30+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:16:30+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:33+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4a75940074ad3a72","discoveries":3,"revision":11}}
+{"time":"2026-10-24T06:16:33+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:16:33+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:42+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:16:42+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:16:42+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:45+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4a75940074ad3a72","discoveries":3,"revision":11}}
+{"time":"2026-10-24T06:16:45+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:16:45+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:52+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:16:52+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:16:52+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:16:56+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4a75940074ad3a72","discoveries":3,"revision":11}}
+{"time":"2026-10-24T06:16:56+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:16:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:01+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:17:01+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:02+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:17:02+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:02+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:02+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:17:02+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:02+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:03+00:00","level":"WARNING","message":"Character travel action rejected","context":{"action":"advance","character_id":"chr_19fd4d9c547ff46031236c51","message":"Travel route is not active; plan a new route before continuing."}}
+{"time":"2026-10-24T06:17:03+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:03+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:06+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_4a75940074ad3a72","revision":11}}
+{"time":"2026-10-24T06:17:06+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-24T06:17:06+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:13+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
+{"time":"2026-10-24T06:17:15+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"start","travel_status":"route_started","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":12,"current_system_id":"sys_4a75940074ad3a72"}}
+{"time":"2026-10-24T06:17:15+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:15+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:16+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":13,"current_system_id":"sys_da0a436f57a9a273"}}
+{"time":"2026-10-24T06:17:16+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:16+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:20+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"already_scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_da0a436f57a9a273","discoveries":1,"revision":13}}
+{"time":"2026-10-24T06:17:20+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:17:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:29+00:00","level":"INFO","message":"Character travel action completed","context":{"action":"advance","travel_status":"jump_completed","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","revision":14,"current_system_id":"sys_3f7ece5fe99144c5"}}
+{"time":"2026-10-24T06:17:29+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/travel"}}
+{"time":"2026-10-24T06:17:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:33+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3f7ece5fe99144c5","revision":14}}
+{"time":"2026-10-24T06:17:33+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-24T06:17:33+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:34+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3f7ece5fe99144c5","revision":14}}
+{"time":"2026-10-24T06:17:34+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-24T06:17:34+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:38+00:00","level":"INFO","message":"Character system scan completed","context":{"scan_status":"scanned","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3f7ece5fe99144c5","discoveries":3,"revision":15}}
+{"time":"2026-10-24T06:17:38+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/scan"}}
+{"time":"2026-10-24T06:17:38+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:40+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_77a1b46ebc4fbe135648","revision":16}}
+{"time":"2026-10-24T06:17:40+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:17:40+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:41+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_549e2a35f293753157e6","revision":17}}
+{"time":"2026-10-24T06:17:41+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:17:41+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:42+00:00","level":"INFO","message":"Discovery investigation completed","context":{"investigation_status":"investigated","character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","discovery_id":"dsc_4bc4fb9404f7da611859","revision":18}}
+{"time":"2026-10-24T06:17:42+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/discoveries/investigate"}}
+{"time":"2026-10-24T06:17:42+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:47+00:00","level":"INFO","message":"Character crafting completed","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","recipe_id":"refine_ore","quantity":1,"revision":19}}
+{"time":"2026-10-24T06:17:47+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/craft"}}
+{"time":"2026-10-24T06:17:47+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:17:54+00:00","level":"INFO","message":"Character crafting completed","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","recipe_id":"assemble_components","quantity":1,"revision":20}}
+{"time":"2026-10-24T06:17:54+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/craft"}}
+{"time":"2026-10-24T06:17:54+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:18:01+00:00","level":"INFO","message":"Character crafting completed","context":{"character_id":"chr_19fd4d9c547ff46031236c51","universe_id":"uni_d6aaf47504110dc50b183443","recipe_id":"analyze_research","quantity":1,"revision":21}}
+{"time":"2026-10-24T06:18:01+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/craft"}}
+{"time":"2026-10-24T06:18:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T06:18:07+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T06:18:07+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

@@ -12,6 +12,7 @@ use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
+use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -40,12 +41,13 @@ final class Application
         $travelService = new CharacterTravelService($storage);
         $scanService = new CharacterScanService($storage);
         $discoveryService = new CharacterDiscoveryService($storage);
+        $craftingService = new CharacterCraftingService($storage);
         $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.25',
+            'version' => '0.1.26',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -227,6 +229,44 @@ final class Application
             }
         });
 
+        $this->router->post('/api/characters/craft', static function (Request $request) use ($craftingService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Character crafting API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'crafting_api_disabled', 'message' => 'Crafting is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
+            $recipeId = isset($body['recipe_id']) && is_string($body['recipe_id']) ? trim($body['recipe_id']) : '';
+            $quantity = $body['quantity'] ?? 1;
+            $expectedRevision = $body['expected_revision'] ?? null;
+            if ($universeId === '' || $characterId === '' || $recipeId === '' || !is_int($quantity) || !is_int($expectedRevision)) {
+                Logger::warning('Character crafting request validation failed', ['error_code' => 'invalid_crafting_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_crafting_request', 'message' => 'Provide universe_id, character_id, recipe_id, integer quantity, and integer expected_revision.']], 400);
+            }
+            try {
+                $result = $craftingService->craft($universeId, $characterId, $recipeId, $quantity, $expectedRevision);
+                Logger::info('Character crafting completed', ['character_id' => $characterId, 'universe_id' => $universeId, 'recipe_id' => $recipeId, 'quantity' => $quantity, 'revision' => $result['character']['revision'] ?? null]);
+                return Response::json(['ok' => true] + $result);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'revision conflict')) {
+                    Logger::warning('Character crafting revision conflict', ['character_id' => $characterId, 'expected_revision' => $expectedRevision, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
+                }
+                if (str_contains($message, 'does not exist')) {
+                    Logger::warning('Character crafting target not found', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'crafting_target_not_found', 'message' => $message]], 404);
+                }
+                if (str_contains($message, 'required') || str_contains($message, 'must be') || str_contains($message, 'Unknown crafting') || str_contains($message, 'Insufficient') || str_contains($message, 'do not belong') || str_contains($message, 'Expected character revision')) {
+                    Logger::warning('Character crafting rejected', ['character_id' => $characterId, 'recipe_id' => $recipeId, 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'crafting_rejected', 'message' => $message]], 409);
+                }
+                Logger::error('Character crafting failed', ['character_id' => $characterId, 'universe_id' => $universeId, 'recipe_id' => $recipeId, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'crafting_failed', 'message' => 'Crafting could not be saved. Check CORE logs.']], 500);
+            }
+        });
+
         $this->router->post('/api/characters/discoveries/investigate', static function (Request $request) use ($discoveryService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Discovery investigation API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
@@ -393,6 +433,7 @@ final class Application
                 'GET /api/navigation/route?universe_id=...&from_system_id=...&to_system_id=... (development/private network only)',
                 'POST /api/characters/travel with action start or advance (development/private network only)',
                 'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (development/private network only)',
+                'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

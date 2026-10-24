@@ -36,6 +36,7 @@ use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
 use Core\Modules\Characters\CharacterDiscoveryService;
+use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
@@ -949,6 +950,68 @@ $run('Different discovery types award their corresponding resource categories', 
     } finally { $cleanup($dir); }
 });
 
+$run('Crafting consumes materials, creates output, and increments revision', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-crafting-success');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Workshop Tester');
+        $record = $storage->read('characters', $character['id']);
+        $record['inventory'] = ['resources' => ['raw_ore' => 7], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
+        $result = (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'refine_ore', 2, 0);
+        $equal(1, $result['character']['inventory']['resources']['raw_ore'], 'Raw ore was not consumed at the recipe rate.');
+        $equal(2, $result['character']['inventory']['resources']['refined_alloy'], 'Crafted output total is incorrect.');
+        $equal(1, $result['character']['revision'], 'Successful craft did not increment revision exactly once.');
+        $equal(2, count($result['character']['inventory']['ledger']), 'Craft input/output ledger entries were not written.');
+        $equal($result['character']['inventory'], $storage->read('characters', $character['id'])['inventory'], 'Crafted inventory did not persist.');
+        return 'Two batches consumed six raw ore, produced two refined alloy, and persisted matching input/output ledger entries.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Crafting rejects insufficient materials without changing inventory', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-crafting-insufficient');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Short on Ore');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['raw_ore' => 2], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
+        try { (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'refine_ore', 1, 0); }
+        catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'Insufficient raw ore'), 'Unexpected insufficient-material error.');
+            $saved = $storage->read('characters', $character['id']);
+            $equal(2, $saved['inventory']['resources']['raw_ore'], 'Rejected craft consumed raw ore.');
+            $equal(0, $saved['revision'], 'Rejected craft changed revision.');
+            $equal([], $saved['inventory']['ledger'], 'Rejected craft wrote ledger entries.');
+            return 'Insufficient input rejected atomically; inventory, ledger, and revision remained unchanged.';
+        }
+        throw new RuntimeException('Crafting succeeded without enough materials.');
+    } finally { $cleanup($dir); }
+});
+
+$run('Crafting rejects stale revisions and invalid quantities', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-crafting-revision');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Revision Crafter');
+        $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['salvage_parts' => 4], 'ledger' => []]; $storage->write('characters', $character['id'], $record);
+        try { (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'assemble_components', 1, 4); throw new RuntimeException('Stale crafting revision accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'revision conflict'), 'Unexpected stale revision error.'); }
+        try { (new CharacterCraftingService($storage))->craft($universe['id'], $character['id'], 'assemble_components', 11, 0); throw new RuntimeException('Invalid craft quantity accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'between 1 and 10'), 'Unexpected quantity validation error.'); }
+        $saved = $storage->read('characters', $character['id']);
+        $equal(4, $saved['inventory']['resources']['salvage_parts'], 'Rejected crafting changed materials.');
+        $equal(0, $saved['revision'], 'Rejected crafting changed revision.');
+        return 'Stale revision and out-of-range batch quantity were rejected without changing saved state.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench exposes crafting recipes, quantity controls, and result handling', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['craftRecipe','craftQuantity','craftButton','craftStatus','api/character-craft.php','refined_alloy','ship_components','tech_insights','Crafting completed'] as $needle) {
+        $assert(str_contains($html, $needle), 'Workbench is missing crafting marker: ' . $needle);
+    }
+    return 'Workbench contains recipe selection, bounded batch input, crafting action, status, and saved result refresh wiring.';
+});
+
 $run('Workbench displays character inventory totals and investigation reward details', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php');
     $assert(is_string($html), 'Workbench HTML could not be read.');
@@ -1087,4 +1150,4 @@ $run('Overview dashboard is wired to current universe, character, location, and 
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.25', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.26', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

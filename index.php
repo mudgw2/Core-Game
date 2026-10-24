@@ -48,6 +48,8 @@ declare(strict_types=1);
         .dashboard-lists > div { background:#101a2e; border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
         .dashboard-lists h4 { margin:0 0 6px; font-size:.95rem; }
         .dashboard-list { margin:0; color:#d5e2f7; overflow-wrap:anywhere; }
+        .form-row { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; max-width:680px; margin:12px 0; }
+        .form-row button { justify-self:start; max-width:100%; }
 
         .app-header { padding-top:38px; }
         .app-header h1 { font-size:clamp(2.5rem,7vw,4.2rem); line-height:1; margin:.5rem 0 1rem; letter-spacing:-.04em; }
@@ -68,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.25</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.26</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -178,6 +180,20 @@ declare(strict_types=1);
             <h3>Character inventory</h3>
             <p>Recovered materials are character-bound for now. Each discovery can award its reward only once.</p>
             <div id="characterInventory" class="dashboard-lists" aria-live="polite"><div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div></div>
+            <h3>Crafting bench</h3>
+            <p>Convert recovered materials into useful intermediate goods. Crafting consumes the listed inputs and saves all changes in one character transaction.</p>
+            <div class="form-row">
+                <label for="craftRecipe">Recipe</label>
+                <select id="craftRecipe">
+                    <option value="refine_ore">Refine raw ore — 3 raw ore → 1 refined alloy</option>
+                    <option value="assemble_components">Assemble ship components — 2 salvage parts → 1 ship component</option>
+                    <option value="analyze_research">Analyze research data — 2 research data → 1 tech insight</option>
+                </select>
+                <label for="craftQuantity">Batches (1–10)</label>
+                <input id="craftQuantity" type="number" min="1" max="10" step="1" value="1">
+                <button id="craftButton" type="button" disabled>Craft selected recipe</button>
+            </div>
+            <p id="craftStatus" class="status" role="status" aria-live="polite">Select a character and collect materials to use the crafting bench.</p>
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
         </section>
     </section>
@@ -353,9 +369,11 @@ declare(strict_types=1);
         if (!character) {
             renderCharacterDashboard(null);
             document.getElementById('scanSystemButton').disabled = true;
+            document.getElementById('craftButton').disabled = true;
             document.getElementById('characterScanStatus').textContent = 'Select a character to scan its current system.';
             document.getElementById('characterScanResults').innerHTML = '<div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div>';
             document.getElementById('characterInventory').innerHTML = '<div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div>';
+            document.getElementById('craftStatus').textContent = 'Select a character and collect materials to use the crafting bench.';
             status.textContent = 'Select a character to view its location and exploration history.';
             document.getElementById('travelProgressStatus').textContent = 'Select a character before starting or continuing travel.';
             document.getElementById('startTravelButton').disabled = true;
@@ -376,7 +394,7 @@ declare(strict_types=1);
         const resourceEntries = Object.entries(resources).filter(([, quantity]) => Number(quantity) > 0).sort(([a], [b]) => a.localeCompare(b));
         if (resourceEntries.length) {
             const resourceList = document.createElement('ul'); resourceList.className = 'dashboard-list';
-            const labels = {raw_ore:'Raw ore', salvage_parts:'Salvage parts', research_data:'Research data', energy_cells:'Energy cells', rare_ore:'Rare ore', intel_fragments:'Intel fragments'};
+            const labels = {raw_ore:'Raw ore', salvage_parts:'Salvage parts', research_data:'Research data', energy_cells:'Energy cells', rare_ore:'Rare ore', intel_fragments:'Intel fragments', refined_alloy:'Refined alloy', ship_components:'Ship components', tech_insights:'Tech insights'};
             for (const [key, quantity] of resourceEntries) { const item = document.createElement('li'); item.textContent = (labels[key] || key.replaceAll('_', ' ')) + ': ' + quantity; resourceList.append(item); }
             inventoryPanel.append(resourceList);
         } else { const empty = document.createElement('p'); empty.className = 'dashboard-list'; empty.textContent = 'No resources recovered yet. Investigate a discovery to collect its reward.'; inventoryPanel.append(empty); }
@@ -384,6 +402,7 @@ declare(strict_types=1);
         const ledgerNote = document.createElement('p'); ledgerNote.className = 'dashboard-list'; ledgerNote.textContent = 'Recorded recovery events: ' + ledgerCount; inventoryPanel.append(ledgerNote);
         inventoryHost.append(inventoryPanel);
         document.getElementById('scanSystemButton').disabled = false;
+        document.getElementById('craftButton').disabled = false;
         document.getElementById('characterScanStatus').textContent = currentScan
             ? 'Current system already scanned on ' + new Date(currentScan.scanned_at).toLocaleString() + '. ' + (currentScan.discoveries || []).length + ' discovery signal(s) recorded.'
             : 'Current system has not been scanned by this character yet.';
@@ -782,6 +801,37 @@ declare(strict_types=1);
                 logActivity('error', 'System scan failed', JSON.stringify(data));
             }
         } catch (error) { status.textContent = 'System scan request failed. Check the server and activity log.'; logActivity('error', 'System scan request failed', String(error)); }
+        finally { button.disabled = !document.getElementById('characterSelect').value; }
+    });
+
+    document.getElementById('craftButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const recipeId = document.getElementById('craftRecipe').value;
+        const quantity = Number(document.getElementById('craftQuantity').value);
+        const revision = Number(document.getElementById('characterRevision').value);
+        const status = document.getElementById('craftStatus');
+        if (!universeId || !characterId) { status.textContent = 'Load a universe and select a character before crafting.'; return; }
+        if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 10) { status.textContent = 'Craft batches must be a whole number from 1 to 10.'; return; }
+        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
+        const button = document.getElementById('craftButton'); button.disabled = true; status.textContent = 'Crafting…';
+        try {
+            const response = await fetch('api/character-craft.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, recipe_id: recipeId, quantity, expected_revision: revision }) });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                const recipe = data.recipe;
+                status.textContent = 'Crafted ' + recipe.output.quantity + ' ' + recipe.output.label + ' using ' + recipe.label + '. Character revision: ' + data.character.revision + '.';
+                logActivity('info', 'Crafting completed', recipe.label + ' × ' + recipe.quantity + '; output ' + recipe.output.quantity + ' ' + recipe.output.label);
+                await refreshCharacters(); document.getElementById('characterSelect').value = characterId;
+                document.getElementById('characterRevision').value = String(data.character.revision); updateCharacterDetails();
+            } else {
+                status.textContent = (data.error?.code || 'crafting_failed') + ': ' + (data.error?.message || 'Crafting failed.');
+                logActivity('error', 'Crafting rejected', JSON.stringify(data));
+                if (response.status === 409) { await refreshCharacters(); document.getElementById('characterSelect').value = characterId; const latest = loadedCharacters.find(item => item.id === characterId); if (latest) document.getElementById('characterRevision').value = String(latest.revision ?? 0); updateCharacterDetails(); }
+            }
+        } catch (error) { status.textContent = 'Crafting request failed: ' + error.message; logActivity('error', 'Crafting request failed', error.stack || error.message); }
         finally { button.disabled = !document.getElementById('characterSelect').value; }
     });
 

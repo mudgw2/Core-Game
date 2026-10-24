@@ -1,0 +1,140 @@
+{
+    "schema_version": 1,
+    "backup_id": "bkp_20261024144848_29ac517aa3",
+    "created_at": "2026-10-24T14:48:48+00:00",
+    "universe_id": "uni_6427cd68383eddbbecb0218d",
+    "universe_name": "uni_6427cd68383eddbbecb0218d",
+    "character_count": 1,
+    "checksum_sha256": "4b25ddba8fb5f834524b440192693581756ed64e295f8f8d83d41d4ba60fbc97",
+    "payload": {
+        "universe": {
+            "id": "uni_6427cd68383eddbbecb0218d",
+            "seed_fingerprint": "6427cd68383e",
+            "generator_version": 1,
+            "created_at": "2026-10-24T05:31:27+00:00",
+            "baseline": {
+                "id": "uni_6427cd68383eddbbecb0218d",
+                "generator_version": 1,
+                "seed_fingerprint": "6427cd68383e",
+                "system_count": 9,
+                "systems": [
+                    {
+                        "id": "sys_aaef0270ac8888ea",
+                        "name": "System 01",
+                        "x": -6243,
+                        "y": -9376,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_1f5c7acd50158e5e",
+                        "name": "System 02",
+                        "x": -1972,
+                        "y": 1436,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_4865d63a035484e1",
+                        "name": "System 03",
+                        "x": 8533,
+                        "y": 4840,
+                        "classification": "anomalous"
+                    },
+                    {
+                        "id": "sys_d3f120155d730879",
+                        "name": "System 04",
+                        "x": 4255,
+                        "y": -1787,
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "sys_8029f432a96b0b44",
+                        "name": "System 05",
+                        "x": 2808,
+                        "y": -7489,
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "sys_d3aff64d0656aed9",
+                        "name": "System 06",
+                        "x": 4189,
+                        "y": -6950,
+                        "classification": "nebula-adjacent"
+                    },
+                    {
+                        "id": "sys_029de546fc952990",
+                        "name": "System 07",
+                        "x": -9331,
+                        "y": 8692,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_b0692ebd6934ae80",
+                        "name": "System 08",
+                        "x": -4841,
+                        "y": 1965,
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "sys_c4293c9d7ea225f1",
+                        "name": "System 09",
+                        "x": 215,
+                        "y": 5517,
+                        "classification": "nebula-adjacent"
+                    }
+                ]
+            },
+            "state": {
+                "schema_version": 1,
+                "revision": 0,
+                "changes": []
+            }
+        },
+        "characters": [
+            {
+                "id": "chr_e9c197c0908fc0b00acb5e9e",
+                "schema_version": 1,
+                "universe_id": "uni_6427cd68383eddbbecb0218d",
+                "name": "Release Scanner",
+                "role": "Explorer",
+                "current_system_id": "sys_aaef0270ac8888ea",
+                "location": {
+                    "system_id": "sys_aaef0270ac8888ea",
+                    "updated_at": "2026-10-24T05:31:28+00:00"
+                },
+                "exploration": {
+                    "explored_systems": [
+                        {
+                            "system_id": "sys_aaef0270ac8888ea",
+                            "name": "System 01",
+                            "first_visited_at": "2026-10-24T05:31:28+00:00",
+                            "first_visited_revision": 0
+                        }
+                    ]
+                },
+                "created_at": "2026-10-24T05:31:28+00:00",
+                "revision": 1,
+                "scans": {
+                    "systems": {
+                        "sys_aaef0270ac8888ea": {
+                            "system_id": "sys_aaef0270ac8888ea",
+                            "system_name": "System 01",
+                            "scanned_at": "2026-10-24T05:31:29+00:00",
+                            "scan_revision": 1,
+                            "discoveries": [
+                                {
+                                    "id": "dsc_e4040a88f3a30d136473",
+                                    "type": "unusual_asteroid",
+                                    "label": "Unusual asteroid body",
+                                    "description": "An asteroid body with an atypical spectral profile.",
+                                    "system_id": "sys_aaef0270ac8888ea",
+                                    "system_name": "System 01",
+                                    "classification": "ordinary"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}

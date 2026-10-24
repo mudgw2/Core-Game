@@ -46,6 +46,7 @@ use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Core\Modules\DataManagementService;
 use Core\Modules\UniverseBackupService;
+use Core\Modules\UniverseDeletionService;
 
 $results = [];
 $run = static function (string $name, callable $test) use (&$results): void {
@@ -1406,19 +1407,20 @@ $run('Character deletion preview counts embedded gameplay data and remains read-
     } finally { $cleanup($dir); }
 });
 
-$run('Universe deletion preview is explicitly non-executable and reports dependent characters', static function () use ($assert, $equal, $cleanup): string {
+$run('Universe deletion preview is executable only with fresh revisions and reports dependent characters', static function () use ($assert, $equal, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
         $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-universe-preview-qa');
         (new CharacterService($storage))->create($universe['id'], 'Dependent QA One');
         (new CharacterService($storage))->create($universe['id'], 'Dependent QA Two');
         $preview = (new DataManagementService($storage))->preview('universe', $universe['id']);
-        $equal(false, $preview['executable'], 'Universe deletion must not be executable yet.');
+        $equal(true, $preview['executable'], 'Universe deletion should be available with guarded execution.');
         $equal(2, $preview['impact']['related_character_records'], 'Dependent character count mismatch.');
-        $assert(str_contains($preview['warning'], 'Preview only'), 'Preview-only safety warning missing.');
+        $assert(str_contains($preview['warning'], 'checksum-verified backup first'), 'Backup-first safety warning missing.');
+        $equal(2, count($preview['expected_character_ids']), 'Preview omitted expected dependent-character IDs.');
         $equal(2, count($storage->all('characters')), 'Universe preview changed character records.');
         $assert($storage->read('universes', $universe['id']) !== null, 'Universe preview deleted the universe.');
-        return 'Universe impact is visible, but execution is safely disabled and data remains intact.';
+        return 'Universe impact, expected revisions, and dependent IDs are shown; preview remains read-only.';
     } finally { $cleanup($dir); }
 });
 
@@ -1437,7 +1439,7 @@ $run('Data management rejects unknown records and invalid scopes', static functi
 $run('Workbench exposes data inventory, cleanup previews, and guarded character removal', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
-    foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Exact character name confirmation','preview-only'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
+    foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Exact character name confirmation','DELETE UNIVERSE'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
     $assert(str_contains($app, "'/api/data-management'") && str_contains($app, "'/api/data-management/preview'"), 'Data management API routes missing.');
     return 'Inventory, impact preview, exact-name deletion controls, and API routes are present.';
 });
@@ -1485,7 +1487,105 @@ $run('Backup UI and API wiring are present', static function () use ($assert): s
     return 'Backup, list, and guarded restore controls are wired to server routes.';
 });
 
+$run('Universe deletion backs up first and removes only the selected universe tree', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-delete-universe-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'universe_delete_test', 'name' => 'Delete Test', 'seed' => 'delete-seed', 'baseline' => ['systems' => [['id' => 'sys1']]], 'state' => ['revision' => 2, 'changes' => [['type' => 'test']]], 'lifecycle' => ['enabled' => true, 'locked' => false, 'revision' => 1]];
+        $character = ['id' => 'character_delete_test', 'name' => 'Delete Pilot', 'universe_id' => $universe['id'], 'revision' => 4, 'inventory' => ['resources' => ['raw_ore' => 3]]];
+        $otherUniverse = ['id' => 'universe_keep_test', 'name' => 'Keep Me', 'state' => ['revision' => 0, 'changes' => []]];
+        $otherCharacter = ['id' => 'character_keep_test', 'name' => 'Keep Pilot', 'universe_id' => $otherUniverse['id'], 'revision' => 1];
+        foreach ([$universe, $otherUniverse] as $u) $storage->write('universes', $u['id'], $u);
+        foreach ([$character, $otherCharacter] as $c) $storage->write('characters', $c['id'], $c);
+        $backups = new UniverseBackupService($storage, $dir . '/backups');
+        $service = new UniverseDeletionService($storage, $backups);
+        $result = $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 1, [$character['id']]);
+        $assert($result['verified'] === true, 'Deletion was not verified.');
+        $assert($storage->read('universes', $universe['id']) === null, 'Universe still exists after deletion.');
+        $assert($storage->read('characters', $character['id']) === null, 'Associated character still exists after deletion.');
+        $equal($otherUniverse, $storage->read('universes', $otherUniverse['id']), 'Unrelated universe was changed.');
+        $equal($otherCharacter, $storage->read('characters', $otherCharacter['id']), 'Unrelated character was changed.');
+        $equal(1, count($backups->list()), 'Pre-deletion backup was not retained.');
+        $backups->restore($result['backup']['backup_id']);
+        $equal($universe, $storage->read('universes', $universe['id']), 'Pre-deletion backup did not recover universe.');
+        $equal($character, $storage->read('characters', $character['id']), 'Pre-deletion backup did not recover associated character.');
+        return 'Verified backup-before-delete, cascade removal, unrelated-record isolation, and recovery from retained backup.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe deletion rejects incorrect confirmation before creating a backup', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-delete-confirm-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data'); $universe = ['id' => 'universe_confirm_test', 'name' => 'Confirm', 'state' => ['revision' => 0, 'changes' => []], 'lifecycle' => ['revision' => 0]];
+        $storage->write('universes', $universe['id'], $universe); $backups = new UniverseBackupService($storage, $dir . '/backups'); $service = new UniverseDeletionService($storage, $backups);
+        try { $service->delete($universe['id'], 'DELETE', 0, 0, []); throw new RuntimeException('Incorrect confirmation was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Confirmation must exactly match'), 'Unexpected confirmation failure.'); }
+        $assert($storage->read('universes', $universe['id']) === $universe, 'Universe changed after invalid confirmation.');
+        $assert($backups->list() === [], 'Backup should not be created before confirmation validation.');
+        return 'Incorrect confirmation rejected before backup or mutation.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe deletion rejects stale revisions and changed dependent-character lists', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-delete-stale-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data'); $universe = ['id' => 'universe_stale_delete_test', 'name' => 'Stale', 'state' => ['revision' => 2, 'changes' => []], 'lifecycle' => ['revision' => 3]];
+        $character = ['id' => 'character_stale_delete_test', 'name' => 'Stale Pilot', 'universe_id' => $universe['id'], 'revision' => 1];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $backups = new UniverseBackupService($storage, $dir . '/backups'); $service = new UniverseDeletionService($storage, $backups);
+        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 1, 3, [$character['id']]); throw new RuntimeException('Stale revision was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'stale'), 'Unexpected stale revision rejection.'); }
+        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 3, []); throw new RuntimeException('Stale dependent list was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'stale'), 'Unexpected dependent-list rejection.'); }
+        $assert($storage->read('universes', $universe['id']) === $universe, 'Stale deletion modified universe.');
+        $assert($storage->read('characters', $character['id']) === $character, 'Stale deletion modified character.');
+        $assert($backups->list() === [], 'Stale preview should be rejected before backup.');
+        return 'Stale universe revisions and stale dependent-record lists rejected without mutation.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe deletion API and confirmation UI are wired', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php'); $endpoint = file_get_contents(dirname(__DIR__) . '/api/data-management-universe-delete.php');
+    foreach (['deleteManagedUniverseButton', 'cleanupUniverseConfirmation', 'DELETE UNIVERSE ', 'pre-deletion backup'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion UI marker missing: ' . $needle);
+    foreach (["'/api/data-management/universe-delete'", 'UniverseDeletionService', 'developmentRequestAllowed'] as $needle) $assert(str_contains($app, $needle), 'Universe deletion API marker missing: ' . $needle);
+    $assert(str_contains($endpoint, '/api/data-management/universe-delete'), 'Universe deletion endpoint wrapper missing.');
+    return 'Universe deletion has explicit UI confirmation, guarded development-only API route, and service wiring.';
+});
+
+$run('Universe deletion selection is searchable and displays the exact ID phrase', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    foreach (['managedUniverseSearch', 'managedUniverseTarget', 'previewUniverseDeletionButton', 'universeConfirmationPhrase', 'cleanupRecordSearch', 'cleanupRecordCount'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion usability control missing: ' . $needle);
+    $assert(!str_contains($html, 'copyUniverseConfirmationPhraseButton') && !str_contains($html, 'Copy phrase'), 'Unreliable copy-phrase button should be removed; phrase must remain manually selectable.');
+    $assert(str_contains($html, "includes(query)"), 'Search must match universe names and IDs.');
+    $assert(str_contains($html, "'DELETE UNIVERSE ' + data.preview.id"), 'Exact confirmation phrase is not generated from selected ID.');
+    $assert(str_contains($html, 'readonly value="Generate a fresh preview to show the phrase"'), 'Exact phrase field must remain visible and selectable for manual copy.');
+    return 'Universe selector/search and visible, manually selectable exact confirmation phrase are present; unreliable copy button is absent.';
+});
+$run('Incorrect universe deletion confirmation gives visible live feedback', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    foreach (['aria-live="assertive"', 'Confirmation does not match. Required phrase:', 'No data has been deleted.', 'updateUniverseDeleteConfirmationState', 'setVisibleStatus(status, \'Deletion failed:'] as $needle) $assert(str_contains($html, $needle), 'Visible deletion feedback marker missing: ' . $needle);
+    $assert(str_contains($html, 'button.disabled = !matches'), 'Delete action must be disabled until confirmation exactly matches.');
+    return 'Mismatched confirmation and API failures are shown in a high-contrast live status; unsafe action remains disabled.';
+});
+$run('Universe deletion UI reports progress, failure, and requires a fresh preview after errors', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    foreach (['Universe deletion started', 'Step 1 of 3: creating and verifying the pre-deletion backup', 'Deletion failed:', 'Generate a fresh preview before retrying.', 'storage/logs/universe-deletion.log', 'storage/logs/backups.log', 'Universe deletion failed'] as $needle) $assert(str_contains($html, $needle), 'Deletion progress/error handling missing: ' . $needle);
+    return 'Destructive operation has start/progress messages, actionable failure details, activity logging, and stale-preview invalidation.';
+});
+
+$run('Focused logging and deletion permission preflight are implemented', static function () use ($assert): string {
+    $logger = file_get_contents(dirname(__DIR__) . '/app/Core/Logger.php');
+    $storage = file_get_contents(dirname(__DIR__) . '/app/Storage/JsonStorage.php');
+    $deletion = file_get_contents(dirname(__DIR__) . '/app/Modules/UniverseDeletionService.php');
+    foreach (['api', 'storage', 'universe-deletion', 'backups', 'security', 'php-errors', 'errors'] as $channel) $assert(str_contains($logger, "'" . $channel . "'"), 'Missing focused log channel: ' . $channel);
+    foreach (['lock_path', 'directory_writable', 'last_php_error'] as $detail) $assert(str_contains($storage, "'" . $detail . "'"), 'Storage lock diagnostics missing: ' . $detail);
+    $assert(str_contains($storage, 'assertRecordLockUsable'), 'Existing lock-file usability preflight is missing.');
+    $assert(str_contains($storage, "fopen(\$lockPath, 'r')"), 'Read-only lock-file fallback is missing.');
+    $assert(str_contains($storage, 'Never unlink/recreate a lock file'), 'Lock handling must preserve lock-file identity.');
+    $assert(str_contains($deletion, "assertCollectionWritable('characters')") && str_contains($deletion, "assertCollectionWritable('universes')"), 'Deletion does not preflight target collections.');
+    $assert(str_contains($deletion, "storage/logs/universe-deletion.log and storage/logs/backups.log"), 'Failure response does not identify focused deletion and backup logs.');
+    $assert(str_contains($logger, "array_key_exists('rollback_failure', \$context)"), 'Rollback failure is not routed to backups.log.');
+    return 'Central and focused logs are retained; deletion verifies that each existing lock can be opened and exclusively locked before creating a backup. Readable read-only lock files are supported without unlinking or changing their permissions.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.32', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.38', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

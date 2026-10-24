@@ -19,6 +19,7 @@ use Core\Modules\Characters\CharacterFittingService;
 use Core\Modules\Characters\CharacterLifecycleService;
 use Core\Modules\DataManagementService;
 use Core\Modules\UniverseBackupService;
+use Core\Modules\UniverseDeletionService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -54,6 +55,7 @@ final class Application
         $routeService = new NavigationRouteService($storage);
         $dataManagementService = new DataManagementService($storage);
         $backupService = new UniverseBackupService($storage, dirname((string)$config['storage']['path']) . '/backups');
+        $universeDeletionService = new UniverseDeletionService($storage, $backupService);
 
         $this->router->get('/api/data-management', static function () use ($dataManagementService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
@@ -114,10 +116,38 @@ final class Application
             catch (Throwable $e) { $message = $e->getMessage(); if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'backup_not_found', 'message' => $message]], 404); if (str_contains($message, 'conflict') || str_contains($message, 'checksum') || str_contains($message, 'invalid') || str_contains($message, 'unsupported')) return Response::json(['ok' => false, 'error' => ['code' => 'restore_rejected', 'message' => $message]], 409); Logger::error('Universe backup restore failed', ['backup_id' => $id, 'exception' => $e::class, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'restore_failed', 'message' => 'Backup restore failed. Check CORE logs.']], 500); }
         });
 
+        $this->router->post('/api/data-management/universe-delete', static function (Request $request) use ($universeDeletionService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Universe deletion access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Universe deletion is available only in development mode from a local/private network.']], 403);
+            }
+            $body = $request->jsonBody();
+            $id = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            $confirmation = isset($body['confirmation']) && is_string($body['confirmation']) ? $body['confirmation'] : '';
+            $stateRevision = filter_var($body['expected_state_revision'] ?? null, FILTER_VALIDATE_INT);
+            $lifecycleRevision = filter_var($body['expected_lifecycle_revision'] ?? null, FILTER_VALIDATE_INT);
+            $characterIds = $body['expected_character_ids'] ?? null;
+            if ($id === '' || $stateRevision === false || $lifecycleRevision === false || !is_array($characterIds)) {
+                Logger::warning('Universe deletion validation failed', ['universe_id' => $id, 'error_code' => 'invalid_universe_deletion_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_deletion_request', 'message' => 'Provide universe_id, both expected revisions, expected_character_ids, and the exact confirmation phrase.']], 400);
+            }
+            try {
+                $result = $universeDeletionService->delete($id, $confirmation, (int)$stateRevision, (int)$lifecycleRevision, $characterIds);
+                return Response::json(['ok' => true, 'deletion' => $result]);
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'does not exist')) { Logger::warning('Universe deletion target not found', ['universe_id' => $id, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404); }
+                if (str_contains($message, 'Confirmation must') || str_contains($message, 'required') || str_contains($message, 'invalid')) { Logger::warning('Universe deletion rejected by confirmation or validation', ['universe_id' => $id, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'confirmation_or_validation_failed', 'message' => $message]], 400); }
+                if (str_contains($message, 'stale') || str_contains($message, 'changed') || str_contains($message, 'conflict')) { Logger::warning('Universe deletion rejected due to stale preview or concurrent change', ['universe_id' => $id, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'universe_deletion_conflict', 'message' => $message]], 409); }
+                Logger::error('Universe deletion failed', ['universe_id' => $id, 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_deletion_failed', 'message' => $message]], 500);
+            }
+        });
+
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.32',
+            'version' => '0.1.38',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {

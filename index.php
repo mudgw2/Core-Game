@@ -35,7 +35,11 @@ declare(strict_types=1);
         button.secondary { background:#263752; color:var(--text); border:1px solid #3a4d6e; }
         .actions { display:flex; flex-wrap:wrap; gap:8px; }
         pre { white-space:pre-wrap; overflow-wrap:anywhere; background:#080d18; padding:14px; border-radius:8px; border:1px solid var(--line); color:#d7e5ff; max-height:420px; overflow:auto; }
-        .status { color:var(--muted); min-height:1.5em; margin-top:8px; }
+        .status { color:var(--muted); min-height:1.5em; margin-top:8px; overflow-wrap:anywhere; }
+        .status.error { color:#fff; background:#642c38; border:1px solid #ff879a; border-left:5px solid #ff879a; border-radius:7px; padding:10px 12px; font-weight:650; }
+        .status.success { color:#eafff9; background:#16463f; border:1px solid #70d6c2; border-left:5px solid #70d6c2; border-radius:7px; padding:10px 12px; }
+        .status.info { color:#fff; background:#202e48; border-left:4px solid var(--accent); border-radius:6px; padding:9px 12px; }
+        #universeConfirmationPhrase { flex:1 1 320px; min-width:0; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-weight:700; }
         ul { color:var(--muted); padding-left:20px; }
         code { color:#b8f4e7; }
         footer { color:var(--muted); font-size:.85rem; margin-top:24px; }
@@ -70,7 +74,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.32</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.38</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -263,7 +267,9 @@ declare(strict_types=1);
             <p>Preview the records and embedded gameplay data affected by a cleanup. Previewing never deletes or modifies data.</p>
             <label for="cleanupScope">Record type</label>
             <select id="cleanupScope"><option value="character">Character</option><option value="universe">Universe</option></select>
-            <label for="cleanupRecordId">Record</label>
+            <label for="cleanupRecordSearch">Find record by name or ID</label>
+            <input id="cleanupRecordSearch" type="search" autocomplete="off" placeholder="Search names or IDs (useful with large inventories)">
+            <label for="cleanupRecordId">Record <span id="cleanupRecordCount" class="dashboard-detail">Refresh inventory first</span></label>
             <select id="cleanupRecordId"><option value="">Load inventory first</option></select>
             <div class="actions"><button id="previewCleanupButton" type="button">Preview impact</button></div>
             <p id="cleanupPreviewStatus" class="status" aria-live="polite">No preview generated.</p>
@@ -286,11 +292,26 @@ declare(strict_types=1);
         </section>
         <section>
             <h2>Permanent character removal</h2>
-            <p>Only characters can be permanently deleted from this panel in this release. Type the exact character name and confirm. Universe deletion remains preview-only until safe cascading deletion and recovery are implemented.</p>
+            <p>Character deletion removes only the selected character record and its embedded data. Type the exact character name and confirm.</p>
             <label for="cleanupConfirmationName">Exact character name confirmation</label>
             <input id="cleanupConfirmationName" maxlength="40" autocomplete="off" placeholder="Type the selected character name">
             <div class="actions"><button id="deleteManagedCharacterButton" type="button" disabled>Delete selected character permanently</button></div>
             <p id="cleanupDeleteStatus" class="status" aria-live="polite">Select a character and generate a character deletion preview first.</p>
+        </section>
+        <section>
+            <h2>Permanent universe removal</h2>
+            <p>Deletes the selected universe and all associated character records. CORE creates a checksum-verified backup first and retains it after deletion. Use an off-host backup for disaster recovery.</p>
+            <label for="managedUniverseSearch">Find universe by name or ID</label>
+            <input id="managedUniverseSearch" type="search" autocomplete="off" placeholder="Search universes by name or ID">
+            <label for="managedUniverseTarget">Universe to remove</label>
+            <select id="managedUniverseTarget"><option value="">Refresh inventory first</option></select>
+            <div class="actions"><button id="previewUniverseDeletionButton" type="button" class="secondary">Preview selected universe deletion</button></div>
+            <label for="universeConfirmationPhrase">Required confirmation phrase (select/copy this exact text)</label>
+            <div class="actions"><input id="universeConfirmationPhrase" readonly value="Generate a fresh preview to show the phrase" aria-label="Required universe deletion confirmation phrase"></div>
+            <label for="cleanupUniverseConfirmation">Type the exact phrase shown above</label>
+            <input id="cleanupUniverseConfirmation" maxlength="220" autocomplete="off" placeholder="DELETE UNIVERSE &lt;universe-id&gt;" aria-describedby="cleanupUniverseDeleteStatus">
+            <div class="actions"><button id="deleteManagedUniverseButton" type="button" disabled>Back up and delete universe</button></div>
+            <p id="cleanupUniverseDeleteStatus" class="status" role="status" aria-live="assertive">Select a universe above and preview it. The deletion button stays disabled until the exact phrase matches.</p>
         </section>
     </section>
     <section class="tab-panel grid" id="panel-operations" role="tabpanel" aria-labelledby="tab-operations" data-panel="operations" hidden>
@@ -300,7 +321,7 @@ declare(strict_types=1);
         </section>
         <section style="grid-column:1/-1">
             <h2>Workbench activity log</h2>
-            <p>Browser-side actions and failures appear here. Server-side PHP errors are written to <code>storage/logs/core.log</code>.</p>
+            <p>Browser-side actions and failures appear here. For universe deletion failures, inspect <code>storage/logs/universe-deletion.log</code> and <code>storage/logs/backups.log</code>.</p>
             <pre id="activityLog" aria-live="polite">Workbench initialized.</pre>
             <div class="actions"><button id="clearLogButton" class="secondary" type="button">Clear activity log</button></div>
         </section>
@@ -1203,27 +1224,54 @@ declare(strict_types=1);
 
     let dataInventoryCache = null;
     let lastCleanupPreview = null;
+    function setVisibleStatus(element, message, kind = 'info') {
+        element.textContent = message;
+        element.classList.remove('error', 'success', 'info');
+        element.classList.add(kind);
+    }
+    function currentCleanupRecords() {
+        const scope = document.getElementById('cleanupScope').value;
+        return scope === 'character' ? (dataInventoryCache?.characters || []) : (dataInventoryCache?.universes || []);
+    }
     function populateCleanupRecords() {
         const scope = document.getElementById('cleanupScope').value;
         const select = document.getElementById('cleanupRecordId');
         const prior = select.value;
+        const query = document.getElementById('cleanupRecordSearch').value.trim().toLocaleLowerCase();
         select.replaceChildren();
-        const records = scope === 'character' ? (dataInventoryCache?.characters || []) : (dataInventoryCache?.universes || []);
+        const allRecords = currentCleanupRecords();
+        const records = allRecords.filter(record => !query || String(record.name || '').toLocaleLowerCase().includes(query) || String(record.id || '').toLocaleLowerCase().includes(query));
+        const count = document.getElementById('cleanupRecordCount');
+        count.textContent = records.length + ' of ' + allRecords.length + ' matching';
         if (!records.length) {
-            const option = document.createElement('option'); option.value = ''; option.textContent = 'No ' + (scope === 'character' ? 'characters' : 'universes') + ' found'; select.append(option);
+            select.add(new Option(allRecords.length ? 'No matching records' : 'No ' + (scope === 'character' ? 'characters' : 'universes') + ' found', ''));
         } else {
-            for (const record of records) {
-                const option = document.createElement('option'); option.value = record.id;
-                option.textContent = (record.name || record.id) + ' — ' + record.id;
-                select.append(option);
-            }
+            select.add(new Option('Choose a record…', ''));
+            for (const record of records) select.add(new Option((record.name || record.id) + ' — ' + record.id, record.id));
             if (records.some(record => record.id === prior)) select.value = prior;
+            else if (records.length === 1) select.value = records[0].id;
         }
         lastCleanupPreview = null;
         document.getElementById('deleteManagedCharacterButton').disabled = true;
+        document.getElementById('deleteManagedUniverseButton').disabled = true;
         document.getElementById('cleanupConfirmationName').value = '';
+        document.getElementById('cleanupUniverseConfirmation').value = '';
+        document.getElementById('universeConfirmationPhrase').value = 'Generate a fresh preview to show the phrase';
         document.getElementById('cleanupPreviewOutput').textContent = 'Choose a record and preview its cleanup impact.';
         document.getElementById('cleanupPreviewStatus').textContent = 'No preview generated.';
+        setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'Select a universe above and preview it. The deletion button stays disabled until the exact phrase matches.', 'info');
+    }
+    function populateManagedUniverseTargets() {
+        const select = document.getElementById('managedUniverseTarget');
+        const prior = select.value;
+        const query = document.getElementById('managedUniverseSearch').value.trim().toLocaleLowerCase();
+        const all = dataInventoryCache?.universes || [];
+        const matches = all.filter(universe => !query || String(universe.name || '').toLocaleLowerCase().includes(query) || String(universe.id || '').toLocaleLowerCase().includes(query));
+        select.replaceChildren();
+        select.add(new Option(matches.length ? 'Choose a universe… (' + matches.length + ' matches)' : (all.length ? 'No matching universes' : 'No saved universes'), ''));
+        for (const universe of matches) select.add(new Option((universe.name || universe.id) + ' — ' + universe.id, universe.id));
+        if (matches.some(universe => universe.id === prior)) select.value = prior;
+        else if (matches.length === 1) select.value = matches[0].id;
     }
     async function refreshDataInventory() {
         const status = document.getElementById('dataInventoryStatus');
@@ -1255,23 +1303,58 @@ declare(strict_types=1);
             }
             const backupUniverse = document.getElementById('backupUniverseId'); const selectedBackupUniverse = backupUniverse.value; backupUniverse.replaceChildren();
             if (!(data.inventory.universes || []).length) backupUniverse.add(new Option('No saved universes', ''));
-            for (const universe of (data.inventory.universes || [])) backupUniverse.add(new Option(universe.name + ' (' + universe.id + ')', universe.id));
+            for (const universe of (data.inventory.universes || [])) backupUniverse.add(new Option((universe.name || universe.id) + ' — ' + universe.id, universe.id));
             if (selectedBackupUniverse) backupUniverse.value = selectedBackupUniverse;
             populateCleanupRecords();
-            status.textContent = 'Inventory refreshed at ' + new Date(data.inventory.generated_at).toLocaleString() + '. No data was changed.';
+            populateManagedUniverseTargets();
+            setVisibleStatus(status, 'Inventory refreshed at ' + new Date(data.inventory.generated_at).toLocaleString() + '. No data was changed.', 'success');
             logActivity('info', 'Saved-data inventory refreshed', summary.universes + ' universe(s), ' + summary.characters + ' character(s).');
         } catch (error) {
-            status.textContent = 'Could not load inventory: ' + error.message;
+            setVisibleStatus(status, 'Could not load inventory: ' + error.message, 'error');
             logActivity('error', 'Saved-data inventory failed', error.stack || error.message);
         } finally { button.disabled = false; }
     }
     document.getElementById('refreshDataInventoryButton').addEventListener('click', refreshDataInventory);
     document.getElementById('cleanupScope').addEventListener('change', populateCleanupRecords);
+    document.getElementById('cleanupRecordSearch').addEventListener('input', populateCleanupRecords);
+    document.getElementById('cleanupRecordId').addEventListener('change', () => {
+        if (lastCleanupPreview && lastCleanupPreview.id !== document.getElementById('cleanupRecordId').value) {
+            lastCleanupPreview = null;
+            document.getElementById('deleteManagedCharacterButton').disabled = true;
+            document.getElementById('deleteManagedUniverseButton').disabled = true;
+            document.getElementById('cleanupUniverseConfirmation').value = '';
+            document.getElementById('universeConfirmationPhrase').value = 'Generate a fresh preview to show the phrase';
+                setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'Selected record changed. Generate a fresh preview before deleting anything.', 'info');
+        }
+    });
+    document.getElementById('managedUniverseSearch').addEventListener('input', populateManagedUniverseTargets);
+    document.getElementById('managedUniverseTarget').addEventListener('change', () => {
+        const id = document.getElementById('managedUniverseTarget').value;
+        const confirmation = document.getElementById('cleanupUniverseConfirmation');
+        confirmation.value = '';
+        document.getElementById('deleteManagedUniverseButton').disabled = true;
+        lastCleanupPreview = null;
+        document.getElementById('universeConfirmationPhrase').value = id ? 'Preview universe ' + id + ' to generate the required phrase' : 'Generate a fresh preview to show the phrase';
+        setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), id ? 'Selected universe ' + id + '. Preview its deletion to enable the confirmation workflow.' : 'Select a universe above and preview it.', 'info');
+    });
+    document.getElementById('previewUniverseDeletionButton').addEventListener('click', () => {
+        const id = document.getElementById('managedUniverseTarget').value;
+        if (!id) {
+            setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'No universe selected. Refresh inventory, then select a universe by name or ID.', 'error');
+            logActivity('warning', 'Universe deletion preview blocked', 'No universe selected.');
+            return;
+        }
+        document.getElementById('cleanupScope').value = 'universe';
+        document.getElementById('cleanupRecordSearch').value = '';
+        populateCleanupRecords();
+        document.getElementById('cleanupRecordId').value = id;
+        document.getElementById('previewCleanupButton').click();
+    });
     document.getElementById('previewCleanupButton').addEventListener('click', async () => {
         const scope = document.getElementById('cleanupScope').value;
         const id = document.getElementById('cleanupRecordId').value;
         const status = document.getElementById('cleanupPreviewStatus');
-        if (!id) { status.textContent = 'Choose a saved record first.'; return; }
+        if (!id) { setVisibleStatus(status, 'Choose a saved record first. Use the search field to find it by name or ID.', 'error'); return; }
         const button = document.getElementById('previewCleanupButton'); button.disabled = true; status.textContent = 'Calculating impact…';
         try {
             const response = await fetch('api/data-management-preview.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ scope, id }) });
@@ -1279,15 +1362,46 @@ declare(strict_types=1);
             if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Preview failed.');
             lastCleanupPreview = data.preview;
             document.getElementById('cleanupPreviewOutput').textContent = JSON.stringify(data.preview, null, 2);
-            status.textContent = data.preview.executable ? 'Preview ready. Character deletion is available after exact-name confirmation.' : 'Preview ready — execution is intentionally disabled for this scope.';
+            status.textContent = data.preview.executable ? (scope === 'character' ? 'Preview ready. Character deletion is available after exact-name confirmation.' : 'Preview ready. Universe deletion will create a verified backup first and remove the universe plus its associated characters.') : 'Preview ready — execution is intentionally disabled for this scope.';
+            status.classList.remove('error');
             document.getElementById('deleteManagedCharacterButton').disabled = !(scope === 'character' && data.preview.executable);
+            document.getElementById('deleteManagedUniverseButton').disabled = true;
             document.getElementById('cleanupConfirmationName').value = '';
+            document.getElementById('cleanupUniverseConfirmation').value = '';
+            document.getElementById('universeConfirmationPhrase').value = scope === 'universe' ? 'DELETE UNIVERSE ' + data.preview.id : 'Generate a fresh preview to show the phrase';
+            document.getElementById('cleanupUniverseDeleteStatus').classList.remove('error', 'success');
+            if (scope === 'universe' && data.preview.executable) {
+                setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'Preview ready for ' + data.preview.name + ' (' + data.preview.id + '). Review the impact, copy the phrase if useful, then type it exactly below.', 'info');
+                document.getElementById('deleteManagedUniverseButton').disabled = true;
+            } else setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'Select a universe and generate its deletion preview first.', 'info');
             logActivity('info', 'Cleanup impact preview', scope + ' ' + id + '; executable=' + data.preview.executable);
         } catch (error) {
-            lastCleanupPreview = null; document.getElementById('deleteManagedCharacterButton').disabled = true;
-            status.textContent = 'Preview failed: ' + error.message; logActivity('error', 'Cleanup preview failed', error.stack || error.message);
+            lastCleanupPreview = null; document.getElementById('deleteManagedCharacterButton').disabled = true; document.getElementById('deleteManagedUniverseButton').disabled = true;
+            setVisibleStatus(status, 'Preview failed: ' + error.message, 'error'); logActivity('error', 'Cleanup preview failed', error.stack || error.message);
+            setVisibleStatus(document.getElementById('cleanupUniverseDeleteStatus'), 'Preview failed: ' + error.message, 'error');
         } finally { button.disabled = false; }
     });
+    function updateUniverseDeleteConfirmationState() {
+        const input = document.getElementById('cleanupUniverseConfirmation');
+        const status = document.getElementById('cleanupUniverseDeleteStatus');
+        const button = document.getElementById('deleteManagedUniverseButton');
+        const preview = lastCleanupPreview;
+        const currentId = document.getElementById('cleanupRecordId').value;
+        const validPreview = Boolean(preview && preview.scope === 'universe' && preview.executable && preview.id === currentId && document.getElementById('cleanupScope').value === 'universe');
+        const expected = validPreview ? 'DELETE UNIVERSE ' + preview.id : '';
+        const matches = validPreview && input.value === expected;
+        button.disabled = !matches;
+        if (!validPreview) {
+            setVisibleStatus(status, 'No fresh universe preview is active. Select a universe and preview it before deletion.', 'error');
+        } else if (!input.value) {
+            setVisibleStatus(status, 'Required phrase: ' + expected + '. Type it exactly to enable deletion.', 'info');
+        } else if (!matches) {
+            setVisibleStatus(status, 'Confirmation does not match. Required phrase: ' + expected + '. No data has been deleted.', 'error');
+        } else {
+            setVisibleStatus(status, 'Confirmation matches. Clicking the enabled button will create a verified backup before deletion.', 'success');
+        }
+    }
+    document.getElementById('cleanupUniverseConfirmation').addEventListener('input', updateUniverseDeleteConfirmationState);
     document.getElementById('deleteManagedCharacterButton').addEventListener('click', async () => {
         const id = document.getElementById('cleanupRecordId').value;
         const confirmationName = document.getElementById('cleanupConfirmationName').value;
@@ -1315,6 +1429,56 @@ declare(strict_types=1);
             status.textContent = 'Deletion rejected or failed: ' + error.message;
             logActivity('error', 'Managed character deletion failed', error.stack || error.message);
             await refreshDataInventory();
+        }
+    });
+
+    document.getElementById('deleteManagedUniverseButton').addEventListener('click', async () => {
+        const preview = lastCleanupPreview;
+        const confirmation = document.getElementById('cleanupUniverseConfirmation').value;
+        const status = document.getElementById('cleanupUniverseDeleteStatus');
+        const button = document.getElementById('deleteManagedUniverseButton');
+        const expectedPhrase = preview && preview.scope === 'universe' ? 'DELETE UNIVERSE ' + preview.id : '';
+        if (!preview || preview.scope !== 'universe' || !preview.executable || preview.id !== document.getElementById('cleanupRecordId').value) {
+            setVisibleStatus(status, 'Deletion blocked: generate a fresh preview for the selected universe first.', 'error');
+            logActivity('warning', 'Universe deletion blocked', 'Missing or stale universe preview.');
+            return;
+        }
+        if (confirmation !== expectedPhrase) {
+            setVisibleStatus(status, 'Deletion blocked: confirmation does not match. Required phrase: ' + expectedPhrase + '. No data has been deleted.', 'error');
+            logActivity('warning', 'Universe deletion blocked by confirmation mismatch', preview.id);
+            return;
+        }
+        const impact = preview.impact || {};
+        if (!window.confirm('PERMANENTLY delete universe "' + preview.name + '" and ' + (impact.related_character_records || 0) + ' associated character(s)? CORE will create a verified backup first. This removes the live records; the backup is retained for recovery.')) {
+            setVisibleStatus(status, 'Deletion cancelled. No data was changed.', 'info');
+            return;
+        }
+        button.disabled = true; setVisibleStatus(status, 'Step 1 of 3: creating and verifying the pre-deletion backup…', 'info');
+        logActivity('warning', 'Universe deletion started', preview.id + '; waiting for backup and deletion API.');
+        try {
+            const response = await fetch('api/data-management-universe-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: preview.id, confirmation, expected_state_revision: preview.expected_state_revision, expected_lifecycle_revision: preview.expected_lifecycle_revision, expected_character_ids: preview.expected_character_ids }) });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error((data.error?.code ? data.error.code + ': ' : '') + (data.error?.message || ('HTTP ' + response.status + ' — universe deletion failed.')));
+            const result = data.deletion;
+            setVisibleStatus(status, 'Deleted and verified. ' + result.deleted_characters + ' associated character(s) removed. Recovery backup retained: ' + result.backup.backup_id, 'success');
+            document.getElementById('cleanupPreviewOutput').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('cleanupUniverseConfirmation').value = ''; document.getElementById('universeConfirmationPhrase').value = 'Deletion completed; refresh inventory to continue'; lastCleanupPreview = null;
+                logActivity('warning', 'Universe and associated characters permanently deleted', result.universe_id + '; backup=' + result.backup.backup_id + '; characters=' + result.deleted_characters);
+            if (currentUniverseId === result.universe_id) { currentUniverseId = ''; currentUniverseBaseline = null; currentUniverseState = null; currentUniverseLifecycle = { enabled: true, locked: false, revision: 0 }; updateUniverseLifecycleControls(); }
+            loadedCharacters = loadedCharacters.filter(item => item.universe_id !== result.universe_id); populateCharacterChoices();
+            await refreshDataInventory(); await refreshBackups();
+            setVisibleStatus(status, 'Deleted and verified. ' + result.deleted_characters + ' associated character(s) removed. Recovery backup retained: ' + result.backup.backup_id, 'success');
+        } catch (error) {
+            lastCleanupPreview = null;
+            document.getElementById('deleteManagedUniverseButton').disabled = true;
+            setVisibleStatus(status, 'Deletion failed: ' + error.message + ' No further attempt is enabled until you refresh inventory and generate a new preview. Check Operations & QA → Activity Log for details.', 'error');
+            document.getElementById('cleanupPreviewOutput').textContent = 'UNIVERSE DELETION FAILED\n' + error.message + '\n\nNo success was reported. Review the retained backup list and server log before retrying.';
+            logActivity('error', 'Universe deletion failed', error.stack || error.message);
+            await refreshDataInventory(); await refreshBackups();
+            setVisibleStatus(status, 'Deletion failed: ' + error.message + ' Generate a fresh preview before retrying. Check Operations & QA → Activity Log, storage/logs/universe-deletion.log, and storage/logs/backups.log for details.', 'error');
+        } finally {
+            // The confirmation is bound to one exact preview; never leave a stale destructive action enabled.
+            button.disabled = true;
         }
     });
 

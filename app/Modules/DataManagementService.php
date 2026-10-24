@@ -30,6 +30,8 @@ final class DataManagementService
                 'seed' => (string)($universe['seed'] ?? ''),
                 'systems' => count($universe['baseline']['systems'] ?? []),
                 'events' => count($universe['state']['changes'] ?? []),
+                'state_revision' => (int)($universe['state']['revision'] ?? 0),
+                'lifecycle_revision' => (int)($universe['lifecycle']['revision'] ?? 0),
                 'characters' => count($related),
                 'lifecycle' => $universe['lifecycle'] ?? ['enabled' => true, 'locked' => false, 'revision' => 0],
                 'created_at' => (string)($universe['created_at'] ?? ''),
@@ -89,11 +91,16 @@ final class DataManagementService
             $universe = $this->storage->read('universes', $id);
             if ($universe === null || ($universe['id'] ?? null) !== $id) throw new RuntimeException('Universe does not exist.');
             $characters = array_values(array_filter($this->storage->all('characters'), static fn(array $c): bool => ($c['universe_id'] ?? null) === $id));
+            $characterIds = array_map(static fn(array $character): string => (string)($character['id'] ?? ''), $characters);
+            sort($characterIds, SORT_STRING);
             return [
                 'scope' => 'universe', 'id' => $id, 'name' => (string)($universe['name'] ?? $universe['seed'] ?? $id),
-                'action' => 'universe_and_related_character_deletion', 'executable' => false,
+                'action' => 'backup_then_delete_universe_and_related_characters', 'executable' => true,
+                'expected_state_revision' => (int)($universe['state']['revision'] ?? 0),
+                'expected_lifecycle_revision' => (int)($universe['lifecycle']['revision'] ?? 0),
+                'expected_character_ids' => $characterIds,
                 'impact' => ['universe_records' => 1, 'systems' => count($universe['baseline']['systems'] ?? []), 'events' => count($universe['state']['changes'] ?? []), 'related_character_records' => count($characters)],
-                'warning' => 'Preview only in this release. Universe deletion is intentionally not executable until cascading deletion, backup/restore, and concurrency guarantees are implemented. No data was changed.',
+                'warning' => 'Permanent deletion includes this universe and every character associated with it. CORE creates a checksum-verified backup first, deletes only the previewed records, verifies removal, and attempts rollback from the backup if deletion fails. The backup is retained after success. Keep an off-host backup too. No data was changed by this preview.',
             ];
         }
         throw new RuntimeException('Scope must be character or universe.');

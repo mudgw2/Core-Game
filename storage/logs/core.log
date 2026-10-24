@@ -281,3 +281,90 @@
 {"time":"2026-10-24T14:26:42+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261024142642_a8b7950826","characters":1}}
 {"time":"2026-10-24T14:26:43+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024142642_a8b7950826","universe_id":"universe_restore_test","characters":1}}
 {"time":"2026-10-24T14:26:43+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261024142643_54eb587690","characters":0}}
+{"time":"2026-10-24T14:36:16+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T14:36:26+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:07+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:45+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:37:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:38:20+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:38:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:38:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:47:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T14:47:23+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:48:00+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_6427cd68383eddbbecb0218d","executable":true}}
+{"time":"2026-10-24T14:48:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T14:48:48+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"uni_6427cd68383eddbbecb0218d","backup_id":"bkp_20261024144848_29ac517aa3","characters":1}}
+{"time":"2026-10-24T14:48:48+00:00","level":"ERROR","message":"Storage lock file could not be opened","context":{"collection":"characters","record_id":"chr_e9c197c0908fc0b00acb5e9e"}}
+{"time":"2026-10-24T14:48:48+00:00","level":"ERROR","message":"Storage lock file could not be opened","context":{"collection":"universes","record_id":"uni_6427cd68383eddbbecb0218d"}}
+{"time":"2026-10-24T14:48:48+00:00","level":"ERROR","message":"CRITICAL: universe deletion failed and automatic rollback could not be verified","context":{"universe_id":"uni_6427cd68383eddbbecb0218d","backup_id":"bkp_20261024144848_29ac517aa3","failure":"Unable to open storage lock file.","rollback_failure":"Unable to open storage lock file."}}
+{"time":"2026-10-24T14:48:48+00:00","level":"ERROR","message":"Universe deletion failed","context":{"universe_id":"uni_6427cd68383eddbbecb0218d","exception":"RuntimeException","message":"Deletion failed and automatic rollback could not be verified. Preserve backup bkp_20261024144848_29ac517aa3 and inspect CORE logs immediately."}}
+{"time":"2026-10-24T14:48:48+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T14:48:48+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:48:48+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T14:57:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T14:57:43+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:58:01+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"uni_07c59392ef6e803574da56a3","backup_id":"bkp_20261024145801_220d588a5e","characters":1}}
+{"time":"2026-10-24T14:58:01+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T14:58:01+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T14:58:44+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_07c59392ef6e803574da56a3","executable":true}}
+{"time":"2026-10-24T14:58:44+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T14:58:51+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"uni_07c59392ef6e803574da56a3","backup_id":"bkp_20261024145851_a05d1808e0","characters":1}}
+{"time":"2026-10-24T14:58:51+00:00","level":"ERROR","message":"Storage lock file could not be opened","context":{"collection":"characters","record_id":"chr_37ca26fe92c99e9a9c8b0688","lock_path":"/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock","collection_directory":"/var/www/html/core-game/storage/data/characters","directory_exists":true,"directory_writable":true,"lock_exists":true,"lock_writable":false,"last_php_error":"fopen(/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock): Failed to open stream: Permission denied"}}
+{"time":"2026-10-24T14:58:51+00:00","level":"ERROR","message":"Storage lock file could not be opened","context":{"collection":"universes","record_id":"uni_07c59392ef6e803574da56a3","lock_path":"/var/www/html/core-game/storage/data/universes/uni_07c59392ef6e803574da56a3.json.lock","collection_directory":"/var/www/html/core-game/storage/data/universes","directory_exists":true,"directory_writable":true,"lock_exists":true,"lock_writable":false,"last_php_error":"fopen(/var/www/html/core-game/storage/data/universes/uni_07c59392ef6e803574da56a3.json.lock): Failed to open stream: Permission denied"}}
+{"time":"2026-10-24T14:58:51+00:00","level":"ERROR","message":"CRITICAL: universe deletion failed and automatic rollback could not be verified","context":{"universe_id":"uni_07c59392ef6e803574da56a3","backup_id":"bkp_20261024145851_a05d1808e0","failure":"Unable to open storage lock file: /var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock. Check the web-server user permissions on the collection directory.","rollback_failure":"Unable to open storage lock file: /var/www/html/core-game/storage/data/universes/uni_07c59392ef6e803574da56a3.json.lock. Check the web-server user permissions on the collection directory."}}
+{"time":"2026-10-24T14:58:51+00:00","level":"ERROR","message":"Universe deletion failed","context":{"universe_id":"uni_07c59392ef6e803574da56a3","exception":"RuntimeException","message":"Deletion failed and automatic rollback could not be verified. Preserve backup bkp_20261024145851_a05d1808e0 and inspect CORE logs immediately."}}
+{"time":"2026-10-24T14:58:51+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T14:58:51+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T14:58:51+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T16:23:36+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T16:23:38+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T16:23:38+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T16:23:38+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T16:23:43+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T16:24:18+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_07c59392ef6e803574da56a3","executable":true}}
+{"time":"2026-10-24T16:24:18+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T16:24:27+00:00","level":"ERROR","message":"Existing storage lock file is not writable by PHP","context":{"collection":"characters","record_id":"chr_37ca26fe92c99e9a9c8b0688","lock_path":"/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock","collection_directory":"/var/www/html/core-game/storage/data/characters","directory_writable":true,"lock_exists":true,"lock_writable":false}}
+{"time":"2026-10-24T16:24:27+00:00","level":"ERROR","message":"Universe deletion failed","context":{"universe_id":"uni_07c59392ef6e803574da56a3","exception":"RuntimeException","message":"Existing storage lock file is not writable by PHP: /var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock. No destructive changes were made. Check the web-server user ownership and permissions on this lock file."}}
+{"time":"2026-10-24T16:24:27+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T16:24:27+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T16:24:27+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T18:11:52+00:00","level":"INFO","message":"Universe lifecycle changed","context":{"universe_id":"uni_d6aaf47504110dc50b183443","action":"disable","status":"updated","revision":7}}
+{"time":"2026-10-24T18:11:52+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/lifecycle"}}
+{"time":"2026-10-24T18:12:03+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_07c59392ef6e803574da56a3","executable":true}}
+{"time":"2026-10-24T18:12:03+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T18:12:09+00:00","level":"ERROR","message":"Existing storage lock file is not writable by PHP","context":{"collection":"characters","record_id":"chr_37ca26fe92c99e9a9c8b0688","lock_path":"/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock","collection_directory":"/var/www/html/core-game/storage/data/characters","directory_writable":true,"lock_exists":true,"lock_writable":false}}
+{"time":"2026-10-24T18:12:09+00:00","level":"ERROR","message":"Universe deletion failed","context":{"universe_id":"uni_07c59392ef6e803574da56a3","exception":"RuntimeException","message":"Existing storage lock file is not writable by PHP: /var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock. No destructive changes were made. Check the web-server user ownership and permissions on this lock file."}}
+{"time":"2026-10-24T18:12:09+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T18:12:09+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:12:09+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T18:12:40+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:13:00+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_07c59392ef6e803574da56a3","executable":true}}
+{"time":"2026-10-24T18:13:00+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T18:13:08+00:00","level":"ERROR","message":"Existing storage lock file is not writable by PHP","context":{"collection":"characters","record_id":"chr_37ca26fe92c99e9a9c8b0688","lock_path":"/var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock","collection_directory":"/var/www/html/core-game/storage/data/characters","directory_writable":true,"lock_exists":true,"lock_writable":false}}
+{"time":"2026-10-24T18:13:08+00:00","level":"ERROR","message":"Universe deletion failed","context":{"universe_id":"uni_07c59392ef6e803574da56a3","exception":"RuntimeException","message":"Existing storage lock file is not writable by PHP: /var/www/html/core-game/storage/data/characters/chr_37ca26fe92c99e9a9c8b0688.json.lock. No destructive changes were made. Check the web-server user ownership and permissions on this lock file."}}
+{"time":"2026-10-24T18:13:08+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T18:13:08+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:13:08+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T18:21:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/health"}}
+{"time":"2026-10-24T18:21:59+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:22:05+00:00","level":"INFO","message":"Data management cleanup preview generated","context":{"scope":"universe","record_id":"uni_07c59392ef6e803574da56a3","executable":true}}
+{"time":"2026-10-24T18:22:05+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/preview"}}
+{"time":"2026-10-24T18:22:11+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"uni_07c59392ef6e803574da56a3","backup_id":"bkp_20261024182211_a415c06e75","characters":1}}
+{"time":"2026-10-24T18:22:11+00:00","level":"WARNING","message":"Universe and associated characters permanently deleted","context":{"universe_id":"uni_07c59392ef6e803574da56a3","deleted_characters":1,"backup_id":"bkp_20261024182211_a415c06e75","verified":true}}
+{"time":"2026-10-24T18:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/data-management/universe-delete"}}
+{"time":"2026-10-24T18:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management/backups"}}
+{"time":"2026-10-24T18:22:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:22:23+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/data-management"}}
+{"time":"2026-10-24T18:22:27+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T18:22:27+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T18:22:29+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_backup_test","backup_id":"bkp_20261024182229_1a64fcfb62","characters":1}}
+{"time":"2026-10-24T18:22:29+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261024182229_e9ee2dc156","characters":1}}
+{"time":"2026-10-24T18:22:29+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024182229_e9ee2dc156","universe_id":"universe_restore_test","characters":1}}
+{"time":"2026-10-24T18:22:29+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261024182229_43854785f8","characters":0}}
+{"time":"2026-10-24T18:22:30+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_delete_test","backup_id":"bkp_20261024182230_330673ac28","characters":1}}
+{"time":"2026-10-24T18:22:30+00:00","level":"WARNING","message":"Universe and associated characters permanently deleted","context":{"universe_id":"universe_delete_test","deleted_characters":1,"backup_id":"bkp_20261024182230_330673ac28","verified":true}}
+{"time":"2026-10-24T18:22:30+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261024182230_330673ac28","universe_id":"universe_delete_test","characters":1}}

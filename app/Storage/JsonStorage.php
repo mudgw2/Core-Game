@@ -17,6 +17,57 @@ final class JsonStorage
         }
     }
 
+    /** Preflight an existing record lock before a destructive multi-record operation.
+     * Lock files need to be lockable, not writable: flock() works with a readable,
+     * read-only lock file on supported Unix filesystems. This allows CORE to safely
+     * use legacy lock files created by another local account without unlinking them.
+     */
+    public function assertRecordLockUsable(string $collection, string $id): void
+    {
+        $recordPath = $this->path($collection, $id);
+        $lockPath = $recordPath . '.lock';
+        if (!file_exists($lockPath)) return;
+
+        $lock = $this->openLockFile($lockPath);
+        if ($lock === false) {
+            $this->logLockOpenFailure($collection, $id, $lockPath);
+            throw new RuntimeException('Existing storage lock file cannot be opened for locking by PHP: ' . $lockPath . '. No destructive changes were made. CORE can use a readable read-only lock file, but this file is not accessible to the web-server process.');
+        }
+        try {
+            if (!@flock($lock, LOCK_EX | LOCK_NB)) {
+                Logger::warning('Storage lock is currently held during destructive-operation preflight', ['collection' => $collection, 'record_id' => $id, 'lock_path' => $lockPath]);
+                throw new RuntimeException('Storage record is currently in use and could not be locked for deletion: ' . $id . '. No destructive changes were made. Wait for the active operation to finish and generate a fresh preview.');
+            }
+            @flock($lock, LOCK_UN);
+        } finally {
+            fclose($lock);
+        }
+    }
+
+    public function assertCollectionWritable(string $collection): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $collection)) {
+            Logger::warning('Unsafe storage collection rejected', ['collection' => $collection]);
+            throw new RuntimeException('Invalid storage path segment.');
+        }
+        $directory = $this->root . '/' . $collection;
+        if (!is_dir($directory) && !@mkdir($directory, 0770, true) && !is_dir($directory)) {
+            $lastError = error_get_last();
+            Logger::error('Storage collection directory is unavailable for mutation', [
+                'collection' => $collection, 'path' => $directory, 'directory_exists' => false,
+                'directory_writable' => false, 'last_php_error' => $lastError['message'] ?? null,
+            ]);
+            throw new RuntimeException('Storage collection directory is unavailable for mutation: ' . $directory);
+        }
+        if (!is_writable($directory)) {
+            Logger::error('Storage collection directory is not writable by PHP', [
+                'collection' => $collection, 'path' => $directory, 'directory_exists' => true,
+                'directory_writable' => false,
+            ]);
+            throw new RuntimeException('Storage collection directory is not writable by PHP: ' . $directory . '. No destructive changes were made. Check the web-server user ownership and permissions.');
+        }
+    }
+
     public function read(string $collection, string $id): ?array
     {
         $path = $this->path($collection, $id);
@@ -123,10 +174,11 @@ final class JsonStorage
             Logger::error('Storage collection directory could not be created', ['collection' => $collection]);
             throw new RuntimeException('Unable to create collection directory.');
         }
-        $lock = @fopen($path . '.lock', 'c');
+        $lockPath = $path . '.lock';
+        $lock = $this->openLockFile($lockPath);
         if ($lock === false) {
-            Logger::error('Storage lock file could not be opened', ['collection' => $collection, 'record_id' => $id]);
-            throw new RuntimeException('Unable to open storage lock file.');
+            $this->logLockOpenFailure($collection, $id, $lockPath);
+            throw new RuntimeException('Unable to open storage lock file for locking: ' . $lockPath . '. The file must be accessible for locking by PHP.');
         }
         try {
             if (!flock($lock, LOCK_EX)) {
@@ -138,6 +190,46 @@ final class JsonStorage
             @flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    /**
+     * Open a lock without requiring write access to an existing lock file.
+     * Never unlink/recreate a lock file as that can split concurrent locks across inodes.
+     * New lock files are created normally; existing read-only files are opened read-only.
+     *
+     * @return resource|false
+     */
+    private function openLockFile(string $lockPath)
+    {
+        if (is_file($lockPath)) {
+            $permissions = @fileperms($lockPath);
+            $hasWriteBits = $permissions !== false && (($permissions & 0222) !== 0);
+            if (!is_writable($lockPath) || !$hasWriteBits) {
+                $readOnly = @fopen($lockPath, 'r');
+                if ($readOnly !== false) return $readOnly;
+            }
+        }
+
+        $lock = @fopen($lockPath, 'c');
+        if ($lock !== false) return $lock;
+
+        // Another local account may own an existing read-only lock. flock() does not
+        // require writing its contents, so use a read handle when possible.
+        if (is_file($lockPath) && is_readable($lockPath)) return @fopen($lockPath, 'r');
+        return false;
+    }
+
+    private function logLockOpenFailure(string $collection, string $id, string $lockPath): void
+    {
+        $lastError = error_get_last();
+        $directory = dirname($lockPath);
+        Logger::error('Storage lock file could not be opened for locking', [
+            'collection' => $collection, 'record_id' => $id, 'lock_path' => $lockPath,
+            'collection_directory' => $directory, 'directory_exists' => is_dir($directory),
+            'directory_writable' => is_writable($directory),
+            'lock_exists' => file_exists($lockPath), 'lock_readable' => is_readable($lockPath),
+            'lock_writable' => is_writable($lockPath), 'last_php_error' => $lastError['message'] ?? null,
+        ]);
     }
 
     private function atomicWrite(string $path, string $collection, string $id, array $record): void

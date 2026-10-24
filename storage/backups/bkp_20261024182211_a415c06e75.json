@@ -1,0 +1,111 @@
+{
+    "schema_version": 1,
+    "backup_id": "bkp_20261024182211_a415c06e75",
+    "created_at": "2026-10-24T18:22:11+00:00",
+    "universe_id": "uni_07c59392ef6e803574da56a3",
+    "universe_name": "uni_07c59392ef6e803574da56a3",
+    "character_count": 1,
+    "checksum_sha256": "f28ab5bdc8f0df67a873c5e1dfe56b01dc2fbe774d1a955b927eb8aa6b22ec75",
+    "payload": {
+        "universe": {
+            "id": "uni_07c59392ef6e803574da56a3",
+            "seed_fingerprint": "07c59392ef6e",
+            "generator_version": 1,
+            "created_at": "2026-10-23T23:47:08+00:00",
+            "baseline": {
+                "id": "uni_07c59392ef6e803574da56a3",
+                "generator_version": 1,
+                "seed_fingerprint": "07c59392ef6e",
+                "system_count": 10,
+                "systems": [
+                    {
+                        "id": "sys_6a959bef1079cf87",
+                        "name": "System 01",
+                        "x": -2716,
+                        "y": 9918,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_286fae3679bb2b54",
+                        "name": "System 02",
+                        "x": 351,
+                        "y": -5404,
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "sys_d8acd171647cc126",
+                        "name": "System 03",
+                        "x": 5466,
+                        "y": 3615,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_c4502c7ac8d0c43a",
+                        "name": "System 04",
+                        "x": 254,
+                        "y": 1386,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_406c802a887291a9",
+                        "name": "System 05",
+                        "x": 6492,
+                        "y": 2809,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_604e1c533eded181",
+                        "name": "System 06",
+                        "x": -5347,
+                        "y": -2749,
+                        "classification": "nebula-adjacent"
+                    },
+                    {
+                        "id": "sys_d25c0d4cb92157b5",
+                        "name": "System 07",
+                        "x": 3850,
+                        "y": -6596,
+                        "classification": "binary"
+                    },
+                    {
+                        "id": "sys_d2aaaecc3b06da1a",
+                        "name": "System 08",
+                        "x": 3928,
+                        "y": -5254,
+                        "classification": "anomalous"
+                    },
+                    {
+                        "id": "sys_1f9f0eef288b2fde",
+                        "name": "System 09",
+                        "x": -1905,
+                        "y": -6177,
+                        "classification": "ordinary"
+                    },
+                    {
+                        "id": "sys_235014f592ba028c",
+                        "name": "System 10",
+                        "x": -960,
+                        "y": -4635,
+                        "classification": "nebula-adjacent"
+                    }
+                ]
+            },
+            "state": {
+                "schema_version": 1,
+                "revision": 0,
+                "changes": []
+            }
+        },
+        "characters": [
+            {
+                "id": "chr_37ca26fe92c99e9a9c8b0688",
+                "schema_version": 1,
+                "universe_id": "uni_07c59392ef6e803574da56a3",
+                "name": "Mira Voss",
+                "role": "Explorer",
+                "created_at": "2026-10-23T23:47:08+00:00",
+                "revision": 0
+            }
+        ]
+    }
+}

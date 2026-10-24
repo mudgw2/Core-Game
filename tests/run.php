@@ -198,6 +198,55 @@ $test('universe backup and restore preserve data and refuse conflicts', static f
     }
 });
 
+$test('focused logs receive categorized events while preserving the central log', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-cli-logs-' . bin2hex(random_bytes(8));
+    if (!mkdir($dir, 0770, true) && !is_dir($dir)) throw new RuntimeException('Could not create log test directory.');
+    try {
+        Core\Core\Logger::configure($dir . '/core.log', 'production');
+        Core\Core\Logger::info('Request handled', ['method' => 'GET', 'path' => '/api/health']);
+        Core\Core\Logger::error('Storage lock file could not be opened', ['collection' => 'universes', 'record_id' => 'qa']);
+        Core\Core\Logger::critical('CRITICAL: universe deletion failed and automatic rollback could not be verified', ['universe_id' => 'qa', 'backup_id' => 'bkp_qa', 'rollback_failure' => 'test']);
+        foreach (['core.log', 'api.log', 'storage.log', 'universe-deletion.log', 'backups.log', 'php-errors.log'] as $name) {
+            $assert(is_file($dir . '/' . $name), 'Expected categorized log missing: ' . $name);
+        }
+        $assert(str_contains((string)file_get_contents($dir . '/core.log'), 'Request handled'), 'Central log did not retain the API event.');
+        $assert(str_contains((string)file_get_contents($dir . '/storage.log'), 'lock file could not be opened'), 'Storage log lacks lock failure.');
+        $assert(str_contains((string)file_get_contents($dir . '/universe-deletion.log'), 'rollback could not be verified'), 'Deletion log lacks critical event.');
+        $assert(str_contains((string)file_get_contents($dir . '/backups.log'), 'rollback could not be verified'), 'Backup log lacks rollback failure event.');
+    } finally {
+        foreach (glob($dir . '/*.log') ?: [] as $file) @unlink($file);
+        @rmdir($dir);
+    }
+});
+
+$test('read-only existing record lock remains usable without changing its permissions', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-cli-lock-readonly-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $storage->write('universes', 'readonly_lock_universe', ['id' => 'readonly_lock_universe', 'revision' => 1]);
+        $lock = $dir . '/data/universes/readonly_lock_universe.json.lock';
+        if (!chmod($lock, 0444)) throw new RuntimeException('Could not make test lock read-only.');
+        $storage->assertRecordLockUsable('universes', 'readonly_lock_universe');
+        $storage->write('universes', 'readonly_lock_universe', ['id' => 'readonly_lock_universe', 'revision' => 2]);
+        $equal(2, $storage->read('universes', 'readonly_lock_universe')['revision'] ?? null, 'Storage mutation failed with a readable read-only lock.');
+        $assert((fileperms($lock) & 0222) === 0, 'CORE unexpectedly changed lock-file permissions.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) { if ($item->isDir()) @chmod($item->getPathname(), 0770); else @chmod($item->getPathname(), 0660); $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); } @rmdir($dir); }
+    }
+});
+
+$test('storage mutation preflight validates collection write access', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-cli-storage-preflight-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $storage->assertCollectionWritable('characters');
+        $storage->assertCollectionWritable('universes');
+        $assert(is_dir($dir . '/data/characters') && is_dir($dir . '/data/universes'), 'Preflight did not ensure collection directories exist.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";
 if ($failed > 0) {
     foreach ($failures as [$name, $message]) echo " - {$name}: {$message}\n";

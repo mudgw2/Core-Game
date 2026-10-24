@@ -239,10 +239,10 @@
         ]
     },
     "lifecycle": {
-        "enabled": true,
+        "enabled": false,
         "locked": false,
-        "revision": 6,
-        "updated_at": "2026-10-24T14:08:46+00:00",
-        "last_action": "enable"
+        "revision": 7,
+        "updated_at": "2026-10-24T18:11:52+00:00",
+        "last_action": "disable"
     }
 }

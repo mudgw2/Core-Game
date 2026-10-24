@@ -9,8 +9,10 @@ use Core\Http\Response;
 use Core\Http\Router;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Characters\CharacterService;
+use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
+use RuntimeException;
 
 final class Application
 {
@@ -32,11 +34,12 @@ final class Application
         $storage = new JsonStorage((string)$config['storage']['path']);
         $universeService = new UniverseService($storage);
         $characterService = new CharacterService($storage);
+        $routeService = new NavigationRouteService($storage);
 
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.17',
+            'version' => '0.1.18',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {
@@ -135,6 +138,35 @@ final class Application
                 if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
                 Logger::error('Navigation graph generation failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $e->getMessage()]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'navigation_failed', 'message' => 'Navigation data could not be generated. Check CORE logs.']], 500);
+            }
+        });
+
+        $this->router->get('/api/navigation/route', static function (Request $request) use ($routeService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) {
+                Logger::warning('Route planning API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'route_api_disabled', 'message' => 'Route planning is available only in development mode from a local/private network.']], 403);
+            }
+            $universeId = $request->query('universe_id', '');
+            $fromSystemId = $request->query('from_system_id', '');
+            $toSystemId = $request->query('to_system_id', '');
+            if (!is_string($universeId) || trim($universeId) === '' || !is_string($fromSystemId) || trim($fromSystemId) === '' || !is_string($toSystemId) || trim($toSystemId) === '') {
+                Logger::warning('Route planning validation failed', ['error_code' => 'invalid_route_request']);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_route_request', 'message' => 'Provide universe_id, from_system_id, and to_system_id.']], 400);
+            }
+            try {
+                return Response::json($routeService->plan($universeId, $fromSystemId, $toSystemId));
+            } catch (Throwable $e) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'does not exist')) {
+                    Logger::warning('Route planning rejected: universe not found', ['universe_id' => trim($universeId), 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
+                }
+                if (str_contains($message, 'endpoints') || str_contains($message, 'No route')) {
+                    Logger::warning('Route planning rejected', ['universe_id' => trim($universeId), 'from_system_id' => trim($fromSystemId), 'to_system_id' => trim($toSystemId), 'message' => $message]);
+                    return Response::json(['ok' => false, 'error' => ['code' => 'invalid_route', 'message' => $message]], 400);
+                }
+                Logger::error('Route planning failed', ['universe_id' => trim($universeId), 'exception' => $e::class, 'message' => $message]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'route_planning_failed', 'message' => 'Route could not be planned. Check CORE logs.']], 500);
             }
         });
 
@@ -238,6 +270,7 @@ final class Application
                 'POST /api/universe with JSON {"seed":"your-seed"}',
                 'GET /api/characters?universe_id=... (development/private network only)',
                 'GET /api/navigation?universe_id=... (development/private network only)',
+                'GET /api/navigation/route?universe_id=...&from_system_id=...&to_system_id=... (development/private network only)',
                 'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],

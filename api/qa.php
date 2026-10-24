@@ -35,6 +35,7 @@ use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Universe\UniverseService;
 use Core\Modules\Universe\NavigationGraph;
+use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 
 $results = [];
@@ -608,7 +609,70 @@ $run('Character cannot jump across a route without a direct connection', static 
     } finally { $cleanup($dir); }
 });
 
+$run('Shortest route includes both endpoints and valid connected hops', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $universe = (new UniverseService(new JsonStorage($dir)))->createOrLoad('core-ui-qa-shortest-route');
+        $systems = $universe['baseline']['systems'];
+        $graph = NavigationGraph::build($systems);
+        $from = $systems[0]['id']; $to = $systems[count($systems) - 1]['id'];
+        $path = NavigationGraph::shortestPath($graph, $from, $to);
+        $equal($from, $path[0] ?? null, 'Route does not start at the requested system.');
+        $equal($to, $path[count($path) - 1] ?? null, 'Route does not end at the requested system.');
+        for ($i = 1; $i < count($path); $i++) $assert(in_array($path[$i], $graph['neighbors'][$path[$i - 1]] ?? [], true), 'Route contains a non-connected hop.');
+        return count($path) - 1 . ' connected hop(s) returned from start to destination.';
+    } finally { $cleanup($dir); }
+});
+$run('Route service plans between two valid saved systems', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-route-service-integration');
+        $systems = $universe['baseline']['systems'];
+        if (count($systems) < 2) throw new RuntimeException('Fixture needs at least two generated systems.');
+        $from = (string)$systems[0]['id'];
+        $to = (string)$systems[count($systems) - 1]['id'];
+        $result = (new NavigationRouteService($storage))->plan($universe['id'], $from, $to);
+        $equal(true, $result['ok'] ?? false, 'Route service did not report success.');
+        $equal($from, $result['from_system_id'] ?? null, 'Route service returned the wrong start system.');
+        $equal($to, $result['to_system_id'] ?? null, 'Route service returned the wrong destination system.');
+        $path = $result['path'] ?? [];
+        $assert(count($path) >= 2, 'Route between different valid systems must contain at least two path entries.');
+        $equal($from, $path[0]['system_id'] ?? null, 'Route path does not begin at the requested system.');
+        $equal($to, $path[count($path) - 1]['system_id'] ?? null, 'Route path does not end at the requested system.');
+        $equal(count($path) - 1, $result['hops'] ?? null, 'Hop count does not match path length.');
+        $graph = NavigationGraph::build($systems);
+        for ($i = 1; $i < count($path); $i++) {
+            $previousId = $path[$i - 1]['system_id'] ?? '';
+            $nextId = $path[$i]['system_id'] ?? '';
+            $assert(in_array($nextId, $graph['neighbors'][$previousId] ?? [], true), 'Route service returned a hop that is not connected.');
+        }
+        return 'Shared route-planning service returned a valid multi-system route between two saved, valid system IDs.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Route planning from a system to itself returns zero hops', static function () use ($equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $universe = (new UniverseService(new JsonStorage($dir)))->createOrLoad('core-ui-qa-zero-hop-route');
+        $graph = NavigationGraph::build($universe['baseline']['systems']);
+        $systemId = $universe['baseline']['systems'][0]['id'];
+        $equal([$systemId], NavigationGraph::shortestPath($graph, $systemId, $systemId), 'Same-system route should contain one node.');
+        return 'Same-system route contains one endpoint and zero hops.';
+    } finally { $cleanup($dir); }
+});
+$run('Route planner rejects system IDs outside the graph', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $universe = (new UniverseService(new JsonStorage($dir)))->createOrLoad('core-ui-qa-invalid-route-endpoint');
+        $graph = NavigationGraph::build($universe['baseline']['systems']);
+        try { NavigationGraph::shortestPath($graph, $universe['baseline']['systems'][0]['id'], 'sys_not_in_graph'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'endpoints'), 'Unexpected invalid route error.'); return 'Unknown destination rejected by route planner.'; }
+        throw new RuntimeException('Unknown route destination was accepted.');
+    } finally { $cleanup($dir); }
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.17', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.18', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

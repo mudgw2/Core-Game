@@ -8,6 +8,41 @@ use RuntimeException;
 /** Deterministic minimum-spanning-tree navigation graph derived from system coordinates. */
 final class NavigationGraph
 {
+    /** Return a deterministic shortest route as ordered system IDs, including both endpoints. */
+    public static function shortestPath(array $graph, string $from, string $to): array
+    {
+        $neighbors = $graph['neighbors'] ?? null;
+        if (!is_array($neighbors) || !array_key_exists($from, $neighbors) || !array_key_exists($to, $neighbors)) {
+            throw new RuntimeException('Route endpoints must belong to the navigation graph.');
+        }
+        if ($from === $to) return [$from];
+
+        $queue = [$from];
+        $visited = [$from => true];
+        $previous = [];
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            $nextSystems = $neighbors[$current] ?? [];
+            sort($nextSystems, SORT_STRING);
+            foreach ($nextSystems as $next) {
+                if (isset($visited[$next])) continue;
+                $visited[$next] = true;
+                $previous[$next] = $current;
+                if ($next === $to) {
+                    $path = [$to];
+                    $cursor = $to;
+                    while ($cursor !== $from) {
+                        $cursor = $previous[$cursor];
+                        array_unshift($path, $cursor);
+                    }
+                    return $path;
+                }
+                $queue[] = $next;
+            }
+        }
+        throw new RuntimeException('No route exists between the selected systems.');
+    }
+
     /** @param array<int,array<string,mixed>> $systems */
     public static function build(array $systems): array
     {

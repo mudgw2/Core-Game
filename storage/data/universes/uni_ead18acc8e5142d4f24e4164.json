@@ -1,0 +1,89 @@
+{
+    "id": "uni_ead18acc8e5142d4f24e4164",
+    "seed_fingerprint": "ead18acc8e51",
+    "generator_version": 1,
+    "created_at": "2026-10-24T00:04:24+00:00",
+    "baseline": {
+        "id": "uni_ead18acc8e5142d4f24e4164",
+        "generator_version": 1,
+        "seed_fingerprint": "ead18acc8e51",
+        "system_count": 10,
+        "systems": [
+            {
+                "id": "sys_a9314eeb155f3ee2",
+                "name": "System 01",
+                "x": -6689,
+                "y": -9798,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_722981e491e1dcdf",
+                "name": "System 02",
+                "x": -776,
+                "y": 3251,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_fafda1853330643b",
+                "name": "System 03",
+                "x": -5750,
+                "y": -8653,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_f9dbcf665372caa8",
+                "name": "System 04",
+                "x": -6040,
+                "y": 3092,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_6c0741150386005b",
+                "name": "System 05",
+                "x": -2346,
+                "y": 6661,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_8cb22d63ba570cce",
+                "name": "System 06",
+                "x": 6017,
+                "y": 1619,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_0df700990fe64477",
+                "name": "System 07",
+                "x": -6425,
+                "y": -9847,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_7ca7f9b7beae0b78",
+                "name": "System 08",
+                "x": 1910,
+                "y": -6076,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_f30b9e051e18fff2",
+                "name": "System 09",
+                "x": -7784,
+                "y": -9549,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_0ad68bc803105b53",
+                "name": "System 10",
+                "x": -7226,
+                "y": 5783,
+                "classification": "anomalous"
+            }
+        ]
+    },
+    "state": {
+        "schema_version": 1,
+        "revision": 0,
+        "changes": []
+    }
+}

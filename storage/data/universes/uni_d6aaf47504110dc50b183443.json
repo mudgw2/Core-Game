@@ -118,7 +118,7 @@
     },
     "state": {
         "schema_version": 1,
-        "revision": 4,
+        "revision": 5,
         "changes": [
             {
                 "schema_version": 1,
@@ -159,6 +159,16 @@
                 },
                 "revision": 4,
                 "recorded_at": "2026-10-23T23:57:33+00:00"
+            },
+            {
+                "schema_version": 1,
+                "event_id": "b3d3fe8fc61a3d93464d809eae839670",
+                "type": "note_added",
+                "payload": {
+                    "value": "Workbench test event"
+                },
+                "revision": 5,
+                "recorded_at": "2026-10-24T00:00:17+00:00"
             }
         ],
         "projections": {
@@ -186,6 +196,12 @@
                     "text": "Workbench test event",
                     "revision": 4,
                     "created_at": "2026-10-23T23:57:33+00:00"
+                },
+                {
+                    "id": "b3d3fe8fc61a3d93464d809eae839670",
+                    "text": "Workbench test event",
+                    "revision": 5,
+                    "created_at": "2026-10-24T00:00:17+00:00"
                 }
             ]
         },
@@ -210,6 +226,12 @@
             },
             {
                 "event_id": "dbb5ff4516f27e6ff565c886ff1433bf",
+                "type": "note_added",
+                "status": "applied",
+                "handler_version": 1
+            },
+            {
+                "event_id": "b3d3fe8fc61a3d93464d809eae839670",
                 "type": "note_added",
                 "status": "applied",
                 "handler_version": 1

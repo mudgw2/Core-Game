@@ -1,17 +1,18 @@
-{"time":"2026-10-23T23:55:59+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:55:59+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:56:16+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:56:16+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
-{"time":"2026-10-23T23:57:29+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
-{"time":"2026-10-23T23:57:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
-{"time":"2026-10-23T23:57:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-23T23:57:33+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe/state"}}
-{"time":"2026-10-23T23:57:37+00:00","level":"INFO","message":"Character created","context":{"character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443"}}
-{"time":"2026-10-23T23:57:37+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters"}}
-{"time":"2026-10-23T23:57:37+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-23T23:57:41+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-23T23:57:54+00:00","level":"INFO","message":"Character location updated","context":{"character_id":"chr_c66568594dedec79d8891e51","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_da0a436f57a9a273","revision":1}}
-{"time":"2026-10-23T23:57:54+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
-{"time":"2026-10-23T23:57:54+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
-{"time":"2026-10-23T23:57:59+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
-{"time":"2026-10-23T23:57:59+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T00:04:17+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T00:04:17+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T00:04:24+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T00:04:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
+{"time":"2026-10-24T00:09:41+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T00:09:41+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/universe"}}
+{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-10-24T00:10:25+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Character created","context":{"character_id":"chr_643c239ab98077b5aa66e863","universe_id":"uni_d6aaf47504110dc50b183443"}}
+{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters"}}
+{"time":"2026-10-24T00:10:39+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T00:10:49+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation/route"}}
+{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Character already at destination","context":{"character_id":"chr_643c239ab98077b5aa66e863","universe_id":"uni_d6aaf47504110dc50b183443","system_id":"sys_3a9a93b845899e87","revision":0}}
+{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Request handled","context":{"method":"POST","path":"/api/characters/location"}}
+{"time":"2026-10-24T00:10:53+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/characters"}}
+{"time":"2026-10-24T00:10:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-24T00:10:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}

@@ -24,8 +24,13 @@ declare(strict_types=1);
         h2 { font-size:1.1rem; margin:0 0 12px; }
         label { display:block; color:var(--muted); font-size:.9rem; margin-bottom:6px; }
         input,button,textarea { font:inherit; min-height:44px; border-radius:8px; }
-        input,textarea { width:100%; padding:9px 12px; color:var(--text); background:#0b1325; border:1px solid var(--line); }
+        input,textarea,select { width:100%; padding:9px 12px; color:var(--text); background:#0b1325; border:1px solid #526585; color-scheme:dark; }
+        select { min-height:48px; border-width:2px; }
+        select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible { outline:3px solid #70d6c2; outline-offset:2px; }
+        select option { color:#edf3ff; background:#0b1325; }
         textarea { min-height:110px; resize:vertical; }
+        .field-help { color:#f1f5ff; background:#202e48; border-left:4px solid var(--accent); padding:10px 12px; border-radius:6px; margin:8px 0 14px; }
+        .field-help strong { color:#ffffff; }
         button { padding:9px 14px; background:var(--accent); color:#08201d; font-weight:700; border:0; cursor:pointer; margin-top:10px; }
         button.secondary { background:#263752; color:var(--text); border:1px solid #3a4d6e; }
         .actions { display:flex; flex-wrap:wrap; gap:8px; }
@@ -38,7 +43,7 @@ declare(strict_types=1);
 </head>
 <body>
 <main>
-    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.17</div>
+    <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.18</div>
     <h1>CORE</h1>
     <p class="lead">The development workbench for a seed-driven universe. Check the server, explore generated universes, and run isolated automated QA directly from this interface.</p>
 
@@ -88,8 +93,16 @@ declare(strict_types=1);
             <h3>Character location</h3>
             <label for="characterSelect">Character</label>
             <select id="characterSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Load characters first</option></select>
-            <label for="characterSystemSelect">Destination system</label>
-            <select id="characterSystemSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Create / load a universe first</option></select>
+            <label for="characterSystemSelect">Move destination — one jump only</label>
+            <select id="characterSystemSelect" aria-describedby="movementChoicesHelp"><option value="">Create / load a universe first</option></select>
+            <p id="movementChoicesHelp" class="field-help" role="status" aria-live="polite"><strong>How movement works:</strong> This list contains only your current system and systems reachable in one jump. Distant systems are not selectable here. Use Plan a route below to find a path to any system; route planning does not move the character.</p>
+            <h3>Plan a route</h3>
+            <p>Choose any system in this universe to preview the shortest route. This list includes distant systems too. Planning does not move the character.</p>
+            <label for="routeDestinationSelect">Route destination</label>
+            <select id="routeDestinationSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Create / load a universe first</option></select>
+            <div class="actions"><button id="planRouteButton" type="button">Plan route</button></div>
+            <p id="routeStatus" class="status" aria-live="polite">Choose a character and destination to preview a route.</p>
+            <pre id="routeOutput" aria-live="polite">No route planned.</pre>
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
@@ -139,31 +152,75 @@ declare(strict_types=1);
     let loadedCharacters = [];
     function populateSystemChoices() {
         const select = document.getElementById('characterSystemSelect');
+        const help = document.getElementById('movementChoicesHelp');
         const systems = currentUniverseBaseline?.systems || [];
+        const routeSelect = document.getElementById('routeDestinationSelect');
+        const previousDestination = select.value;
+        const previousRouteDestination = routeSelect.value;
         select.replaceChildren();
+        routeSelect.replaceChildren();
+
         if (!systems.length) {
-            const option = document.createElement('option'); option.value = ''; option.textContent = 'Create / load a universe first'; select.append(option); return;
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'Create / load a universe first'; select.append(option);
+            const routeOption = document.createElement('option'); routeOption.value = ''; routeOption.textContent = 'Create / load a universe first'; routeSelect.append(routeOption);
+            help.textContent = 'Create or load a universe, then select a character. Movement destinations will show only the current system and directly connected systems.';
+            return;
         }
+
+        for (const system of systems) {
+            const routeOption = document.createElement('option');
+            routeOption.value = system.id;
+            routeOption.textContent = system.name + ' — ' + system.id + ' (' + system.classification + ')';
+            routeSelect.append(routeOption);
+        }
+
         const characterId = document.getElementById('characterSelect').value;
         const character = loadedCharacters.find(item => item.id === characterId);
-        const currentId = character?.current_system_id || character?.location?.system_id || '';
-        const reachable = new Set(currentNavigation?.neighbors?.[currentId] || []);
-        for (const system of systems) {
+        if (!character) {
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'Select a character first'; select.append(option);
+            help.textContent = 'Select a character first. The movement list will then show only the current system and directly connected systems. Use Plan a route below to choose any system in the universe.';
+            if (previousRouteDestination && systems.some(system => system.id === previousRouteDestination)) routeSelect.value = previousRouteDestination;
+            return;
+        }
+
+        const currentId = character.current_system_id || character.location?.system_id || '';
+        const reachableIds = currentNavigation?.neighbors?.[currentId] || [];
+        const reachable = new Set(reachableIds);
+        const allowedSystems = systems.filter(system => system.id === currentId || reachable.has(system.id));
+        for (const system of allowedSystems) {
             const option = document.createElement('option');
             option.value = system.id;
             const isCurrent = system.id === currentId;
-            const isReachable = !character || isCurrent || reachable.has(system.id);
-            option.textContent = system.name + ' — ' + system.id + ' (' + system.classification + ')' + (isCurrent ? ' [current]' : isReachable ? ' [reachable]' : ' [not connected]');
-            option.disabled = !isReachable;
+            option.textContent = system.name + ' — ' + system.id + (isCurrent ? ' [CURRENT SYSTEM]' : ' [ONE-JUMP DESTINATION]');
             select.append(option);
+        }
+
+        if (previousDestination && allowedSystems.some(system => system.id === previousDestination)) select.value = previousDestination;
+        else select.value = currentId;
+        if (previousRouteDestination && systems.some(system => system.id === previousRouteDestination)) routeSelect.value = previousRouteDestination;
+        else routeSelect.value = currentId;
+
+        help.innerHTML = '<strong>Showing ' + allowedSystems.length + ' selectable system(s):</strong> current system plus directly connected one-jump destinations. No greyed-out choices are shown. For a farther destination, select it in <strong>Route destination</strong> below and click <strong>Plan route</strong>. Planning a route does not move the character.';
+        if (!currentNavigation) {
+            help.textContent = 'Navigation data has not loaded. Refresh or create/load the universe again before moving. Route planning is separate and does not move the character.';
+            select.replaceChildren();
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'Navigation data unavailable'; select.append(option);
         }
     }
     function updateCharacterDetails() {
+        const systems = currentUniverseBaseline?.systems || [];
+        const routeSelect = document.getElementById('routeDestinationSelect');
+        routeSelect.replaceChildren();
+        for (const system of systems) {
+            const routeOption = document.createElement('option');
+            routeOption.value = system.id;
+            routeOption.textContent = system.name + ' — ' + system.id;
+            routeSelect.append(routeOption);
+        }
         const characterId = document.getElementById('characterSelect').value;
         const character = loadedCharacters.find(item => item.id === characterId);
         const status = document.getElementById('characterExplorationStatus');
         if (!character) { status.textContent = 'Select a character to view its location and exploration history.'; return; }
-        const systems = currentUniverseBaseline?.systems || [];
         const names = new Map(systems.map(system => [system.id, system.name]));
         const currentId = character.current_system_id || character.location?.system_id || '';
         const visited = character.exploration?.explored_systems || [];
@@ -175,7 +232,10 @@ declare(strict_types=1);
         const prior = select.value;
         select.replaceChildren();
         if (!loadedCharacters.length) {
-            const option = document.createElement('option'); option.value = ''; option.textContent = 'No characters in this universe'; select.append(option); return;
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'No characters in this universe'; select.append(option);
+            updateCharacterDetails();
+            populateSystemChoices();
+            return;
         }
         for (const character of loadedCharacters) {
             const option = document.createElement('option'); option.value = character.id;
@@ -188,10 +248,6 @@ declare(strict_types=1);
         updateCharacterDetails();
         populateSystemChoices();
     }
-    document.getElementById('characterSelect').addEventListener('change', () => {
-        document.getElementById('characterRevision').value = document.getElementById('characterSelect').selectedOptions[0]?.dataset.revision ?? '0';
-        updateCharacterDetails();
-    });
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
         const line = '[' + stamp + '] ' + level.toUpperCase() + ' — ' + message + (details ? ' — ' + details : '');
@@ -335,7 +391,38 @@ declare(strict_types=1);
         }
     }
     document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
-    document.getElementById('characterSelect').addEventListener('change', () => { updateCharacterDetails(); populateSystemChoices(); });
+    document.getElementById('characterSelect').addEventListener('change', () => {
+        document.getElementById('characterRevision').value = document.getElementById('characterSelect').selectedOptions[0]?.dataset.revision ?? '0';
+        updateCharacterDetails();
+        populateSystemChoices();
+    });
+    document.getElementById('planRouteButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('characterUniverseId').value.trim();
+        const characterId = document.getElementById('characterSelect').value;
+        const destinationId = document.getElementById('routeDestinationSelect').value;
+        const character = loadedCharacters.find(item => item.id === characterId);
+        const status = document.getElementById('routeStatus');
+        const routeOutput = document.getElementById('routeOutput');
+        const fromId = character?.current_system_id || character?.location?.system_id || '';
+        if (!universeId || !character || !fromId || !destinationId) { status.textContent = 'Create or load a universe, select a character, and choose a destination.'; return; }
+        const button = document.getElementById('planRouteButton'); button.disabled = true; status.textContent = 'Planning shortest route…';
+        try {
+            const params = new URLSearchParams({ universe_id: universeId, from_system_id: fromId, to_system_id: destinationId });
+            const response = await fetch('api/navigation-route.php?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+            const text = await response.text(); let data;
+            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
+            routeOutput.textContent = JSON.stringify(data, null, 2);
+            if (response.ok && data.ok) {
+                const labels = (data.path || []).map(step => step.name + ' (' + step.system_id + ')');
+                status.textContent = data.hops === 0 ? 'Already at destination — 0 hops.' : 'Route planned: ' + data.hops + ' hop(s). ' + labels.join(' → ');
+                logActivity('info', 'Route planned', data.hops + ' hop(s) from ' + fromId + ' to ' + destinationId);
+            } else {
+                status.textContent = (data.error?.code || 'route_failed') + ': ' + (data.error?.message || 'Route planning failed.');
+                logActivity('error', 'Route planning failed', JSON.stringify(data));
+            }
+        } catch (error) { status.textContent = 'Route planning request failed.'; routeOutput.textContent = String(error); logActivity('error', 'Route planning request failed', String(error)); }
+        finally { button.disabled = false; }
+    });
     document.getElementById('moveCharacterButton').addEventListener('click', async () => {
         const universeId = document.getElementById('characterUniverseId').value.trim();
         const characterId = document.getElementById('characterSelect').value;
@@ -386,7 +473,13 @@ declare(strict_types=1);
             document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
             status.textContent = response.ok && data.ok ? 'Character created: ' + data.character.name + ' (' + data.character.id + ').' : (data.error?.message || 'Character creation failed.');
             logActivity(response.ok && data.ok ? 'info' : 'error', 'Character creation', status.textContent);
-            if (response.ok && data.ok) { await refreshCharacters(); document.getElementById('characterSelect').value = data.character.id; document.getElementById('characterRevision').value = String(data.character.revision ?? 0); }
+            if (response.ok && data.ok) {
+                await refreshCharacters();
+                document.getElementById('characterSelect').value = data.character.id;
+                document.getElementById('characterRevision').value = String(data.character.revision ?? 0);
+                updateCharacterDetails();
+                populateSystemChoices();
+            }
         } catch (error) {
             status.textContent = 'Character request failed.';
             document.getElementById('characterOutput').textContent = String(error);

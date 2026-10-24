@@ -1,30 +1,15 @@
-# CORE PHP Foundation 0.1.31 — Universe Lifecycle Controls
+# CORE PHP Foundation 0.1.32 — Universe Backup & Recovery
 
-CORE is a seed-driven browser-based sci-fi sandbox foundation using PHP, JSON flat-file persistence, and an accessible browser Workbench.
+CORE is a seed-driven sci-fi sandbox foundation using PHP, JSON, and flat-file persistence.
 
-## 0.1.30 highlights
+## Universe backups and recovery (0.1.32)
 
-- Reversible universe **disable/enable** and **lock/unlock** controls.
-- Server-side enforcement blocks character creation, movement, travel, scanning, discovery investigation, crafting, fitting, and universe-state mutations while the universe is disabled or locked.
-- Existing characters and saved universe state remain available for inspection; lifecycle controls do not delete data or alter the universe event revision.
-- Independent lifecycle revision checks, idempotent no-op actions, error/warning logging, and Workbench status feedback.
-- Character-level lifecycle controls and deletion remain available as separate operations.
+Use Workbench → Data Management to create a checksum-verified snapshot of a universe and all characters associated with it. Snapshots are stored separately in `storage/backups/`, never include operational logs, and are listed in the workbench. Restore requires typing `RESTORE`, verifies the SHA-256 checksum, restores missing records, accepts already-identical records, and refuses to overwrite conflicting records.
 
-## Install
+Universe deletion remains preview-only. This release adds recovery foundations but does not yet enable cascading universe deletion. Keep off-host backups as well; local backups do not protect against disk or host loss.
 
-Extract the release into the existing application directory using your established deployment workflow. Preserve existing `storage/data/` and `storage/logs/` contents. The ZIP contains placeholder files only; it does not include live storage data.
+## Installation
 
-## Verify
+Deploy application files using your existing workflow. Preserve `storage/data/`, `storage/logs/`, and `storage/backups/`. Package placeholders do not replace real saved data. Backup management is restricted to development mode and local/private-network clients. Disable development QA and management endpoints before public exposure.
 
-Open Workbench → Operations & QA → Run automated tests. Expected result: **86 browser QA tests passed**. The CLI suite contains 11 tests (`php tests/run.php`) as a supplementary developer check.
-
-## API
-
-`POST /api/universe/lifecycle` with JSON `{"universe_id":"...","action":"lock","expected_revision":0}`. Actions are `disable`, `enable`, `lock`, and `unlock`. Lifecycle revision is independent of the universe event-state revision.
-
-Universe lifecycle controls are reversible. They are not authentication or authorization controls; keep the development Workbench and development-only endpoints restricted to a trusted network.
-
-
-## Data Management (0.1.31)
-
-Use Workbench → Data Management to inspect saved universe and character records, review cleanup impact, and permanently remove a character after exact-name confirmation. Universe deletion is preview-only in this release. Inventory and preview endpoints are development/private-network only. Preserve `storage/data/` and `storage/logs/` when installing updates. See `RELEASE-NOTES-0.1.31.md`.
+See `RELEASE-NOTES-0.1.32.md`.

@@ -45,6 +45,7 @@ use Core\Modules\Universe\NavigationGraph;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Core\Modules\DataManagementService;
+use Core\Modules\UniverseBackupService;
 
 $results = [];
 $run = static function (string $name, callable $test) use (&$results): void {
@@ -1441,7 +1442,50 @@ $run('Workbench exposes data inventory, cleanup previews, and guarded character 
     return 'Inventory, impact preview, exact-name deletion controls, and API routes are present.';
 });
 
+$run('Universe backup snapshots include associated characters and checksum', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-backup-qa-' . bin2hex(random_bytes(6)); $dataDir = $dir . '/data'; $backupDir = $dir . '/backups';
+    try {
+        $storage = new JsonStorage($dataDir); $universe = ['id' => 'universe_backup_test', 'name' => 'Backup Test', 'seed' => 'backup-seed', 'baseline' => ['systems' => [['id' => 'sys1']]], 'state' => ['changes' => []]];
+        $character = ['id' => 'character_backup_test', 'name' => 'Backup Pilot', 'universe_id' => $universe['id'], 'revision' => 3, 'inventory' => ['resources' => ['raw_ore' => 4]]];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $service = new UniverseBackupService($storage, $backupDir); $backup = $service->create($universe['id']);
+        $assert($backup['character_count'] === 1, 'Backup omitted associated character.'); $assert(strlen($backup['checksum_sha256']) === 64, 'Backup checksum missing.');
+        $assert(count($service->list()) === 1, 'Backup not listed.'); return 'Universe and one associated character backed up with SHA-256 checksum.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe backup restore recovers deleted records and verifies them', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-restore-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data'); $universe = ['id' => 'universe_restore_test', 'name' => 'Restore Test', 'seed' => 'restore-seed', 'baseline' => ['systems' => []], 'state' => ['changes' => []]];
+        $character = ['id' => 'character_restore_test', 'name' => 'Restore Pilot', 'universe_id' => $universe['id'], 'revision' => 2];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $service = new UniverseBackupService($storage, $dir . '/backups'); $backup = $service->create($universe['id']);
+        $storage->delete('characters', $character['id'], static fn(array $r) => null); $storage->delete('universes', $universe['id'], static fn(array $r) => null);
+        $result = $service->restore($backup['backup_id']); $assert($result['verified'] === true, 'Restore was not verified.');
+        $assert($storage->read('universes', $universe['id']) === $universe, 'Universe was not restored exactly.'); $assert($storage->read('characters', $character['id']) === $character, 'Character was not restored exactly.');
+        return 'Deleted universe and character records restored exactly from snapshot.';
+    } finally { $cleanup($dir); }
+});
+$run('Universe backup restore refuses conflicting live records', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-restore-conflict-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data'); $universe = ['id' => 'universe_conflict_test', 'name' => 'Original', 'seed' => 'conflict-seed', 'baseline' => ['systems' => []], 'state' => ['changes' => []]];
+        $storage->write('universes', $universe['id'], $universe); $service = new UniverseBackupService($storage, $dir . '/backups'); $backup = $service->create($universe['id']);
+        $storage->write('universes', $universe['id'], ['id' => $universe['id'], 'name' => 'Different live record']);
+        try { $service->restore($backup['backup_id']); throw new RuntimeException('Conflicting record was overwritten.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'conflict'), 'Unexpected conflict rejection.'); }
+        $assert(($storage->read('universes', $universe['id'])['name'] ?? '') === 'Different live record', 'Conflict changed live record.');
+        return 'Restore refused conflicting record without overwriting it.';
+    } finally { $cleanup($dir); }
+});
+$run('Backup UI and API wiring are present', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    foreach (['createUniverseBackupButton', 'refreshBackupsButton', 'restoreUniverseBackupButton', 'backupRestoreConfirmation', 'storage/backups/'] as $needle) $assert(str_contains($html, $needle), 'Backup UI marker missing: ' . $needle);
+    foreach (['/api/data-management/backups', '/api/data-management/backups/restore', 'UniverseBackupService'] as $needle) $assert(str_contains($app, $needle), 'Backup API marker missing: ' . $needle);
+    return 'Backup, list, and guarded restore controls are wired to server routes.';
+});
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.31', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.32', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

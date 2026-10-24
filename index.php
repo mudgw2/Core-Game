@@ -70,7 +70,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.31</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.32</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -268,6 +268,21 @@ declare(strict_types=1);
             <div class="actions"><button id="previewCleanupButton" type="button">Preview impact</button></div>
             <p id="cleanupPreviewStatus" class="status" aria-live="polite">No preview generated.</p>
             <pre id="cleanupPreviewOutput" aria-live="polite">Choose a record and preview its cleanup impact.</pre>
+        </section>
+        <section style="grid-column:1/-1">
+            <h2>Universe backups &amp; recovery</h2>
+            <p>Create a verified snapshot of one universe and its characters before cleanup. Backups are stored separately under <code>storage/backups/</code>; operational logs are never included. Restore never overwrites a conflicting live record.</p>
+            <label for="backupUniverseId">Universe to back up</label>
+            <select id="backupUniverseId"><option value="">Refresh inventory first</option></select>
+            <div class="actions"><button id="createUniverseBackupButton" type="button">Create universe backup</button><button id="refreshBackupsButton" type="button" class="secondary">Refresh backups</button></div>
+            <p id="backupStatus" class="status" aria-live="polite">No backup action performed.</p>
+            <label for="backupRecordId">Saved backup</label>
+            <select id="backupRecordId"><option value="">Refresh backups first</option></select>
+            <label for="backupRestoreConfirmation">Type RESTORE to confirm recovery</label>
+            <input id="backupRestoreConfirmation" maxlength="7" autocomplete="off" placeholder="RESTORE">
+            <div class="actions"><button id="restoreUniverseBackupButton" type="button" disabled>Restore selected backup</button></div>
+            <div id="backupList" class="dashboard-list">No backup inventory loaded.</div>
+            <p class="status">Restore is additive and conflict-safe: it restores missing records and accepts already-identical records, but refuses to overwrite different live records. Keep external/off-host backups too; an on-disk backup does not protect against disk loss.</p>
         </section>
         <section>
             <h2>Permanent character removal</h2>
@@ -1238,6 +1253,10 @@ declare(strict_types=1);
                 item.textContent = character.name + ' (' + character.id + ') — universe ' + character.universe_id + ', revision ' + character.revision + ', ' + character.discoveries + ' discoveries, ' + character.inventory_stacks + ' resource type(s) · ' + ((character.lifecycle?.enabled ?? true) ? 'enabled' : 'disabled') + (character.lifecycle?.locked ? ' / locked' : '');
                 characterList.append(item);
             }
+            const backupUniverse = document.getElementById('backupUniverseId'); const selectedBackupUniverse = backupUniverse.value; backupUniverse.replaceChildren();
+            if (!(data.inventory.universes || []).length) backupUniverse.add(new Option('No saved universes', ''));
+            for (const universe of (data.inventory.universes || [])) backupUniverse.add(new Option(universe.name + ' (' + universe.id + ')', universe.id));
+            if (selectedBackupUniverse) backupUniverse.value = selectedBackupUniverse;
             populateCleanupRecords();
             status.textContent = 'Inventory refreshed at ' + new Date(data.inventory.generated_at).toLocaleString() + '. No data was changed.';
             logActivity('info', 'Saved-data inventory refreshed', summary.universes + ' universe(s), ' + summary.characters + ' character(s).');
@@ -1297,6 +1316,43 @@ declare(strict_types=1);
             logActivity('error', 'Managed character deletion failed', error.stack || error.message);
             await refreshDataInventory();
         }
+    });
+
+    async function refreshBackups() {
+        const status = document.getElementById('backupStatus');
+        const button = document.getElementById('refreshBackupsButton'); button.disabled = true; status.textContent = 'Reading backup inventory…';
+        try {
+            const response = await fetch('api/data-management-backups.php', { headers: { 'Accept': 'application/json' } }); const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Backup listing failed.');
+            const select = document.getElementById('backupRecordId'); select.replaceChildren(); const list = document.getElementById('backupList'); list.replaceChildren();
+            if (!data.backups.length) { select.add(new Option('No backups available', '')); list.textContent = 'No backups found.'; }
+            for (const backup of data.backups) {
+                select.add(new Option(backup.universe_name + ' · ' + backup.created_at + ' · ' + backup.backup_id, backup.backup_id));
+                const item = document.createElement('p'); item.className = 'dashboard-list'; item.textContent = backup.universe_name + ' (' + backup.universe_id + ') — ' + backup.character_count + ' character(s), ' + backup.created_at + ', SHA-256 ' + backup.checksum_sha256; list.append(item);
+            }
+            document.getElementById('restoreUniverseBackupButton').disabled = data.backups.length === 0;
+            status.textContent = 'Loaded ' + data.backups.length + ' verified backup record(s).';
+        } catch (error) { status.textContent = 'Backup listing failed: ' + error.message; logActivity('error', 'Backup listing failed', error.stack || error.message); }
+        finally { button.disabled = false; }
+    }
+    document.getElementById('createUniverseBackupButton').addEventListener('click', async () => {
+        const universeId = document.getElementById('backupUniverseId').value; const status = document.getElementById('backupStatus');
+        if (!universeId) { status.textContent = 'Choose a universe first.'; return; }
+        const button = document.getElementById('createUniverseBackupButton'); button.disabled = true; status.textContent = 'Creating snapshot…';
+        try { const response = await fetch('api/data-management-backups.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId }) }); const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Backup failed.'); status.textContent = 'Backup created and checksummed: ' + data.backup.backup_id; logActivity('info', 'Universe backup created', data.backup.backup_id + ' for ' + universeId); await refreshBackups(); }
+        catch (error) { status.textContent = 'Backup failed: ' + error.message; logActivity('error', 'Universe backup failed', error.stack || error.message); }
+        finally { button.disabled = false; }
+    });
+    document.getElementById('refreshBackupsButton').addEventListener('click', refreshBackups);
+    document.getElementById('restoreUniverseBackupButton').addEventListener('click', async () => {
+        const backupId = document.getElementById('backupRecordId').value; const confirmation = document.getElementById('backupRestoreConfirmation').value; const status = document.getElementById('backupStatus');
+        if (!backupId) { status.textContent = 'Choose a backup first.'; return; }
+        if (confirmation !== 'RESTORE') { status.textContent = 'Type RESTORE exactly to confirm.'; return; }
+        if (!window.confirm('Restore this universe snapshot? Existing different records will not be overwritten.')) return;
+        const button = document.getElementById('restoreUniverseBackupButton'); button.disabled = true; status.textContent = 'Validating and restoring snapshot…';
+        try { const response = await fetch('api/data-management-backups-restore.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ backup_id: backupId, confirmation }) }); const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Restore failed.'); status.textContent = 'Restore verified for ' + data.restore.universe_name + '; ' + data.restore.characters_restored_or_verified + ' character(s) restored or verified.'; document.getElementById('backupRestoreConfirmation').value = ''; logActivity('warning', 'Universe backup restored', backupId); await refreshDataInventory(); }
+        catch (error) { status.textContent = 'Restore rejected or failed: ' + error.message; logActivity('error', 'Universe backup restore failed', error.stack || error.message); }
+        finally { button.disabled = false; }
     });
 
     document.getElementById('createButton').addEventListener('click', async () => {

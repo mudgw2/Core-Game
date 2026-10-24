@@ -16,6 +16,7 @@ spl_autoload_register(static function (string $class): void {
 use Core\Modules\Universe\UniverseGenerator;
 use Core\Modules\Universe\UniverseService;
 use Core\Storage\JsonStorage;
+use Core\Modules\UniverseBackupService;
 
 $passed = 0;
 $failed = 0;
@@ -177,6 +178,24 @@ $test('universe lifecycle guard blocks mutations but preserves reads', static fu
     try { Core\Modules\Universe\UniverseLifecycleGuard::assertCanPerformGameplayAction($universe); throw new RuntimeException('Locked universe passed guard.'); }
     catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is locked')); }
     Core\Modules\Universe\UniverseLifecycleGuard::assertCanPerformGameplayAction(['id' => 'legacy']);
+});
+
+$test('universe backup and restore preserve data and refuse conflicts', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-cli-backup-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir . '/data');
+        $universe = ['id' => 'cli_backup_universe', 'name' => 'CLI Backup', 'seed' => 'cli-backup-seed', 'baseline' => ['systems' => []], 'state' => ['changes' => []]];
+        $character = ['id' => 'cli_backup_character', 'name' => 'CLI Pilot', 'universe_id' => $universe['id'], 'revision' => 1];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $service = new UniverseBackupService($storage, $dir . '/backups'); $backup = $service->create($universe['id']);
+        $storage->delete('characters', $character['id'], static fn(array $r) => null); $storage->delete('universes', $universe['id'], static fn(array $r) => null);
+        $result = $service->restore($backup['backup_id']);
+        $assert($result['verified'] === true, 'Restore did not verify.');
+        $assert($storage->read('universes', $universe['id']) === $universe, 'Universe mismatch after restore.');
+        $assert($storage->read('characters', $character['id']) === $character, 'Character mismatch after restore.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

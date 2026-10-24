@@ -18,6 +18,7 @@ use Core\Modules\Characters\CharacterCraftingService;
 use Core\Modules\Characters\CharacterFittingService;
 use Core\Modules\Characters\CharacterLifecycleService;
 use Core\Modules\DataManagementService;
+use Core\Modules\UniverseBackupService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
 use Throwable;
@@ -52,6 +53,7 @@ final class Application
         $lifecycleService = new CharacterLifecycleService($storage);
         $routeService = new NavigationRouteService($storage);
         $dataManagementService = new DataManagementService($storage);
+        $backupService = new UniverseBackupService($storage, dirname((string)$config['storage']['path']) . '/backups');
 
         $this->router->get('/api/data-management', static function () use ($dataManagementService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
@@ -90,10 +92,32 @@ final class Application
             }
         });
 
+        $this->router->get('/api/data-management/backups', static function () use ($backupService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Backup management is available only in development mode from a local/private network.']], 403);
+            try { return Response::json(['ok' => true, 'backups' => $backupService->list()]); }
+            catch (Throwable $e) { Logger::error('Backup listing failed', ['exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'backup_list_failed', 'message' => 'Backups could not be listed. Check CORE logs.']], 500); }
+        });
+
+        $this->router->post('/api/data-management/backups', static function (Request $request) use ($backupService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Backup management is available only in development mode from a local/private network.']], 403);
+            $body = $request->jsonBody(); $id = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
+            if ($id === '') return Response::json(['ok' => false, 'error' => ['code' => 'universe_id_required', 'message' => 'Provide a universe ID.']], 400);
+            try { return Response::json(['ok' => true, 'backup' => $backupService->create($id)], 201); }
+            catch (Throwable $e) { $message = $e->getMessage(); if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404); Logger::error('Universe backup request failed', ['universe_id' => $id, 'exception' => $e::class, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'backup_failed', 'message' => 'Universe backup failed. Check CORE logs.']], 500); }
+        });
+
+        $this->router->post('/api/data-management/backups/restore', static function (Request $request) use ($backupService, $config): Response {
+            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'data_management_disabled', 'message' => 'Backup management is available only in development mode from a local/private network.']], 403);
+            $body = $request->jsonBody(); $id = isset($body['backup_id']) && is_string($body['backup_id']) ? trim($body['backup_id']) : ''; $confirmation = isset($body['confirmation']) && is_string($body['confirmation']) ? trim($body['confirmation']) : '';
+            if ($id === '' || $confirmation !== 'RESTORE') return Response::json(['ok' => false, 'error' => ['code' => 'restore_confirmation_required', 'message' => 'Provide a backup ID and confirmation phrase RESTORE.']], 400);
+            try { return Response::json(['ok' => true, 'restore' => $backupService->restore($id)]); }
+            catch (Throwable $e) { $message = $e->getMessage(); if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'backup_not_found', 'message' => $message]], 404); if (str_contains($message, 'conflict') || str_contains($message, 'checksum') || str_contains($message, 'invalid') || str_contains($message, 'unsupported')) return Response::json(['ok' => false, 'error' => ['code' => 'restore_rejected', 'message' => $message]], 409); Logger::error('Universe backup restore failed', ['backup_id' => $id, 'exception' => $e::class, 'message' => $message]); return Response::json(['ok' => false, 'error' => ['code' => 'restore_failed', 'message' => 'Backup restore failed. Check CORE logs.']], 500); }
+        });
+
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.31',
+            'version' => '0.1.32',
         ]));
 
         $this->router->get('/api/universe/preview', static function (Request $request) use ($universeService): Response {

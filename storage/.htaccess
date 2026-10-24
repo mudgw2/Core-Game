@@ -1,0 +1,2 @@
+# Keep persisted game records, local backups, and logs out of direct HTTP access.
+Require all denied

@@ -884,6 +884,80 @@ $run('Discovery investigation rejects stale revisions and cross-universe charact
     } finally { $cleanup($dir); }
 });
 
+$run('Investigating a signal awards and persists a typed inventory reward', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-reward-persist');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Reward Collector');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $discovery = $scan['scan']['discoveries'][0];
+        $characterRecord = $storage->read('characters', $character['id']);
+        $characterRecord['scans']['systems'][$character['current_system_id']]['discoveries'][0]['type'] = 'mineral_signature';
+        $storage->write('characters', $character['id'], $characterRecord);
+        $result = (new CharacterDiscoveryService($storage))->investigate($universe['id'], $character['id'], $discovery['id'], 1);
+        $reward = $result['reward'] ?? [];
+        $equal('raw_ore', $reward['resource'] ?? null, 'Mineral signal did not reward raw ore.');
+        $assert(($reward['quantity'] ?? 0) >= 2 && $reward['quantity'] <= 5, 'Raw ore reward quantity is out of range.');
+        $equal($reward['quantity'], $result['character']['inventory']['resources']['raw_ore'] ?? null, 'Inventory total does not match awarded quantity.');
+        $equal(1, count($result['character']['inventory']['ledger'] ?? []), 'Inventory ledger entry was not recorded.');
+        $equal($discovery['id'], $result['character']['inventory']['ledger'][0]['discovery_id'] ?? null, 'Ledger entry is not linked to its discovery.');
+        $saved = $storage->read('characters', $character['id']);
+        $equal($result['character']['inventory'], $saved['inventory'] ?? null, 'Inventory was not persisted.');
+        return 'A mineral investigation awards 2–5 raw ore and persists its total and linked ledger entry.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Repeating an investigation never duplicates inventory rewards', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-reward-idempotent');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Idempotent Collector');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $id = $scan['scan']['discoveries'][0]['id']; $service = new CharacterDiscoveryService($storage);
+        $first = $service->investigate($universe['id'], $character['id'], $id, 1);
+        $second = $service->investigate($universe['id'], $character['id'], $id, 2);
+        $equal('already_investigated', $second['investigation_status'], 'Repeat investigation was not identified.');
+        $equal($first['reward'], $second['reward'], 'Repeat investigation reward differs from original.');
+        $equal($first['character']['inventory'], $second['character']['inventory'], 'Repeat investigation changed inventory.');
+        $equal(1, count($second['character']['inventory']['ledger'] ?? []), 'Repeat investigation added another ledger entry.');
+        $equal(2, $second['character']['revision'], 'Repeat investigation advanced revision.');
+        return 'Repeated investigation returns the original reward without increasing inventory, ledger count, or revision.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Different discovery types award their corresponding resource categories', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-reward-types');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Multi-resource Collector');
+        $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
+        $record = $storage->read('characters', $character['id']);
+        $first = $record['scans']['systems'][$character['current_system_id']]['discoveries'][0];
+        $record['scans']['systems'][$character['current_system_id']]['discoveries'][0]['type'] = 'derelict_signal';
+        $second = $first; $second['id'] = 'dsc_qa_rare_asteroid'; $second['type'] = 'unusual_asteroid'; $second['label'] = 'QA unusual asteroid';
+        $record['scans']['systems'][$character['current_system_id']]['discoveries'][] = $second;
+        $storage->write('characters', $character['id'], $record);
+        $service = new CharacterDiscoveryService($storage);
+        $one = $service->investigate($universe['id'], $character['id'], $first['id'], 1);
+        $two = $service->investigate($universe['id'], $character['id'], $second['id'], 2);
+        $equal('salvage_parts', $one['reward']['resource'] ?? null, 'Derelict signal reward type mismatch.');
+        $equal('rare_ore', $two['reward']['resource'] ?? null, 'Unusual asteroid reward type mismatch.');
+        $assert(($two['character']['inventory']['resources']['salvage_parts'] ?? 0) > 0, 'Salvage parts missing from inventory.');
+        $assert(($two['character']['inventory']['resources']['rare_ore'] ?? 0) > 0, 'Rare ore missing from inventory.');
+        $equal(2, count($two['character']['inventory']['ledger'] ?? []), 'Both recovery events should appear in the ledger.');
+        return 'Derelict signals award salvage parts and unusual asteroids award rare ore; both are accumulated separately.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Workbench displays character inventory totals and investigation reward details', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $assert(is_string($html), 'Workbench HTML could not be read.');
+    foreach (['characterInventory','Recovered resources','Recorded recovery events:','Reward: +','data.reward?.quantity','inventory.ledger'] as $needle) {
+        $assert(str_contains($html, $needle), 'Workbench is missing inventory/reward marker: ' . $needle);
+    }
+    return 'Inventory totals, ledger event count, and per-discovery reward feedback are wired into the UI.';
+});
+
 $run('Workbench exposes investigation actions and result rendering', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php');
     $assert(is_string($html), 'Workbench HTML could not be read.');
@@ -1013,4 +1087,4 @@ $run('Overview dashboard is wired to current universe, character, location, and 
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.24', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.25', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

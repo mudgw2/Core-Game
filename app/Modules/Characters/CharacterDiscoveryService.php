@@ -10,12 +10,22 @@ use RuntimeException;
 final class CharacterDiscoveryService
 {
     private const OUTCOMES = [
-        'mineral_signature' => 'Survey complete: the signal confirms a mineral-rich deposit. Detailed extraction data is not yet available.',
-        'derelict_signal' => 'Signal traced to an abandoned automated vessel. Its transmission is archived for later salvage gameplay.',
-        'spatial_anomaly' => 'Telemetry confirms a localized spatial distortion. Readings have been recorded for further analysis.',
-        'energy_residue' => 'The residue is consistent with a recent high-output energy event. The spectral profile has been archived.',
-        'unusual_asteroid' => 'Spectral analysis confirms an unusual asteroid composition. A survey record has been added.',
-        'unknown_beacon' => 'The beacon yields a partial identifier and a repeating navigation pulse. The signal has been catalogued.',
+        'mineral_signature' => 'Survey complete: recoverable mineral fragments have been collected and logged in the ship inventory.',
+        'derelict_signal' => 'The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.',
+        'spatial_anomaly' => 'Telemetry captured useful anomaly research data. The research sample is now in inventory.',
+        'energy_residue' => 'The residue yielded intact energy cells. The recovered cells are now in inventory.',
+        'unusual_asteroid' => 'A sample of the unusual asteroid was recovered and catalogued in inventory.',
+        'unknown_beacon' => 'The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.',
+    ];
+
+    /** Resource key, display name, minimum and maximum quantity per discovery type. */
+    private const REWARDS = [
+        'mineral_signature' => ['raw_ore', 'Raw ore', 2, 5],
+        'derelict_signal' => ['salvage_parts', 'Salvage parts', 1, 3],
+        'spatial_anomaly' => ['research_data', 'Research data', 1, 2],
+        'energy_residue' => ['energy_cells', 'Energy cells', 1, 3],
+        'unusual_asteroid' => ['rare_ore', 'Rare ore', 1, 2],
+        'unknown_beacon' => ['intel_fragments', 'Intel fragments', 1, 2],
     ];
 
     public function __construct(private JsonStorage $storage) {}
@@ -38,7 +48,8 @@ final class CharacterDiscoveryService
 
         $investigationStatus = 'investigated';
         $resultDiscovery = [];
-        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $discoveryId, $expectedRevision, &$investigationStatus, &$resultDiscovery): array {
+        $resultReward = null;
+        $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $discoveryId, $expectedRevision, &$investigationStatus, &$resultDiscovery, &$resultReward): array {
             if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
@@ -64,7 +75,32 @@ final class CharacterDiscoveryService
                     $type = (string)($discovery['type'] ?? '');
                     $discovery['status'] = 'investigated';
                     $discovery['investigated_at'] = gmdate('c');
-                    $discovery['outcome'] = self::OUTCOMES[$type] ?? 'The signal was examined and catalogued. Further analysis may become available in a future system update.';
+                    $discovery['outcome'] = self::OUTCOMES[$type] ?? 'The signal was examined and catalogued.';
+
+                    // Reward quantity is stable for this discovery ID, so retries cannot reroll it.
+                    $rewardDefinition = self::REWARDS[$type] ?? ['intel_fragments', 'Intel fragments', 1, 1];
+                    [$resourceKey, $resourceLabel, $minimum, $maximum] = $rewardDefinition;
+                    $roll = hexdec(substr(hash('sha256', $discoveryId . ':reward'), 0, 8));
+                    $quantity = $minimum + ($roll % ($maximum - $minimum + 1));
+                    $inventory = $character['inventory'] ?? [];
+                    if (!is_array($inventory)) $inventory = [];
+                    $resources = is_array($inventory['resources'] ?? null) ? $inventory['resources'] : [];
+                    $resources[$resourceKey] = (int)($resources[$resourceKey] ?? 0) + $quantity;
+                    $inventory['resources'] = $resources;
+                    $ledger = is_array($inventory['ledger'] ?? null) ? $inventory['ledger'] : [];
+                    $ledger[] = [
+                        'id' => 'inv_' . substr(hash('sha256', $discoveryId . ':ledger'), 0, 20),
+                        'discovery_id' => $discoveryId,
+                        'resource' => $resourceKey,
+                        'label' => $resourceLabel,
+                        'quantity' => $quantity,
+                        'system_id' => $currentSystemId,
+                        'recorded_at' => gmdate('c'),
+                    ];
+                    $inventory['ledger'] = $ledger;
+                    $character['inventory'] = $inventory;
+                    $discovery['reward'] = ['resource' => $resourceKey, 'label' => $resourceLabel, 'quantity' => $quantity];
+                    $resultReward = $discovery['reward'];
                     $resultDiscovery = $discovery;
                     unset($discovery, $scan);
                     $scans['systems'] = $bySystem;
@@ -79,6 +115,7 @@ final class CharacterDiscoveryService
             return $character;
         });
 
-        return ['investigation_status' => $investigationStatus, 'discovery' => $resultDiscovery, 'character' => $character];
+        if ($resultReward === null && is_array($resultDiscovery['reward'] ?? null)) $resultReward = $resultDiscovery['reward'];
+        return ['investigation_status' => $investigationStatus, 'discovery' => $resultDiscovery, 'reward' => $resultReward, 'character' => $character];
     }
 }

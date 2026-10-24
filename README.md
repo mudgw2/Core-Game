@@ -1,6 +1,6 @@
-# CORE PHP Foundation 0.1.24 — Discovery Investigation
+# CORE PHP Foundation 0.1.25 — Discovery Investigation
 
-## What is new in 0.1.24
+## What is new in 0.1.25
 
 - Scanned signals can now be investigated while the character is physically in the system where the signal was found.
 - Investigation outcomes are persisted on the character's existing scan record with status and UTC timestamp.

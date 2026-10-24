@@ -68,7 +68,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.24</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.25</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -175,6 +175,9 @@ declare(strict_types=1);
             <p>Scan the character’s current system to reveal deterministic signals. Results are saved to the character; scanning a system again returns the existing record without advancing its revision.</p>
             <div class="actions"><button id="scanSystemButton" type="button" disabled>Scan current system</button></div>
             <p id="characterScanStatus" class="status" aria-live="polite">Select a character to scan its current system.</p>
+            <h3>Character inventory</h3>
+            <p>Recovered materials are character-bound for now. Each discovery can award its reward only once.</p>
+            <div id="characterInventory" class="dashboard-lists" aria-live="polite"><div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div></div>
             <div id="characterScanResults" class="dashboard-lists" aria-live="polite"><div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div></div>
         </section>
     </section>
@@ -352,6 +355,7 @@ declare(strict_types=1);
             document.getElementById('scanSystemButton').disabled = true;
             document.getElementById('characterScanStatus').textContent = 'Select a character to scan its current system.';
             document.getElementById('characterScanResults').innerHTML = '<div><h4>Current-system scan</h4><p class="dashboard-list">No scan loaded.</p></div>';
+            document.getElementById('characterInventory').innerHTML = '<div><h4>Inventory</h4><p class="dashboard-list">Select a character to view recovered resources.</p></div>';
             status.textContent = 'Select a character to view its location and exploration history.';
             document.getElementById('travelProgressStatus').textContent = 'Select a character before starting or continuing travel.';
             document.getElementById('startTravelButton').disabled = true;
@@ -363,6 +367,22 @@ declare(strict_types=1);
         const currentId = character.current_system_id || character.location?.system_id || '';
         const scanRecords = character.scans?.systems || {};
         const currentScan = scanRecords[currentId] || null;
+        const inventoryHost = document.getElementById('characterInventory');
+        inventoryHost.replaceChildren();
+        const inventory = character.inventory || {};
+        const resources = inventory.resources || {};
+        const inventoryPanel = document.createElement('div');
+        const inventoryHeading = document.createElement('h4'); inventoryHeading.textContent = 'Recovered resources'; inventoryPanel.append(inventoryHeading);
+        const resourceEntries = Object.entries(resources).filter(([, quantity]) => Number(quantity) > 0).sort(([a], [b]) => a.localeCompare(b));
+        if (resourceEntries.length) {
+            const resourceList = document.createElement('ul'); resourceList.className = 'dashboard-list';
+            const labels = {raw_ore:'Raw ore', salvage_parts:'Salvage parts', research_data:'Research data', energy_cells:'Energy cells', rare_ore:'Rare ore', intel_fragments:'Intel fragments'};
+            for (const [key, quantity] of resourceEntries) { const item = document.createElement('li'); item.textContent = (labels[key] || key.replaceAll('_', ' ')) + ': ' + quantity; resourceList.append(item); }
+            inventoryPanel.append(resourceList);
+        } else { const empty = document.createElement('p'); empty.className = 'dashboard-list'; empty.textContent = 'No resources recovered yet. Investigate a discovery to collect its reward.'; inventoryPanel.append(empty); }
+        const ledgerCount = Array.isArray(inventory.ledger) ? inventory.ledger.length : 0;
+        const ledgerNote = document.createElement('p'); ledgerNote.className = 'dashboard-list'; ledgerNote.textContent = 'Recorded recovery events: ' + ledgerCount; inventoryPanel.append(ledgerNote);
+        inventoryHost.append(inventoryPanel);
         document.getElementById('scanSystemButton').disabled = false;
         document.getElementById('characterScanStatus').textContent = currentScan
             ? 'Current system already scanned on ' + new Date(currentScan.scanned_at).toLocaleString() + '. ' + (currentScan.discoveries || []).length + ' discovery signal(s) recorded.'
@@ -383,6 +403,7 @@ declare(strict_types=1);
                 item.append(title, details);
                 if (discovery.status === 'investigated') {
                     const outcome = document.createElement('p'); outcome.className = 'dashboard-list'; outcome.textContent = 'Investigation result: ' + (discovery.outcome || 'No result recorded.'); item.append(outcome);
+                    if (discovery.reward) { const reward = document.createElement('p'); reward.className = 'dashboard-list'; reward.textContent = 'Reward: +' + discovery.reward.quantity + ' ' + discovery.reward.label; item.append(reward); }
                 } else {
                     const investigate = document.createElement('button'); investigate.type = 'button'; investigate.className = 'secondary investigate-discovery'; investigate.dataset.discoveryId = discovery.id || ''; investigate.textContent = 'Investigate signal'; investigate.disabled = !characterId; item.append(investigate);
                 }
@@ -782,8 +803,8 @@ declare(strict_types=1);
             try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
             document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
             if (response.ok && data.ok) {
-                status.textContent = data.investigation_status === 'already_investigated' ? 'This discovery was already investigated. Saved result returned; revision unchanged at ' + data.character.revision + '.' : 'Investigation complete: ' + (data.discovery.label || data.discovery.id) + '. Character revision: ' + data.character.revision + '.';
-                logActivity('info', 'Discovery ' + data.investigation_status, (data.discovery.label || discoveryId) + ' — ' + (data.discovery.outcome || 'saved'));
+                status.textContent = data.investigation_status === 'already_investigated' ? 'This discovery was already investigated. Saved result returned; inventory unchanged; revision unchanged at ' + data.character.revision + '.' : 'Investigation complete: ' + (data.discovery.label || data.discovery.id) + '. Recovered +' + (data.reward?.quantity ?? 0) + ' ' + (data.reward?.label || 'resource') + '. Character revision: ' + data.character.revision + '.';
+                logActivity('info', 'Discovery ' + data.investigation_status, (data.discovery.label || discoveryId) + ' — ' + (data.discovery.outcome || 'saved') + (data.reward ? '; reward +' + data.reward.quantity + ' ' + data.reward.label : ''));
                 await refreshCharacters();
                 document.getElementById('characterSelect').value = characterId;
                 document.getElementById('characterRevision').value = String(data.character.revision);

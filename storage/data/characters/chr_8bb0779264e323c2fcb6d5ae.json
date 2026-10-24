@@ -4,10 +4,10 @@
     "universe_id": "uni_d6aaf47504110dc50b183443",
     "name": "bob",
     "role": "Explorer",
-    "current_system_id": "sys_4e73e6f3d1201a58",
+    "current_system_id": "sys_edf93ac2c6062a69",
     "location": {
-        "system_id": "sys_4e73e6f3d1201a58",
-        "updated_at": "2026-10-24T05:43:25+00:00"
+        "system_id": "sys_edf93ac2c6062a69",
+        "updated_at": "2026-10-24T06:05:26+00:00"
     },
     "exploration": {
         "explored_systems": [
@@ -80,7 +80,7 @@
         ]
     },
     "created_at": "2026-10-24T05:34:16+00:00",
-    "revision": 40,
+    "revision": 49,
     "scans": {
         "systems": {
             "sys_3a9a93b845899e87": {
@@ -113,7 +113,15 @@
                         "description": "An asteroid body with an atypical spectral profile.",
                         "system_id": "sys_4e73e6f3d1201a58",
                         "system_name": "System 12",
-                        "classification": "binary"
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:04:44+00:00",
+                        "outcome": "A sample of the unusual asteroid was recovered and catalogued in inventory.",
+                        "reward": {
+                            "resource": "rare_ore",
+                            "label": "Rare ore",
+                            "quantity": 2
+                        }
                     },
                     {
                         "id": "dsc_d7ea64550d2e0482a33f",
@@ -122,7 +130,15 @@
                         "description": "A repeating automated signal with no confirmed active crew.",
                         "system_id": "sys_4e73e6f3d1201a58",
                         "system_name": "System 12",
-                        "classification": "binary"
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:04:48+00:00",
+                        "outcome": "The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.",
+                        "reward": {
+                            "resource": "salvage_parts",
+                            "label": "Salvage parts",
+                            "quantity": 1
+                        }
                     },
                     {
                         "id": "dsc_15b6b0f00d16e001697c",
@@ -131,35 +147,161 @@
                         "description": "A beacon is broadcasting a short, repeating identification burst.",
                         "system_id": "sys_4e73e6f3d1201a58",
                         "system_name": "System 12",
-                        "classification": "binary"
+                        "classification": "binary",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:04:49+00:00",
+                        "outcome": "The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.",
+                        "reward": {
+                            "resource": "intel_fragments",
+                            "label": "Intel fragments",
+                            "quantity": 1
+                        }
+                    }
+                ]
+            },
+            "sys_edf93ac2c6062a69": {
+                "system_id": "sys_edf93ac2c6062a69",
+                "system_name": "System 09",
+                "scanned_at": "2026-10-24T06:05:32+00:00",
+                "scan_revision": 46,
+                "discoveries": [
+                    {
+                        "id": "dsc_9c1343e752a9ef87aed9",
+                        "type": "unknown_beacon",
+                        "label": "Unidentified beacon",
+                        "description": "A beacon is broadcasting a short, repeating identification burst.",
+                        "system_id": "sys_edf93ac2c6062a69",
+                        "system_name": "System 09",
+                        "classification": "nebula-adjacent",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:05:34+00:00",
+                        "outcome": "The beacon yielded a recoverable navigation data fragment. The intel fragment is now in inventory.",
+                        "reward": {
+                            "resource": "intel_fragments",
+                            "label": "Intel fragments",
+                            "quantity": 1
+                        }
+                    },
+                    {
+                        "id": "dsc_9e0176c771002173091c",
+                        "type": "mineral_signature",
+                        "label": "Mineral signature",
+                        "description": "A concentrated mineral trace suitable for a future resource-survey system.",
+                        "system_id": "sys_edf93ac2c6062a69",
+                        "system_name": "System 09",
+                        "classification": "nebula-adjacent",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:05:35+00:00",
+                        "outcome": "Survey complete: recoverable mineral fragments have been collected and logged in the ship inventory.",
+                        "reward": {
+                            "resource": "raw_ore",
+                            "label": "Raw ore",
+                            "quantity": 3
+                        }
+                    },
+                    {
+                        "id": "dsc_7ef580c34bd842fd3b15",
+                        "type": "derelict_signal",
+                        "label": "Derelict transmission",
+                        "description": "A repeating automated signal with no confirmed active crew.",
+                        "system_id": "sys_edf93ac2c6062a69",
+                        "system_name": "System 09",
+                        "classification": "nebula-adjacent",
+                        "status": "investigated",
+                        "investigated_at": "2026-10-24T06:05:37+00:00",
+                        "outcome": "The signal led to a recoverable cache of salvage components. The recovered parts are now in inventory.",
+                        "reward": {
+                            "resource": "salvage_parts",
+                            "label": "Salvage parts",
+                            "quantity": 2
+                        }
                     }
                 ]
             }
         }
     },
     "route_progress": {
-        "route_id": "rte_20e05d5d97fa92f0934b",
-        "destination_system_id": "sys_4e73e6f3d1201a58",
-        "destination_name": "System 12",
+        "route_id": "rte_f7c07e2e51a01c8d521e",
+        "destination_system_id": "sys_c4baa3bdb58d1749",
+        "destination_name": "System 06",
         "path_system_ids": [
-            "sys_3a9a93b845899e87",
-            "sys_da0a436f57a9a273",
-            "sys_3f7ece5fe99144c5",
-            "sys_8b76f9bafdcd1d96",
-            "sys_c4baa3bdb58d1749",
-            "sys_c3b215af045af847",
-            "sys_217a1a52629b4abd",
-            "sys_61c2842b7b8e65f2",
-            "sys_a39bd5dec357b9aa",
+            "sys_4e73e6f3d1201a58",
             "sys_edf93ac2c6062a69",
-            "sys_4e73e6f3d1201a58"
+            "sys_a39bd5dec357b9aa",
+            "sys_61c2842b7b8e65f2",
+            "sys_217a1a52629b4abd",
+            "sys_c3b215af045af847",
+            "sys_c4baa3bdb58d1749"
         ],
-        "current_step_index": 10,
-        "total_hops": 10,
-        "status": "completed",
-        "planned_from_system_id": "sys_3a9a93b845899e87",
-        "planned_at": "2026-10-24T05:43:17+00:00",
-        "updated_at": "2026-10-24T05:43:25+00:00",
-        "completed_at": "2026-10-24T05:43:25+00:00"
+        "current_step_index": 1,
+        "total_hops": 6,
+        "status": "active",
+        "planned_from_system_id": "sys_4e73e6f3d1201a58",
+        "planned_at": "2026-10-24T06:05:25+00:00",
+        "updated_at": "2026-10-24T06:05:26+00:00"
+    },
+    "inventory": {
+        "resources": {
+            "rare_ore": 2,
+            "salvage_parts": 3,
+            "intel_fragments": 2,
+            "raw_ore": 3
+        },
+        "ledger": [
+            {
+                "id": "inv_561f8ebc01a045c3b925",
+                "discovery_id": "dsc_af0dd0e85e880c2c10ed",
+                "resource": "rare_ore",
+                "label": "Rare ore",
+                "quantity": 2,
+                "system_id": "sys_4e73e6f3d1201a58",
+                "recorded_at": "2026-10-24T06:04:44+00:00"
+            },
+            {
+                "id": "inv_6449068d5c4ed369bad1",
+                "discovery_id": "dsc_d7ea64550d2e0482a33f",
+                "resource": "salvage_parts",
+                "label": "Salvage parts",
+                "quantity": 1,
+                "system_id": "sys_4e73e6f3d1201a58",
+                "recorded_at": "2026-10-24T06:04:48+00:00"
+            },
+            {
+                "id": "inv_a78988b1519b63219bd0",
+                "discovery_id": "dsc_15b6b0f00d16e001697c",
+                "resource": "intel_fragments",
+                "label": "Intel fragments",
+                "quantity": 1,
+                "system_id": "sys_4e73e6f3d1201a58",
+                "recorded_at": "2026-10-24T06:04:49+00:00"
+            },
+            {
+                "id": "inv_cc6a782902bc1c30c83c",
+                "discovery_id": "dsc_9c1343e752a9ef87aed9",
+                "resource": "intel_fragments",
+                "label": "Intel fragments",
+                "quantity": 1,
+                "system_id": "sys_edf93ac2c6062a69",
+                "recorded_at": "2026-10-24T06:05:34+00:00"
+            },
+            {
+                "id": "inv_6669c9a43fad52f01aac",
+                "discovery_id": "dsc_9e0176c771002173091c",
+                "resource": "raw_ore",
+                "label": "Raw ore",
+                "quantity": 3,
+                "system_id": "sys_edf93ac2c6062a69",
+                "recorded_at": "2026-10-24T06:05:35+00:00"
+            },
+            {
+                "id": "inv_a096e9d4b395a79b8d62",
+                "discovery_id": "dsc_7ef580c34bd842fd3b15",
+                "resource": "salvage_parts",
+                "label": "Salvage parts",
+                "quantity": 2,
+                "system_id": "sys_edf93ac2c6062a69",
+                "recorded_at": "2026-10-24T06:05:37+00:00"
+            }
+        ]
     }
 }

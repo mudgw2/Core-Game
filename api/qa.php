@@ -1736,6 +1736,23 @@ $run('Item categories are a JSON-defined dropdown and arbitrary categories are r
     return 'Item category labels load from JSON; item forms use a required dropdown; every configured item category is allow-listed.';
 });
 
+$run('Required text characteristic validation rejects blank and whitespace-only values', static function () use ($assert): string {
+    $schema = ContentCatalog::itemCharacteristicsDocument();
+    $schema['categories']['resource']['fields']['qa_required_text'] = ['label'=>'QA required text','type'=>'text','required'=>true,'min_length'=>1,'default'=>'valid'];
+    foreach (['', '   '] as $bad) {
+        $docs = ['items'=>ContentCatalog::document('items'),'recipes'=>ContentCatalog::document('recipes'),'discoveries'=>ContentCatalog::document('discoveries'),'ship_modules'=>ContentCatalog::document('ship_modules')];
+        $docs['items']['entries']['raw_ore']['characteristics']['qa_required_text'] = $bad;
+        try { ContentCatalog::validateDocuments($docs, $schema); throw new RuntimeException('Blank required text was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid value for item characteristic'), 'Unexpected validation error: '.$e->getMessage()); }
+    }
+    return 'Required text rejects empty and whitespace-only values during server-side catalog validation using an isolated in-memory schema.';
+});
+$run('Structured characteristic editor applies defaults and enforces required and length constraints', static function () use ($assert): string {
+    $html = (string)file_get_contents(dirname(__DIR__) . '/index.php');
+    foreach (['field.default','field.min_length','field.max_length','control.required','Characteristic ${key} is required.'] as $needle) $assert(str_contains($html, $needle), 'Missing editor behavior: '.$needle);
+    return 'Default values, required fields, and text-length constraints are represented in the structured editor.';
+});
+
 $run('Item characteristic values persist through revision-checked save and reload', static function () use ($assert): string {
     $root = dirname(__DIR__); $dir = sys_get_temp_dir() . '/core-web-item-characteristics-roundtrip-' . bin2hex(random_bytes(8));
     try {
@@ -1821,8 +1838,128 @@ $run('Workbench exposes structured content management and revision-checked APIs'
     return 'Workbench editor controls, API wrappers, and four JSON catalogs are present.';
 });
 
+
+$run('Module registry executes a demonstration module through the shared context', static function () use ($assert, $equal): string {
+    $services = new Core\Modules\ServiceContainer();
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext($services));
+    $registry->register(new Core\Modules\Demo\DemoModule());
+    $equal(['demo'], $registry->bootAll(), 'Unexpected module boot order.');
+    $greeting = $services->get('demo.greeting');
+    $equal('Hello, browser QA!', $greeting('browser QA'), 'Demo module service returned an unexpected value.');
+    return 'Demo module booted and its injected service executed.';
+});
+$run('Module registry rejects duplicate module identifiers', static function () use ($assert): string {
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register(new Core\Modules\Demo\DemoModule());
+    try { $registry->register(new Core\Modules\Demo\DemoModule()); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'already registered'), 'Unexpected duplicate error.'); return 'Duplicate module name rejected.'; }
+    throw new RuntimeException('Duplicate module was accepted.');
+});
+$run('Module registry rejects missing dependencies', static function () use ($assert): string {
+    $module = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'browser_needs_base'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return ['browser_base_missing']; }
+        public function boot(Core\Modules\ModuleContext $context): void {}
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($module);
+    try { $registry->bootAll(); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), "requires missing module 'browser_base_missing'"), 'Unexpected dependency error.'); return 'Missing dependency rejected before boot.'; }
+    throw new RuntimeException('Missing dependency was accepted.');
+});
+$run('Module registry resolves dependency order independent of registration order', static function () use ($assert, $equal): string {
+    $order = [];
+    $base = new class($order) implements Core\Modules\ModuleInterface {
+        public array $order;
+        public function __construct(array &$order) { $this->order =& $order; }
+        public function name(): string { return 'browser_base'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return []; }
+        public function boot(Core\Modules\ModuleContext $context): void { $this->order[] = 'browser_base'; }
+    };
+    $child = new class($order) implements Core\Modules\ModuleInterface {
+        public array $order;
+        public function __construct(array &$order) { $this->order =& $order; }
+        public function name(): string { return 'browser_child'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return ['browser_base']; }
+        public function boot(Core\Modules\ModuleContext $context): void { $this->order[] = 'browser_child'; }
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($child); $registry->register($base); $registry->bootAll();
+    $equal(['browser_base', 'browser_child'], $order, 'Incorrect dependency boot order.');
+    return 'Dependencies boot before dependents even when registered in reverse order.';
+});
+$run('Module registry detects dependency cycles', static function () use ($assert): string {
+    $a = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'browser_cycle_a'; }
+        public function version(): string { return '1'; }
+        public function dependencies(): array { return ['browser_cycle_b']; }
+        public function boot(Core\Modules\ModuleContext $context): void {}
+    };
+    $b = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'browser_cycle_b'; }
+        public function version(): string { return '1'; }
+        public function dependencies(): array { return ['browser_cycle_a']; }
+        public function boot(Core\Modules\ModuleContext $context): void {}
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($a); $registry->register($b);
+    try { $registry->bootAll(); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'dependency cycle'), 'Unexpected cycle error.'); return 'Circular module dependencies rejected.'; }
+    throw new RuntimeException('Dependency cycle was accepted.');
+});
+$run('Service container rejects duplicate and missing service IDs', static function () use ($assert, $equal): string {
+    $services = new Core\Modules\ServiceContainer(); $services->set('browser.value', 7);
+    $equal(7, $services->get('browser.value'), 'Registered service did not round-trip.');
+    try { $services->set('browser.value', 8); throw new RuntimeException('Duplicate service accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'already registered'), 'Unexpected duplicate service error.'); }
+    try { $services->get('browser.missing'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not registered'), 'Unexpected missing service error.'); return 'Duplicate and missing service IDs fail explicitly.'; }
+    throw new RuntimeException('Missing service was accepted.');
+});
+
+$run('Player website, account access, and interactive map controls are present', static function () use ($assert): string {
+    $site = file_get_contents(CORE_ROOT . '/player/index.php');
+    $account = file_get_contents(CORE_ROOT . '/player/account.php');
+    $game = file_get_contents(CORE_ROOT . '/player/game.php');
+    $js = file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(is_string($site) && str_contains($site, 'global-nav') && str_contains($site, 'Universes'), 'Public website navigation is missing.');
+    $assert(is_string($account) && str_contains($account, 'password_hash') && str_contains($account, 'password_verify'), 'Account registration/login implementation is missing.');
+    $assert(is_string($game) && str_contains($game, 'core_user') && str_contains($game, 'travelButton'), 'Player portal authentication gate or travel controls are missing.');
+    $assert(is_string($js) && str_contains($js, 'navigation-route.php') && str_contains($js, 'character-travel.php'), 'Interactive travel integration is missing.');
+    return 'Public site, account forms, portal gate, system details, and travel controls are present.';
+});
+
+
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
 $failed = count($results) - $passed;
 http_response_code($failed === 0 ? 200 : 500);
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.46', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+$run('Player prototype is separate from the developer Workbench', static function () use ($assert): string {
+    $html = file_get_contents(dirname(__DIR__) . '/player/index.php');
+    $assert(is_string($html), 'Player prototype HTML could not be read.');
+    foreach (['CORE · Unbound Frontiers', 'global-nav', 'Universes', 'account.php', 'Create account'] as $needle) {
+        $assert(str_contains($html, $needle), 'Player prototype is missing marker: ' . $needle);
+    }
+    return 'Public landing page contains global game navigation, account access, and standard website content.';
+});
+$run('Player prototype uses Babylon.js and backend entity IDs', static function () use ($assert): string {
+    $js = file_get_contents(dirname(__DIR__) . '/player/player.js');
+    $assert(is_string($js), 'Player JavaScript could not be read.');
+    foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', "api('universe.php')", 'api(`navigation.php?universe_id=', 'entityId: system.id', 'api(`characters.php?universe_id=', 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed'] as $needle) {
+        $assert(str_contains($js, $needle), 'Player JavaScript is missing marker: ' . $needle);
+    }
+    return 'Babylon.js renders primitive system markers mapped to stable backend system IDs and uses existing universe/navigation/character APIs.';
+});
+$run('Active release version labels are consistent at 0.1.52', static function () use ($assert): string {
+    $workbench = file_get_contents(dirname(__DIR__) . '/index.php');
+    $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $assert(is_string($workbench) && str_contains($workbench, 'Foundation 0.1.52'), 'Workbench version label is stale.');
+    $assert(is_string($application) && str_contains($application, "'version' => '0.1.52'"), 'Application version is stale.');
+    return 'Workbench and application metadata report release 0.1.52.';
+});
+
+
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.52', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

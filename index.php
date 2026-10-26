@@ -86,7 +86,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.46</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.52</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -586,7 +586,7 @@ declare(strict_types=1);
             } else {
                 const type = field.type === 'integer' || field.type === 'number' ? 'number' : 'text';
                 const step = field.type === 'integer' ? '1' : (field.type === 'number' ? 'any' : '');
-                const attrs = `${required} ${field.min !== undefined ? `min="${escContent(field.min)}"` : ''} ${field.max !== undefined ? `max="${escContent(field.max)}"` : ''} ${field.max_length !== undefined ? `maxlength="${escContent(field.max_length)}"` : ''} ${step ? `step="${step}"` : ''}`;
+                const attrs = `${required} ${field.min !== undefined ? `min="${escContent(field.min)}"` : ''} ${field.max !== undefined ? `max="${escContent(field.max)}"` : ''} ${field.max_length !== undefined ? `maxlength="${escContent(field.max_length)}"` : ''} ${field.min_length !== undefined ? `minlength="${escContent(field.min_length)}"` : ''} ${step ? `step="${step}"` : ''}`;
                 html += `<div class="content-field"><label for="entryCharacteristic_${escContent(fieldId)}">${escContent(label)}</label><input id="entryCharacteristic_${escContent(fieldId)}" type="${type}" data-characteristic="${escContent(fieldId)}" data-characteristic-type="${escContent(field.type)}" value="${escContent(value ?? '')}" ${attrs}>${field.description?`<p class="field-help">${escContent(field.description)}</p>`:''}</div>`;
             }
         }
@@ -599,8 +599,17 @@ declare(strict_types=1);
             const type = control.dataset.characteristicType;
             if (type === 'boolean') { values[key] = !!control.checked; return; }
             const raw = control.value;
-            if (raw === '') return;
-            if (type === 'integer') {
+            if (raw === '') {
+                if (control.required) throw new Error(`Characteristic ${key} is required.`);
+                return;
+            }
+            if (type === 'text') {
+                const minLength = Number(control.getAttribute('minlength') || 0);
+                const maxLength = Number(control.getAttribute('maxlength') || 500);
+                if (raw.trim() === '' && control.required) throw new Error(`Characteristic ${key} is required.`);
+                if (raw.length < minLength || raw.length > maxLength) throw new Error(`Characteristic ${key} must contain ${minLength}–${maxLength} characters.`);
+                values[key] = raw;
+            } else if (type === 'integer') {
                 if (!Number.isSafeInteger(Number(raw))) throw new Error(`Characteristic ${key} must be a whole number.`);
                 values[key] = Number(raw);
             } else if (type === 'number') {
@@ -758,7 +767,7 @@ declare(strict_types=1);
     function applySchemaField(){if(!schemaDoc)throw new Error('Load the schema first.');const category=schemaCategorySelect.value,fields=schemaCurrentCategory()?.fields;if(!fields)throw new Error('Choose a category.');const id=schemaNewField?schemaVal('schemaFieldId').trim():schemaFieldSelect.value;const label=schemaVal('schemaFieldLabel').trim(),type=schemaVal('schemaFieldType');if(!/^[a-z][a-z0-9_]{1,63}$/.test(id))throw new Error('Field ID must start with a lowercase letter and contain 2–64 lowercase letters, numbers, or underscores.');if(schemaNewField&&Object.hasOwn(fields,id))throw new Error('That field ID already exists in this category.');if(!label)throw new Error('Display label is required.');const field={label,type,required:document.getElementById('schemaFieldRequired').checked};const desc=schemaVal('schemaFieldDescription').trim();if(desc)field.description=desc;const min=schemaVal('schemaFieldMin').trim(),max=schemaVal('schemaFieldMax').trim();if(['number','integer'].includes(type)){if(min!==''){field.min=Number(min);if(!Number.isFinite(field.min))throw new Error('Minimum must be numeric.');}if(max!==''){field.max=Number(max);if(!Number.isFinite(field.max))throw new Error('Maximum must be numeric.');}if(min!==''&&max!==''&&field.min>field.max)throw new Error('Minimum cannot exceed maximum.');}
         const rawDefault=schemaVal('schemaFieldDefault').trim();if(rawDefault!==''){if(type==='boolean'){if(!['true','false'].includes(rawDefault))throw new Error('Boolean default must be true or false.');field.default=rawDefault==='true';}else if(type==='number'||type==='integer'){field.default=Number(rawDefault);if(!Number.isFinite(field.default)||(type==='integer'&&!Number.isInteger(field.default)))throw new Error('Default must match the selected numeric type.');if(field.min!==undefined&&field.default<field.min||field.max!==undefined&&field.default>field.max)throw new Error('Default must be within the configured limits.');}else if(type==='enum'){field.options=parseSchemaOptions(schemaVal('schemaFieldOptions'));if(!Object.hasOwn(field.options,rawDefault))throw new Error('Default must match one of the option IDs.');field.default=rawDefault;}else field.default=rawDefault;}
         if(type==='enum'){field.options=parseSchemaOptions(schemaVal('schemaFieldOptions'));if(field.default!==undefined&&!Object.hasOwn(field.options,field.default))throw new Error('Default must match one of the option IDs.');}
-        if(schemaNewField)fields[id]=field;else fields[id]=field;schemaDoc.content_version='0.1.46';schemaDoc.categories[category].fields=fields;schemaDoc.dirty=true;refreshSchemaFields(id);schemaMsg('info',`Draft updated: ${category}/${id}. Validate before saving.`);logActivity('info','Characteristic definition draft updated',`${category}/${id}`);}
+        if(schemaNewField)fields[id]=field;else fields[id]=field;schemaDoc.content_version='0.1.52';schemaDoc.categories[category].fields=fields;schemaDoc.dirty=true;refreshSchemaFields(id);schemaMsg('info',`Draft updated: ${category}/${id}. Validate before saving.`);logActivity('info','Characteristic definition draft updated',`${category}/${id}`);}
     async function schemaRequest(path,body){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error?.message||'Schema request failed.');return data;}
     async function loadSchemaManager(){try{schemaMsg('info','Loading characteristic definitions…');const r=await fetch('api/content/item-characteristics.php',{headers:{'Accept':'application/json'},cache:'no-store'});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error?.message||'Could not load schema.');schemaDoc=cloneContent(data.document);schemaRevision=Number.isInteger(schemaDoc.revision)?schemaDoc.revision:1;delete schemaDoc.catalog;delete schemaDoc.entries;schemaCategorySelect.replaceChildren();const categories=contentDraftDocuments.item_categories?.entries||{};Object.entries(schemaDoc.categories).forEach(([id])=>schemaCategorySelect.add(new Option(categories[id]?.label||id,id)));if(!schemaCategorySelect.options.length)throw new Error('No item categories are configured.');refreshSchemaFields();schemaMsg('success',`Loaded ${schemaCategorySelect.options.length} category schemas · revision ${schemaRevision}.`);}
         catch(e){schemaMsg('error','Load failed: '+e.message);logActivity('error','Characteristic schema load failed',e.message);}}

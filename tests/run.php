@@ -519,6 +519,24 @@ $test('item characteristics are defined in JSON and exposed by the aggregate con
     $equal('rare', $all['items']['entries']['rare_ore']['characteristics']['rarity']);
 });
 
+$test('required text characteristics reject blank and whitespace-only values', static function () use ($assert): void {
+    $schema = ContentCatalog::itemCharacteristicsDocument();
+    $schema['categories']['resource']['fields']['description_test'] = ['label'=>'Description test','type'=>'text','required'=>true,'min_length'=>1,'default'=>'valid'];
+    foreach (['', '   '] as $bad) {
+        $candidate = ContentCatalog::document('items');
+        $candidate['entries']['raw_ore']['characteristics']['description_test'] = $bad;
+        try { ContentCatalog::validateDocuments(['items'=>$candidate, 'recipes'=>ContentCatalog::document('recipes'), 'discoveries'=>ContentCatalog::document('discoveries'), 'ship_modules'=>ContentCatalog::document('ship_modules')], $schema); throw new RuntimeException('Blank required text was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Invalid value for item characteristic'), 'Unexpected required-text validation error: '.$e->getMessage()); }
+    }
+});
+
+$test('characteristic defaults and required text constraints are rendered in structured editor', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(str_contains($html, 'field.default'), 'Schema defaults are not used to prefill characteristic controls.');
+    $assert(str_contains($html, 'field.min_length'), 'Text minimum length is not rendered.');
+    $assert(str_contains($html, 'if (control.required) throw new Error(`Characteristic ${key} is required.`)'), 'Required characteristic values are not enforced in the editor.');
+});
+
 $test('item characteristic values reject unknown enum values and unknown fields', static function () use ($assert): void {
     $items = ContentCatalog::document('items');
     $items['entries']['raw_ore']['characteristics']['rarity'] = 'ultra_cosmic';
@@ -546,6 +564,88 @@ $test('Workbench defaults to structured content editing with optional advanced J
         $assert(str_contains($html, $needle), 'Missing structured content editor feature: ' . $needle);
     }
     $assert((bool)preg_match('/<details id="contentAdvancedDetails">/', $html), 'Advanced JSON editor should be collapsed by default.');
+});
+
+
+$test('module registry boots a demonstration module and exposes its service', static function () use ($assert, $equal): void {
+    $services = new Core\Modules\ServiceContainer();
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext($services));
+    $registry->register(new Core\Modules\Demo\DemoModule());
+    $equal(['demo'], $registry->bootAll(), 'Unexpected module boot order.');
+    $greeting = $services->get('demo.greeting');
+    $assert(is_callable($greeting), 'Demo service was not registered as a callable.');
+    $equal('Hello, CORE!', $greeting('CORE'), 'Demo module did not execute correctly.');
+});
+$test('module registry rejects duplicate module names', static function () use ($assert): void {
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register(new Core\Modules\Demo\DemoModule());
+    try { $registry->register(new Core\Modules\Demo\DemoModule()); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'already registered'), 'Unexpected duplicate-module error.'); return; }
+    throw new RuntimeException('Duplicate module registration was accepted.');
+});
+$test('module registry rejects missing dependencies before booting modules', static function () use ($assert): void {
+    $module = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'needs_base'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return ['base']; }
+        public function boot(Core\Modules\ModuleContext $context): void { throw new RuntimeException('Must not boot.'); }
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($module);
+    try { $registry->bootAll(); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), "requires missing module 'base'"), 'Unexpected missing-dependency error.'); return; }
+    throw new RuntimeException('Missing module dependency was accepted.');
+});
+$test('module registry boots dependencies before dependent modules', static function () use ($equal): void {
+    $order = [];
+    $base = new class($order) implements Core\Modules\ModuleInterface {
+        public array $order;
+        public function __construct(array &$order) { $this->order =& $order; }
+        public function name(): string { return 'base'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return []; }
+        public function boot(Core\Modules\ModuleContext $context): void { $this->order[] = 'base'; }
+    };
+    $child = new class($order) implements Core\Modules\ModuleInterface {
+        public array $order;
+        public function __construct(array &$order) { $this->order =& $order; }
+        public function name(): string { return 'child'; }
+        public function version(): string { return '1.0.0'; }
+        public function dependencies(): array { return ['base']; }
+        public function boot(Core\Modules\ModuleContext $context): void { $this->order[] = 'child'; }
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($child); $registry->register($base); $registry->bootAll();
+    $equal(['base', 'child'], $order, 'Modules did not boot in dependency order.');
+});
+$test('module registry detects dependency cycles', static function () use ($assert): void {
+    $a = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'cycle_a'; }
+        public function version(): string { return '1'; }
+        public function dependencies(): array { return ['cycle_b']; }
+        public function boot(Core\Modules\ModuleContext $context): void {}
+    };
+    $b = new class implements Core\Modules\ModuleInterface {
+        public function name(): string { return 'cycle_b'; }
+        public function version(): string { return '1'; }
+        public function dependencies(): array { return ['cycle_a']; }
+        public function boot(Core\Modules\ModuleContext $context): void {}
+    };
+    $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
+    $registry->register($a); $registry->register($b);
+    try { $registry->bootAll(); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'dependency cycle'), 'Unexpected cycle error.'); return; }
+    throw new RuntimeException('Module dependency cycle was accepted.');
+});
+$test('service container rejects duplicate IDs and reports missing services', static function () use ($assert, $equal): void {
+    $services = new Core\Modules\ServiceContainer();
+    $services->set('example.value', 42);
+    $equal(42, $services->get('example.value'));
+    try { $services->set('example.value', 99); throw new RuntimeException('Duplicate service ID was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'already registered'), 'Unexpected duplicate service error.'); }
+    try { $services->get('missing'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not registered'), 'Unexpected missing service error.'); return; }
+    throw new RuntimeException('Missing service lookup was accepted.');
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

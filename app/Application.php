@@ -23,16 +23,46 @@ use Core\Modules\UniverseBackupService;
 use Core\Modules\UniverseDeletionService;
 use Core\Modules\Universe\NavigationRouteService;
 use Core\Storage\JsonStorage;
+use Core\Modules\ModuleContext;
+use Core\Modules\ModuleInterface;
+use Core\Modules\ModuleRegistry;
+use Core\Modules\ServiceContainer;
 use Throwable;
 use RuntimeException;
 
 final class Application
 {
     private Router $router;
+    private ServiceContainer $services;
+    private ModuleRegistry $modules;
 
     public function __construct()
     {
         $this->router = new Router();
+        $this->services = new ServiceContainer();
+        $this->modules = new ModuleRegistry(new ModuleContext($this->services));
+    }
+
+    /** Register a gameplay or infrastructure module before module boot. */
+    public function registerModule(ModuleInterface $module): void
+    {
+        $this->modules->register($module);
+    }
+
+    /** Boot registered modules and return their resolved boot order. */
+    public function bootModules(): array
+    {
+        return $this->modules->bootAll();
+    }
+
+    public function moduleRegistry(): ModuleRegistry
+    {
+        return $this->modules;
+    }
+
+    public function services(): ServiceContainer
+    {
+        return $this->services;
     }
 
     public function router(): Router
@@ -148,7 +178,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.46',
+            'version' => '0.1.52',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.

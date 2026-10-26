@@ -1,4 +1,4 @@
-# CORE PHP Foundation 0.1.46
+# CORE PHP Foundation 0.1.52
 
 CORE is a seed-driven sci-fi sandbox foundation using PHP, JSON persistence, and a browser Workbench.
 
@@ -61,7 +61,7 @@ The Workbench's **Run automated tests** action runs the browser QA suite. Do not
 
 Preserve the live contents of `storage/data/`, `storage/logs/`, and `storage/backups/` when installing an upgrade. The package's placeholder storage directories must not replace or erase live data. Content backups are stored under `storage/backups/content/` and should also be retained.
 
-See `RELEASE-NOTES-0.1.46.md` for changes and validation results.
+See `RELEASE-NOTES-0.1.52.md` for changes and validation results.
 
 ## Item characteristics (introduced in 0.1.45)
 
@@ -70,3 +70,22 @@ Item-specific typed fields are defined in `config/content/item-characteristics.j
 ## Characteristic schema management (introduced in 0.1.45)
 
 The Item Characteristics Manager lets you select a category and add/edit/remove typed fields through forms. It supports text, number, integer, boolean, and enumerated choices, plus required/default settings, numeric limits, option IDs/labels, and descriptions. Existing field IDs cannot be renamed. Before saving, the server checks all current items; it rejects changes that would invalidate values or remove fields currently in use. Successful saves are revision-checked, backed up, and atomically replaced.
+
+
+## Modular foundation (0.1.49)
+
+The separate player prototype is available at `/player/`. It is an early development UI and requires the existing development-only universe, navigation, and character APIs; account authentication is not implemented.
+
+The backend now includes a small module registration and boot framework:
+
+- `ModuleInterface` declares a stable module name, version, dependencies, and boot method.
+- `ModuleRegistry` rejects duplicate identifiers, missing dependencies, invalid dependency declarations, and dependency cycles; modules boot in dependency order.
+- `ModuleContext` provides a shared service container for explicit dependency injection.
+- `ServiceContainer` rejects duplicate or missing service IDs rather than silently replacing or returning absent services.
+- `Core\Modules\Demo\DemoModule` is a minimal working example of a module registering a callable service.
+- `Application` exposes `registerModule()`, `bootModules()`, `moduleRegistry()`, and `services()` for future module integration.
+
+This release establishes and tests the framework contract. Existing routes and gameplay services remain on their current wiring; migrating all existing services into modules is intentionally a separate, controlled step.
+
+
+Player-facing entry point: `/player/index.php`. Account access: `/player/account.php`. The initial account prototype stores password hashes in `storage/data/player-accounts.json`; gameplay APIs remain development/private-network restricted and are not yet authorized against account ownership.

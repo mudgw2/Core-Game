@@ -1,0 +1,103 @@
+{
+    "id": "uni_5db1fee4b5703808c48078a7",
+    "seed_fingerprint": "5db1fee4b570",
+    "generator_version": 1,
+    "created_at": "2026-10-26T02:48:55+00:00",
+    "baseline": {
+        "id": "uni_5db1fee4b5703808c48078a7",
+        "generator_version": 1,
+        "seed_fingerprint": "5db1fee4b570",
+        "system_count": 12,
+        "systems": [
+            {
+                "id": "sys_8165cee528987e02",
+                "name": "System 01",
+                "x": 3124,
+                "y": 2963,
+                "classification": "ordinary"
+            },
+            {
+                "id": "sys_952268f2a38eba6f",
+                "name": "System 02",
+                "x": 8177,
+                "y": -3135,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_3b9b991928703a2d",
+                "name": "System 03",
+                "x": 5259,
+                "y": 9192,
+                "classification": "ordinary"
+            },
+            {
+                "id": "sys_34b1006b8efaf11c",
+                "name": "System 04",
+                "x": 3489,
+                "y": -9893,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_5bea8b634a7d1d3f",
+                "name": "System 05",
+                "x": -6471,
+                "y": 5682,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_1f578caa894a479c",
+                "name": "System 06",
+                "x": -1977,
+                "y": 6009,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_f08318aaf37c4747",
+                "name": "System 07",
+                "x": -8432,
+                "y": -3686,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_2265b88f6429686b",
+                "name": "System 08",
+                "x": -1195,
+                "y": -2755,
+                "classification": "ordinary"
+            },
+            {
+                "id": "sys_e5695d3eab0892a6",
+                "name": "System 09",
+                "x": 8727,
+                "y": -6131,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_239d2bf6a95cfba6",
+                "name": "System 10",
+                "x": -883,
+                "y": 1254,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_e1469715866c7bfe",
+                "name": "System 11",
+                "x": 7668,
+                "y": 8676,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_03fc364354a955b1",
+                "name": "System 12",
+                "x": -8980,
+                "y": 3891,
+                "classification": "ordinary"
+            }
+        ]
+    },
+    "state": {
+        "schema_version": 1,
+        "revision": 0,
+        "changes": []
+    }
+}

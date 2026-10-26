@@ -48,7 +48,7 @@ final class ContentCatalog
         return $document;
     }
 
-    private static function validateDefinitions(string $name, array $entries, ?array $itemDefinitions = null): void
+    private static function validateDefinitions(string $name, array $entries, ?array $itemDefinitions = null, ?array $characteristicSchema = null): void
     {
         $items = null;
         if ($name !== 'items') {
@@ -59,7 +59,7 @@ final class ContentCatalog
                 if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['category'] ?? null) || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_bool($entry['stackable'] ?? null)) throw new RuntimeException('Invalid item definition: ' . $id);
                 $categories = self::itemCategoriesDocument()['entries'];
                 if (!isset($categories[$entry['category']])) throw new RuntimeException('Invalid item category for ' . $id . ': ' . (string)$entry['category'] . '. Choose a category defined in config/content/item-categories.json.');
-                self::validateItemCharacteristics($id, $entry, $entry['category']);
+                self::validateItemCharacteristics($id, $entry, $entry['category'], $characteristicSchema);
             } elseif ($name === 'recipes') {
                 if (!is_string($entry['label'] ?? null) || trim($entry['label']) === '' || strlen($entry['label']) > 120 || !is_string($entry['description'] ?? '') || strlen((string)($entry['description'] ?? '')) > 2000 || !is_array($entry['inputs'] ?? null) || $entry['inputs'] === []) throw new RuntimeException('Invalid recipe definition: ' . $id);
                 foreach ($entry['inputs'] as $itemId => $quantity) if (!isset($items[$itemId]) || !is_int($quantity) || $quantity < 1 || $quantity > 1000000) throw new RuntimeException('Invalid recipe input: ' . $id . '/' . $itemId);
@@ -124,9 +124,9 @@ final class ContentCatalog
         return $document;
     }
 
-    private static function validateItemCharacteristics(string $itemId, array $entry, string $categoryId): void
+    private static function validateItemCharacteristics(string $itemId, array $entry, string $categoryId, ?array $characteristicSchema = null): void
     {
-        $schema = self::itemCharacteristicsDocument();
+        $schema = $characteristicSchema ?? self::itemCharacteristicsDocument();
         $fields = $schema['categories'][$categoryId]['fields'] ?? [];
         $values = $entry['characteristics'] ?? [];
         if (!is_array($values)) throw new RuntimeException('Item characteristics must be an object: ' . $itemId);
@@ -147,7 +147,7 @@ final class ContentCatalog
     {
         $type = $field['type'] ?? '';
         $valid = match ($type) {
-            'text' => is_string($value) && strlen($value) <= (int)($field['max_length'] ?? 500) && strlen($value) >= (int)($field['min_length'] ?? 0),
+            'text' => is_string($value) && (!(($field['required'] ?? false) === true) || trim($value) !== '') && strlen($value) <= (int)($field['max_length'] ?? 500) && strlen($value) >= (int)($field['min_length'] ?? 0),
             'number' => (is_int($value) || is_float($value)) && is_finite((float)$value) && (!isset($field['min']) || $value >= $field['min']) && (!isset($field['max']) || $value <= $field['max']),
             'integer' => is_int($value) && (!isset($field['min']) || $value >= $field['min']) && (!isset($field['max']) || $value <= $field['max']),
             'boolean' => is_bool($value),
@@ -158,7 +158,7 @@ final class ContentCatalog
     }
 
     /** Validate a complete candidate set, including cross-catalog references. */
-    public static function validateDocuments(array $documents): void
+    public static function validateDocuments(array $documents, ?array $characteristicSchema = null): void
     {
         $required = array_keys(self::FILES);
         foreach ($required as $name) {
@@ -180,7 +180,7 @@ final class ContentCatalog
         }
         $items = $documents['items']['entries'];
         foreach ($required as $name) {
-            self::validateDefinitions($name, $documents[$name]['entries'], $items);
+            self::validateDefinitions($name, $documents[$name]['entries'], $items, $characteristicSchema);
         }
         $rules = $documents['discoveries']['scan_rules'] ?? ['minimum_signals' => 1, 'maximum_signals' => 3];
         if (!is_array($rules) || !is_int($rules['minimum_signals'] ?? null) || !is_int($rules['maximum_signals'] ?? null) || $rules['minimum_signals'] < 1 || $rules['maximum_signals'] < $rules['minimum_signals'] || $rules['maximum_signals'] > 100) {

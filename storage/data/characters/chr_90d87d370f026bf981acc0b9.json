@@ -1,0 +1,30 @@
+{
+    "id": "chr_90d87d370f026bf981acc0b9",
+    "schema_version": 1,
+    "universe_id": "uni_1a7648bc484b3d9ed9e2226d",
+    "name": "6787",
+    "role": "Industrialist",
+    "lifecycle": {
+        "enabled": true,
+        "locked": false,
+        "updated_at": "2026-10-26T02:58:19+00:00",
+        "last_action": "created"
+    },
+    "current_system_id": "sys_eab2a07c66af8e19",
+    "location": {
+        "system_id": "sys_eab2a07c66af8e19",
+        "updated_at": "2026-10-26T02:58:19+00:00"
+    },
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_eab2a07c66af8e19",
+                "name": "System 01",
+                "first_visited_at": "2026-10-26T02:58:19+00:00",
+                "first_visited_revision": 0
+            }
+        ]
+    },
+    "created_at": "2026-10-26T02:58:19+00:00",
+    "revision": 0
+}

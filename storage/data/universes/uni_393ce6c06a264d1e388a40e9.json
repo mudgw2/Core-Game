@@ -1,0 +1,145 @@
+{
+    "id": "uni_393ce6c06a264d1e388a40e9",
+    "seed": "123123",
+    "settings": {
+        "system_density": 50,
+        "anomaly_rate": 25,
+        "binary_star_rate": 30,
+        "nebula_presence": 35
+    },
+    "seed_fingerprint": "96cae35ce8a9",
+    "generator_version": 2,
+    "created_at": "2026-10-26T04:40:10+00:00",
+    "baseline": {
+        "id": "uni_393ce6c06a264d1e388a40e9",
+        "seed": "123123",
+        "settings": {
+            "system_density": 50,
+            "anomaly_rate": 25,
+            "binary_star_rate": 30,
+            "nebula_presence": 35
+        },
+        "generator_version": 2,
+        "seed_fingerprint": "96cae35ce8a9",
+        "system_count": 16,
+        "systems": [
+            {
+                "id": "sys_1363f2e4c841d692",
+                "name": "System 01",
+                "x": -5037,
+                "y": -7823,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_211f4f11a6f45899",
+                "name": "System 02",
+                "x": -1521,
+                "y": -9760,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_0cc02da0e57d6ae9",
+                "name": "System 03",
+                "x": -6736,
+                "y": 1680,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_509f0ddb462f7c67",
+                "name": "System 04",
+                "x": -9362,
+                "y": -6453,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_eb6fa932d45818a0",
+                "name": "System 05",
+                "x": -9732,
+                "y": -6688,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_5a5ba94fb9d384e2",
+                "name": "System 06",
+                "x": -6870,
+                "y": -6659,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_d09359d51f8b52dd",
+                "name": "System 07",
+                "x": 3393,
+                "y": -7004,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_3ffc964502e61fe9",
+                "name": "System 08",
+                "x": 6380,
+                "y": 8468,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_57e48b3779d45868",
+                "name": "System 09",
+                "x": -7501,
+                "y": 5638,
+                "classification": "anomalous"
+            },
+            {
+                "id": "sys_8e9b12d0f07eddec",
+                "name": "System 10",
+                "x": 6506,
+                "y": -5184,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_5f0655a7e8db867d",
+                "name": "System 11",
+                "x": -5675,
+                "y": -8074,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_419f8b3a50803da7",
+                "name": "System 12",
+                "x": 6799,
+                "y": 5641,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_e227157ba6535f62",
+                "name": "System 13",
+                "x": 7893,
+                "y": -4501,
+                "classification": "binary"
+            },
+            {
+                "id": "sys_9d6bc8c0997459b9",
+                "name": "System 14",
+                "x": -9703,
+                "y": 1390,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_283cadeffb8be260",
+                "name": "System 15",
+                "x": 300,
+                "y": -5475,
+                "classification": "nebula-adjacent"
+            },
+            {
+                "id": "sys_8e956a4bb6593918",
+                "name": "System 16",
+                "x": 6500,
+                "y": -2790,
+                "classification": "binary"
+            }
+        ]
+    },
+    "state": {
+        "schema_version": 1,
+        "revision": 0,
+        "changes": []
+    }
+}

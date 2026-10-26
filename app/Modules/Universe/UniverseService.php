@@ -17,16 +17,18 @@ final class UniverseService
         $this->eventProcessor = new UniverseEventProcessor();
     }
 
-    public function preview(string $seed): array
+    public function preview(string $seed, array $settings = []): array
     {
-        return $this->generator->generate($seed);
+        return $this->generator->generate($seed, $settings);
     }
 
-    public function createOrLoad(string $seed): array
+    public function createOrLoad(string $seed, array $settings = []): array
     {
-        $baseline = $this->generator->generate($seed);
+        $baseline = $this->generator->generate($seed, $settings);
         $record = [
             'id' => $baseline['id'],
+            'seed' => trim($seed),
+            'settings' => $baseline['settings'],
             'seed_fingerprint' => $baseline['seed_fingerprint'],
             'generator_version' => $baseline['generator_version'],
             'created_at' => gmdate('c'),

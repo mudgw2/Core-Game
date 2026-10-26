@@ -1271,11 +1271,23 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     async function refreshCharacters() {
         const universeId = document.getElementById('characterUniverseId').value.trim();
         const status = document.getElementById('characterStatus');
-        if (!universeId) { status.textContent = 'Create / load a universe first.'; return; }
         try {
-            const response = await fetch('api/characters.php?universe_id=' + encodeURIComponent(universeId), { headers: { 'Accept': 'application/json' } });
+            let data, response;
+            if (!universeId) {
+                // The Workbench must be able to discover records even before a universe has been selected.
+                response = await fetch('api/data-management.php', { headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+                if (!response.ok || !payload.ok || !payload.inventory) throw new Error(payload.error?.message || 'Saved-data inventory request failed.');
+                const all = payload.inventory.characters || [];
+                loadedCharacters = all.map(c => ({ ...c, role: c.role || 'Adventurer' }));
+                document.getElementById('characterOutput').textContent = JSON.stringify({ ok: true, source: 'global saved-data inventory', characters: loadedCharacters }, null, 2);
+                populateCharacterChoices();
+                status.textContent = loadedCharacters.length ? `${loadedCharacters.length} saved character(s) across all universes. Select one to load its universe context; deletion remains available.` : 'No saved characters exist in storage.';
+                logActivity('info', 'Global character inventory', status.textContent);
+                return;
+            }
+            response = await fetch('api/characters.php?universe_id=' + encodeURIComponent(universeId), { headers: { 'Accept': 'application/json' } });
             const text = await response.text();
-            let data;
             try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
             document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
             loadedCharacters = response.ok && data.ok ? data.characters : [];
@@ -1283,13 +1295,25 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             status.textContent = response.ok && data.ok ? data.characters.length + ' character(s) linked to this universe.' : (data.error?.message || 'Could not load characters.');
             logActivity(response.ok && data.ok ? 'info' : 'error', 'Character list', status.textContent);
         } catch (error) {
-            status.textContent = 'Character request failed.';
+            status.textContent = 'Character request failed: ' + error.message;
             document.getElementById('characterOutput').textContent = String(error);
             logActivity('error', 'Character list request failed', String(error));
         }
     }
     document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
-    document.getElementById('characterSelect').addEventListener('change', () => {
+    document.getElementById('characterSelect').addEventListener('change', async () => {
+        const selected = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
+        if (selected?.universe_id && selected.universe_id !== document.getElementById('characterUniverseId').value.trim()) {
+            document.getElementById('characterUniverseId').value = selected.universe_id;
+            document.getElementById('characterStatus').textContent = 'Selected character belongs to universe ' + selected.universe_id + '. Refresh its universe-scoped character list before using movement and lifecycle tools.';
+            // Global inventory rows are intentionally sufficient for selecting and deleting; reload scoped records when possible.
+            if (selected.revision !== undefined && selected.name) {
+                document.getElementById('characterRevision').value = String(selected.revision ?? 0);
+                updateCharacterDetails(); updateDeleteCharacterAvailability();
+                return;
+            }
+            await refreshCharacters();
+        }
         document.getElementById('characterRevision').value = document.getElementById('characterSelect').selectedOptions[0]?.dataset.revision ?? '0';
         updateCharacterDetails();
         populateSystemChoices();

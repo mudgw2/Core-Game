@@ -3,7 +3,7 @@
   const $ = (id) => document.getElementById(id);
   const apiRoot = document.body.dataset.apiRoot || '';
   const api = (path) => `${apiRoot}/api/${path}`;
-  const state = { universe: null, characters: [], character: null, navigation: null, engine: null, scene: null, nodes: new Map(), selectedSystem: null, characterOptions: null };
+  const state = { universe: null, characters: [], character: null, navigation: null, engine: null, scene: null, nodes: new Map(), selectedSystem: null, characterOptions: null, requestedCharacterId: window.CORE_BOOT?.characterId || document.body.dataset.characterId || '', assignedSeed: document.body.dataset.universeSeed || '' };
 
   function notice(message, type = '') { const el = $('notice'); el.textContent = message; el.className = `notice ${type}`.trim(); }
   async function request(url, options = {}) {
@@ -32,39 +32,34 @@
       wrapper.append(label, input, hint); fields.append(wrapper);
     });
   }
-  $('newCharacterButton').addEventListener('click', () => {
-    if (!state.universe) return;
-    $('createCharacterButton').disabled = !state.characterOptions;
-    $('gameLayout').classList.add('hidden'); $('characterCreationScreen').classList.remove('hidden');
-    $('characterName').focus(); notice('Create a starting profile. Your existing character records will not be changed.', '');
-  });
-  $('cancelCharacterCreation').addEventListener('click', () => {
-    $('characterCreationScreen').classList.add('hidden'); $('gameLayout').classList.remove('hidden');
-  });
   loadCharacterOptions().catch(error => notice(`Character options could not be loaded: ${error.message}`, 'error'));
-
+  async function activateUniverse(universe, fallbackSeed = '') {
+    state.universe = universe;
+    if (!state.universe?.baseline?.systems || !Array.isArray(state.universe.baseline.systems)) throw new Error('Universe record does not contain baseline.systems.');
+    const displaySeed = state.universe.seed || state.universe.baseline.seed || fallbackSeed || 'Seed unavailable for legacy universe';
+    $('universeSeed').value = state.universe.seed || state.universe.baseline.seed || fallbackSeed || '';
+    $('gameLayout').classList.remove('hidden');
+    $('universeName').textContent = `Universe seed: ${displaySeed}`;
+    $('systemCount').textContent = String(state.universe.baseline.systems.length);
+    $('seedFingerprint').textContent = state.universe.seed_fingerprint || state.universe.baseline.seed_fingerprint || '—';
+    await loadCharacters();
+    if (state.requestedCharacterId) {
+      const match = state.characters.find(c => c.id === state.requestedCharacterId);
+      if (!match) throw new Error('The selected character was not returned for its assigned universe.');
+      state.character = match; $('characterSelect').value = match.id;
+    }
+    await loadNavigation(); renderMap(); updateCharacterPanel();
+    notice(`Universe ${displaySeed} loaded for ${state.character?.name || 'inspection'}. ${state.universe.baseline.systems.length} systems are ready.`, 'success');
+  }
   $('universeForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const seed = $('universeSeed').value.trim();
-    if (!seed) return;
+    event.preventDefault(); const seed = $('universeSeed').value.trim(); if (!seed) return;
     notice('Loading universe from CORE…');
-    try {
-      const data = await request(api('universe.php'), { method: 'POST', body: JSON.stringify({ seed }) });
-      state.universe = data.universe || data.data?.universe || null;
-      if (!state.universe?.baseline?.systems || !Array.isArray(state.universe.baseline.systems)) {
-        throw new Error('Universe loaded, but the API response did not contain baseline.systems. Check the universe API response.');
-      }
-      $('gameLayout').classList.remove('hidden');
-      $('universeName').textContent = `Universe ${state.universe.id}`;
-      $('systemCount').textContent = String(state.universe.baseline?.systems?.length ?? state.universe.baseline?.system_count ?? 0);
-      $('seedFingerprint').textContent = state.universe.seed_fingerprint || state.universe.baseline?.seed_fingerprint || '—';
-      $('newCharacterButton').disabled = false;
-      await loadCharacters();
-      await loadNavigation();
-      renderMap();
-      notice(`Universe loaded. ${state.universe.baseline.systems.length} systems are ready for inspection.`, 'success');
-    } catch (error) { notice(error.message, 'error'); }
+    try { const data = await request(api('universe.php'), { method: 'POST', body: JSON.stringify({ seed }) }); await activateUniverse(data.universe || data.data?.universe || null, seed); }
+    catch (error) { notice(error.message, 'error'); }
   });
+  if (window.CORE_BOOT?.universe) {
+    activateUniverse(window.CORE_BOOT.universe, window.CORE_BOOT.universe.seed || '').catch(error => notice(`Could not enter gameplay: ${error.message}`, 'error'));
+  } else if (state.assignedSeed) { $('universeSeed').value = state.assignedSeed; queueMicrotask(() => $('universeForm').requestSubmit()); }
 
   async function loadCharacters() {
     const data = await request(api(`characters.php?universe_id=${encodeURIComponent(state.universe.id)}`));
@@ -77,7 +72,8 @@
     } else {
       select.add(new Option('Select a character…', ''));
       state.characters.forEach(character => select.add(new Option(`${character.name} · ${character.role || 'Adventurer'}`, character.id)));
-      const previouslySelected = state.character && state.characters.some(c => c.id === state.character.id) ? state.character.id : state.characters[0].id;
+      const requestedMatch = state.requestedCharacterId ? state.characters.find(c => c.id === state.requestedCharacterId) : null;
+      const previouslySelected = requestedMatch?.id || (state.character && state.characters.some(c => c.id === state.character.id) ? state.character.id : state.characters[0].id);
       select.value = previouslySelected;
       state.character = state.characters.find(c => c.id === previouslySelected) || null;
     }

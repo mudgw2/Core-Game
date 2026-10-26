@@ -29,10 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($accounts as $id=>$row) if (is_array($row) && strtolower((string)($row['email']??''))===$email) { $found=(string)$id; break; }
                     if ($action==='register') {
                         if ($found!==null) $error='An account with that email already exists.';
-                        else { $id='usr_'.bin2hex(random_bytes(12)); $accounts[$id]=['id'=>$id,'email'=>$email,'password_hash'=>password_hash($password,PASSWORD_DEFAULT),'created_at'=>gmdate('c'),'status'=>'active']; account_write($storeFile,$accounts); session_regenerate_id(true); $_SESSION['core_user']=['id'=>$id,'email'=>$email]; $_SESSION['core_csrf']=bin2hex(random_bytes(32)); header('Location: '.$base.'/index.php?welcome=1'); exit; }
+                        else { $id='usr_'.bin2hex(random_bytes(12)); $accounts[$id]=['id'=>$id,'email'=>$email,'password_hash'=>password_hash($password,PASSWORD_DEFAULT),'created_at'=>gmdate('c'),'status'=>'active']; account_write($storeFile,$accounts); session_regenerate_id(true); $_SESSION['core_user']=['id'=>$id,'email'=>$email]; $_SESSION['core_csrf']=bin2hex(random_bytes(32)); header('Location: '.$base.'/selection.php'); exit; }
                     } elseif ($action==='login') {
                         if ($found===null || !password_verify($password,(string)($accounts[$found]['password_hash']??'')) || ($accounts[$found]['status']??'active')!=='active') $error='Email or password was not recognized.';
-                        else { session_regenerate_id(true); $_SESSION['core_user']=['id'=>$found,'email'=>$email]; $_SESSION['core_csrf']=bin2hex(random_bytes(32)); header('Location: '.$base.'/index.php?welcome=1'); exit; }
+                        else { session_regenerate_id(true); $_SESSION['core_user']=['id'=>$found,'email'=>$email]; $_SESSION['core_csrf']=bin2hex(random_bytes(32)); header('Location: '.$base.'/selection.php'); exit; }
                     } else $error='Unknown account action.';
                 } catch (Throwable $e) { $error='Account operation failed. Check storage permissions and server logs.'; } finally { flock($lock,LOCK_UN); fclose($lock); }
             }

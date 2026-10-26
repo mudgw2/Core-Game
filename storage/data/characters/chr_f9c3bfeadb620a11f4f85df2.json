@@ -1,0 +1,42 @@
+{
+    "id": "chr_f9c3bfeadb620a11f4f85df2",
+    "schema_version": 1,
+    "universe_id": "uni_2bbb1fe68dbc2ba060037cc8",
+    "owner_account_id": "usr_93fbb5f448571e59d696f9b5",
+    "name": "uuuuuuuu",
+    "role": "Explorer",
+    "role_id": "explorer",
+    "species_id": "human",
+    "species": "Human",
+    "attributes": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10
+    },
+    "lifecycle": {
+        "enabled": true,
+        "locked": false,
+        "updated_at": "2026-10-26T04:29:59+00:00",
+        "last_action": "universe_assigned"
+    },
+    "location": {
+        "system_id": "sys_386e876b200842c9",
+        "updated_at": "2026-10-26T04:29:59+00:00"
+    },
+    "current_system_id": "sys_386e876b200842c9",
+    "created_at": "2026-10-26T04:29:34+00:00",
+    "revision": 0,
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_386e876b200842c9",
+                "name": "System 01",
+                "first_visited_at": "2026-10-26T04:29:59+00:00",
+                "first_visited_revision": 0
+            }
+        ]
+    }
+}

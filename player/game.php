@@ -1,9 +1,17 @@
 <?php
 declare(strict_types=1);
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/player/game.php')), '/');
+$urlRoot = rtrim(str_replace('\\', '/', dirname($base)), '/');
 if (session_status() !== PHP_SESSION_ACTIVE) { $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'); session_set_cookie_params(['httponly'=>true,'secure'=>$secure,'samesite'=>'Lax','path'=>'/']); session_start(); }
-if (empty($_SESSION['core_user'])) { header('Location: ' . $base . '/account.php'); exit; }
-$root = preg_replace('#/player$#', '', $base) ?? '';
+if (empty($_SESSION['core_user']['id'])) { header('Location: ' . $base . '/account.php'); exit; }
+$root = dirname(__DIR__); define('CORE_ROOT', $root); require $root . '/bootstrap.php'; $cfg = require $root . '/config/app.php'; $portalStorage = new \Core\Storage\JsonStorage((string)$cfg['storage']['path']); $selectedCharacterId = (string)($_GET['character_id'] ?? '');
+if ($selectedCharacterId === '') { header('Location: ' . $base . '/selection.php'); exit; }
+$selectedCharacter = $portalStorage->read('characters', $selectedCharacterId);
+if (!$selectedCharacter || ($selectedCharacter['owner_account_id'] ?? null) !== (string)$_SESSION['core_user']['id']) { http_response_code(404); exit('Character not found for this account.'); }
+if (empty($selectedCharacter['universe_id'])) { header('Location: ' . $base . '/selection.php?error=unassigned'); exit; }
+$assignedUniverse = $portalStorage->read('universes', (string)$selectedCharacter['universe_id']);
+if (!$assignedUniverse || !is_array($assignedUniverse['baseline']['systems'] ?? null)) { http_response_code(409); exit('The assigned universe could not be loaded. Return to Character Selection and verify the universe association.'); }
+$assignedSeed = (string)($assignedUniverse['seed'] ?? $assignedUniverse['baseline']['seed'] ?? '');
 $releaseVersion = require dirname(__DIR__) . '/config/version.php';
 ?>
 <!doctype html>
@@ -14,9 +22,10 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   <title>CORE — Player Portal</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.css">
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script>window.CORE_BOOT = <?= json_encode(['universe' => $assignedUniverse, 'characterId' => $selectedCharacterId], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>;</script>
   <script defer src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.js"></script>
 </head>
-<body data-api-root="<?= htmlspecialchars($root, ENT_QUOTES, 'UTF-8') ?>">
+<body data-api-root="<?= htmlspecialchars($urlRoot, ENT_QUOTES, 'UTF-8') ?>" data-character-id="<?= htmlspecialchars($selectedCharacterId, ENT_QUOTES, 'UTF-8') ?>" data-universe-seed="<?= htmlspecialchars($assignedSeed, ENT_QUOTES, 'UTF-8') ?>">
   <header class="topbar">
     <a class="brand" href="<?=htmlspecialchars($base,ENT_QUOTES,'UTF-8')?>/index.php"><span class="brand-mark">C</span><span>CORE <small>PLAYER PORTAL</small></span></a>
     <nav class="portal-nav"><a href="<?=$base?>/index.php">Public site</a><a href="<?=$base?>/account.php">Account / Profile</a></nav>
@@ -25,16 +34,16 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   <main id="top">
     <section class="welcome panel">
       <div class="eyebrow">PLAYER PORTAL · SIGNED IN</div>
-      <h1>Choose your <span>frontier.</span></h1>
-      <p>Load a seeded universe, select a character, inspect star systems, and travel between connected systems. Character appearance and world-level content will be added as their data systems are implemented.</p>
+      <h1>Entering <span>your frontier.</span></h1>
+      <p>The selected character and its assigned universe are loaded automatically. You can inspect star systems and travel between connected systems. Character appearance and world-level content will be added as their data systems are implemented.</p>
       <form id="universeForm" class="universe-form">
         <label for="universeSeed">Universe seed</label>
         <div class="input-row"><input id="universeSeed" name="seed" maxlength="120" required placeholder="Enter a seed phrase" autocomplete="off"><button type="submit">Load universe</button></div>
-        <small>The same seed resolves to the same generated universe. This prototype uses the existing development API.</small>
+        <small>The assigned universe seed is loaded automatically. You may reload a different seed for inspection, but that will not change the character assignment.</small>
       </form>
     </section>
 
-    <div id="notice" class="notice" role="status" aria-live="polite">Load a universe to begin. Existing backend records are not changed until you create a character.</div>
+    <div id="notice" class="notice" role="status" aria-live="polite">Loading your selected character and assigned universe…</div>
 
     <section id="characterCreationScreen" class="panel creation-screen hidden" aria-labelledby="creationTitle">
       <div class="eyebrow">NEW CHARACTER · INITIAL PROFILE</div>
@@ -58,8 +67,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
           <div class="section-heading"><div><div class="eyebrow">COMMAND</div><h2>Character</h2></div><span class="status-dot"></span></div>
           <label for="characterSelect">Select character</label>
           <select id="characterSelect" disabled><option value="">Load a universe first</option></select>
-          <p class="fine-print">Choose an existing character to continue, or create a new character with an extensible Starfinder-inspired starting profile.</p>
-          <button type="button" id="newCharacterButton" class="button-secondary" disabled>Create a character</button>
+          <p class="fine-print">This game session is using the character selected before you entered gameplay. Manage or create characters from Character Selection.</p>
         </section>
         <section class="panel section-panel">
           <div class="eyebrow">UNIVERSE DATA</div><h2 id="universeName">No universe loaded</h2>

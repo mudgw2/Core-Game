@@ -14,7 +14,7 @@ final class CharacterService
 {
     public function __construct(private JsonStorage $storage) {}
 
-    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = []): array
+    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = [], ?string $ownerAccountId = null): array
     {
         $universeId = trim($universeId);
         $name = trim($name);
@@ -59,7 +59,7 @@ final class CharacterService
             $id = 'chr_' . bin2hex(random_bytes(12));
             $now = gmdate('c');
             $record = [
-                'id' => $id, 'schema_version' => 1, 'universe_id' => null,
+                'id' => $id, 'schema_version' => 1, 'universe_id' => null, 'owner_account_id' => $ownerAccountId,
                 'name' => $name, 'role' => (string)$roleDefinition['label'],
                 'role_id' => (string)$roleDefinition['id'],
                 'species_id' => (string)$speciesDefinition['id'],
@@ -73,7 +73,7 @@ final class CharacterService
         }
         // Character creation shares the universe lock with universe deletion. This closes the race
         // where a new dependent character could appear after deletion enumerates its dependents.
-        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes): array {
+        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes, $ownerAccountId): array {
             $universe = $this->storage->read('universes', $universeId);
             if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
                 throw new RuntimeException('The selected universe does not exist.');
@@ -89,6 +89,7 @@ final class CharacterService
                 'id' => $id,
                 'schema_version' => 1,
                 'universe_id' => $universeId,
+                'owner_account_id' => $ownerAccountId,
                 'name' => $name,
                 'role' => $role,
                 'role_id' => (string)$roleDefinition['id'],

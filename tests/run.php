@@ -407,6 +407,21 @@ $test('character can be created safely without a universe association', static f
     }
 });
 
+$test('player-created unassigned character persists its account owner', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-owner-qa-' . bin2hex(random_bytes(5));
+    $storage = new \Core\Storage\JsonStorage($dir);
+    try {
+        $service = new \Core\Modules\Characters\CharacterService($storage);
+        $character = $service->create('', 'Owner QA', 'explorer', 'human', [], 'usr_owner_qa');
+        $assert(($character['owner_account_id'] ?? null) === 'usr_owner_qa', 'Character owner account ID was not persisted.');
+        $assert(($character['universe_id'] ?? null) === null, 'New character should remain unassigned.');
+    } finally {
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $item) { $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); }
+        if (is_dir($dir)) rmdir($dir);
+    }
+});
+
 $test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
     $dir = sys_get_temp_dir() . '/core-content-persist-' . bin2hex(random_bytes(8));
     try {
@@ -690,6 +705,87 @@ $test('service container rejects duplicate IDs and reports missing services', st
     try { $services->get('missing'); }
     catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'not registered'), 'Unexpected missing service error.'); return; }
     throw new RuntimeException('Missing service lookup was accepted.');
+});
+
+$test('Universe assignment displays the player-entered seed instead of the internal universe ID', static function () use ($assert): void {
+    $action = file_get_contents(CORE_ROOT . '/player/player-action.php');
+    $selection = file_get_contents(CORE_ROOT . '/player/selection.php');
+    $assert(is_string($action) && str_contains($action, "core_flash_universe_seed'] = \$seed"), 'Universe action must store the entered seed in a session flash.');
+    $assert(is_string($selection) && str_contains($selection, 'Your universe seed:') && str_contains($selection, 'core_flash_universe_seed'), 'Selection screen must show and consume the seed flash.');
+    $assert(str_contains($selection, 'unset($_SESSION[\'core_flash_universe_seed\'])'), 'Seed flash must be one-time.');
+});
+$test('Character creation includes an interactive Babylon.js primitive preview', static function () use ($assert): void {
+    $page = file_get_contents(CORE_ROOT . '/player/character-create.php');
+    $js = file_get_contents(CORE_ROOT . '/player/character-preview.js');
+    $assert(is_string($page) && str_contains($page, 'cdn.babylonjs.com/babylon.js') && str_contains($page, 'characterPreviewCanvas'), 'Character creation page must include Babylon.js and its preview canvas.');
+    foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', 'CreateSphere', 'CreateBox', 'attachControl', 'previewColor', '3D preview failed'] as $needle) {
+        $assert(is_string($js) && str_contains($js, $needle), 'Character preview script missing marker: ' . $needle);
+    }
+});
+
+$test('Player game API root uses the public URL path, not the filesystem path', static function () use ($assert): void {
+    $game = file_get_contents(CORE_ROOT . '/player/game.php');
+    $js = file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(is_string($game) && str_contains($game, '$urlRoot = rtrim(str_replace'), 'Player game page must derive a URL root from SCRIPT_NAME.');
+    $assert(str_contains($game, 'data-api-root="<?= htmlspecialchars($urlRoot'), 'Player page must pass the URL root to its JavaScript.');
+    $assert(str_contains($js, 'const api = (path) => `${apiRoot}/api/${path}`;'), 'Player API requests must be based on the public URL root.');
+    $assert(is_file(CORE_ROOT . '/api/character-options.php'), 'Character options endpoint wrapper must exist.');
+});
+
+$test('Universe settings are deterministic, persisted in generated baseline, and affect identity', static function () use ($assert, $equal): void {
+    $generator = new Core\Modules\Universe\UniverseGenerator();
+    $aSettings = ['system_density'=>20,'anomaly_rate'=>10,'binary_star_rate'=>20,'nebula_presence'=>30];
+    $bSettings = ['system_density'=>80,'anomaly_rate'=>60,'binary_star_rate'=>40,'nebula_presence'=>50];
+    $a = $generator->generate('same-visible-seed', $aSettings);
+    $equal($a, $generator->generate('same-visible-seed', $aSettings));
+    $b = $generator->generate('same-visible-seed', $bSettings);
+    $assert($a['id'] !== $b['id'], 'Different settings with the same seed must produce different universe IDs.');
+    $equal($aSettings, $a['settings']);
+    try { $generator->generate('invalid', ['system_density'=>101]); throw new RuntimeException('Out-of-range setting accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), '0 to 100')); }
+});
+$test('Play page boots assigned universe and selected character directly', static function () use ($assert): void {
+    $game = file_get_contents(CORE_ROOT . '/player/game.php'); $js = file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
+    $assert(str_contains($js, 'window.CORE_BOOT?.universe') && str_contains($js, 'activateUniverse(window.CORE_BOOT.universe'), 'Player JS must activate the actual assigned universe without reseeding.');
+});
+$test('Universe creation exposes settings and uses server-generated Babylon preview data', static function () use ($assert): void {
+    $page = file_get_contents(CORE_ROOT . '/player/universe-create.php');
+    foreach (['system_density','anomaly_rate','binary_star_rate','nebula_presence','universePreviewCanvas','api/universe-preview.php'] as $needle) $assert(str_contains($page, $needle), 'Universe creation missing '.$needle);
+});
+
+$test('Character Selection removes disabled Play and provides separate 3D character and universe previews', static function () use ($assert): void {
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $assert(!str_contains($selection, 'Play · Universe required'), 'Disabled Play button is still present');
+    $assert(str_contains($selection, 'character-portrait-canvas'), 'Character portrait canvas missing');
+    $assert(str_contains($selection, 'character-universe-canvas'), 'Universe preview canvas missing');
+    $assert(str_contains($selection, 'character-roster-preview.js'), 'Roster preview script is not loaded');
+});
+$test('Gameplay does not expose redundant character creation action', static function () use ($assert): void {
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(!str_contains($game, 'id="newCharacterButton"'), 'Gameplay still exposes Create a character button');
+    $assert(!str_contains($js, "$('newCharacterButton').addEventListener"), 'Gameplay still wires the removed character creation action');
+});
+$test('Workbench character refresh can discover all saved characters without a preselected universe', static function () use ($assert): void {
+    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(str_contains($workbench, "fetch('api/data-management.php'"), 'Global inventory fallback missing');
+    $assert(str_contains($workbench, 'Global character inventory'), 'Global character inventory feedback missing');
+});
+$test('New universe records persist the original seed and generation settings', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-universe-settings-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $settings = ['system_density'=>42,'anomaly_rate'=>18,'binary_star_rate'=>37,'nebula_presence'=>22];
+        $universe = (new Core\Modules\Universe\UniverseService($storage))->createOrLoad('persistent-seed-test', $settings);
+        $equal('persistent-seed-test', $universe['seed']);
+        $equal($settings, $universe['settings']);
+        $loaded = $storage->read('universes', $universe['id']);
+        $equal('persistent-seed-test', $loaded['seed']);
+        $equal($settings, $loaded['settings']);
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

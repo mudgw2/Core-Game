@@ -264,12 +264,16 @@ final class Application
                 ], 400);
             }
 
-            return Response::json(['ok' => true, 'universe' => $universeService->preview($seed)]);
+            $settings = [];
+            $rawSettings = $request->query('settings', '');
+            if (is_string($rawSettings) && $rawSettings !== '') { try { $decoded = json_decode($rawSettings, true, 512, JSON_THROW_ON_ERROR); if (!is_array($decoded)) throw new \RuntimeException('Settings must be a JSON object.'); $settings = $decoded; } catch (\Throwable $e) { return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_settings', 'message' => 'Universe settings must be a valid JSON object.']], 400); } }
+            try { return Response::json(['ok' => true, 'universe' => $universeService->preview($seed, $settings)]); } catch (\Throwable $e) { return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_settings', 'message' => $e->getMessage()]], 400); }
         });
 
         $this->router->post('/api/universe', static function (Request $request) use ($universeService): Response {
             $body = $request->jsonBody();
             $seed = isset($body['seed']) && is_string($body['seed']) ? trim($body['seed']) : '';
+            $settings = is_array($body['settings'] ?? null) ? $body['settings'] : [];
 
             if ($seed === '') {
                 Logger::warning('Request validation failed', [
@@ -285,7 +289,7 @@ final class Application
             }
 
             try {
-                return Response::json(['ok' => true, 'universe' => $universeService->createOrLoad($seed)], 201);
+                return Response::json(['ok' => true, 'universe' => $universeService->createOrLoad($seed, $settings)], 201);
             } catch (Throwable $e) {
                 Logger::error('Universe create/load failed', ['exception' => $e::class, 'message' => $e->getMessage()]);
                 return Response::json([
@@ -387,7 +391,7 @@ final class Application
             $toSystemId = $request->query('to_system_id', '');
             if (!is_string($universeId) || trim($universeId) === '' || !is_string($fromSystemId) || trim($fromSystemId) === '' || !is_string($toSystemId) || trim($toSystemId) === '') {
                 Logger::warning('Route planning validation failed', ['error_code' => 'invalid_route_request']);
-                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_route_request', 'message' => 'Provide universe_id, from_system_id, and to_system_id.']], 400);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_request', 'message' => $e->getMessage()]], 400);
             }
             try {
                 return Response::json($routeService->plan($universeId, $fromSystemId, $toSystemId));

@@ -363,6 +363,50 @@ $test('JSON ship modules reference known items and support multiple modules per 
     $assert($modules['qa_alternate_module']['slot'] === $first['slot'], 'Regression fixture did not share a slot.');
 });
 
+$test('character creation definitions are JSON-backed and extensible', static function () use ($assert): void {
+    $path = CORE_ROOT . '/storage/data/content/character-options.json';
+    $options = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+    $assert(count($options['attributes'] ?? []) >= 6, 'Expected the six initial ability attributes.');
+    $assert(count($options['roles'] ?? []) >= 1 && count($options['species'] ?? []) >= 1, 'Role/species options are missing.');
+    foreach (['roles', 'species', 'attributes'] as $group) {
+        $ids = [];
+        foreach ($options[$group] as $entry) { $assert(is_string($entry['id'] ?? null) && $entry['id'] !== '', $group . ' entry has no stable ID.'); $assert(!isset($ids[$entry['id']]), $group . ' contains duplicate IDs.'); $ids[$entry['id']] = true; }
+    }
+});
+
+$test('new character persists Starfinder-inspired attributes and data-driven species and role IDs', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-profile-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('character-profile-seed');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Profile Tester', 'explorer', 'android', ['strength'=>12,'dexterity'=>14,'constitution'=>10,'intelligence'=>13,'wisdom'=>8,'charisma'=>15]);
+        $saved = $storage->read('characters', $character['id']);
+        $equal('explorer', $saved['role_id'] ?? null, 'Role ID was not persisted');
+        $equal('android', $saved['species_id'] ?? null, 'Species ID was not persisted');
+        $equal(14, $saved['attributes']['dexterity'] ?? null, 'Ability score was not persisted');
+        $equal(6, count($saved['attributes'] ?? []), 'Unexpected initial attribute count');
+        try { (new CharacterService($storage))->create($universe['id'], 'Invalid Role', 'not-a-role'); throw new RuntimeException('Unknown role was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'valid character role'), 'Unexpected role rejection: ' . $e->getMessage()); }
+    } finally {
+        if (is_dir($dir)) { $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('character can be created safely without a universe association', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-unassigned-character-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $character = (new CharacterService($storage))->create('', 'Unassigned Tester', 'explorer', 'human', ['strength'=>10,'dexterity'=>10,'constitution'=>10,'intelligence'=>10,'wisdom'=>10,'charisma'=>10]);
+        $saved = $storage->read('characters', $character['id']);
+        $equal(null, $saved['universe_id'] ?? null, 'Unassigned character unexpectedly has a universe');
+        $equal(null, $saved['current_system_id'] ?? null, 'Unassigned character unexpectedly has a location');
+        $equal(null, $saved['location'] ?? null, 'Unassigned character unexpectedly has location state');
+        $assert(($saved['lifecycle']['last_action'] ?? '') === 'created_unassigned', 'Unassigned creation lifecycle marker missing');
+    } finally {
+        if (is_dir($dir)) { $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
 $test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
     $dir = sys_get_temp_dir() . '/core-content-persist-' . bin2hex(random_bytes(8));
     try {

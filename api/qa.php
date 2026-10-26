@@ -387,8 +387,8 @@ $run('Character records persist and list only within their universe', static fun
         $one = $universes->createOrLoad('core-ui-qa-character-list-one');
         $two = $universes->createOrLoad('core-ui-qa-character-list-two');
         $service = new CharacterService($storage);
-        $created = $service->create($one['id'], 'Aster Vale', 'Scout');
-        $service->create($two['id'], 'Niko Renn', 'Engineer');
+        $created = $service->create($one['id'], 'Aster Vale', 'Pilot');
+        $service->create($two['id'], 'Niko Renn', 'Industrialist');
         $listed = $service->listForUniverse($one['id']);
         $equal(1, count($listed), 'Universe character list contains an unexpected number of records.');
         $equal($created['id'], $listed[0]['id'], 'Persisted character ID changed.');
@@ -1953,13 +1953,18 @@ $run('Player prototype uses Babylon.js and backend entity IDs', static function 
     }
     return 'Babylon.js renders primitive system markers mapped to stable backend system IDs and uses existing universe/navigation/character APIs.';
 });
-$run('Active release version labels are consistent at 0.1.56', static function () use ($assert): string {
+$run('Release version comes from one central version file', static function () use ($assert): string {
+    $versionFile = dirname(__DIR__) . '/config/version.php';
+    $version = is_file($versionFile) ? require $versionFile : null;
     $workbench = file_get_contents(dirname(__DIR__) . '/index.php');
     $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
-    $assert(is_string($workbench) && str_contains($workbench, 'Foundation 0.1.56'), 'Workbench version label is stale.');
-    $assert(is_string($application) && str_contains($application, "'version' => '0.1.56'"), 'Application version is stale.');
-    return 'Workbench and application metadata report release 0.1.56.';
+    $player = file_get_contents(dirname(__DIR__) . '/player/game.php');
+    $assert(is_string($version) && preg_match('/^\d+\.\d+\.\d+$/', $version) === 1, 'Central release version file is missing or invalid.');
+    $assert(is_string($workbench) && str_contains($workbench, "require __DIR__ . '/config/version.php'") && str_contains($workbench, 'Foundation <?= htmlspecialchars($coreReleaseVersion'), 'Workbench does not use the central release version.');
+    $assert(is_string($application) && str_contains($application, "require CORE_ROOT . '/config/version.php'"), 'Application metadata does not use the central release version.');
+    $assert(is_string($player) && str_contains($player, "require dirname(__DIR__) . '/config/version.php'") && str_contains($player, 'htmlspecialchars($releaseVersion'), 'Player portal does not use the central release version.');
+    return 'Workbench, health API metadata, and player portal read the single config/version.php source.';
 });
 
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.56', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => require dirname(__DIR__) . '/config/version.php', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

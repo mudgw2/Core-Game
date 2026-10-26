@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+$coreReleaseVersion = require __DIR__ . '/config/version.php';
+
 /**
  * CORE browser landing page.
  * API requests are routed to public/index.php by the root .htaccess file.
@@ -86,7 +88,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.56</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation <?= htmlspecialchars($coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?></div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>

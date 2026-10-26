@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "model": "starfinder-1e-inspired",
+  "attributes": [
+    {"id":"strength","label":"Strength","description":"Physical power","default":10,"minimum":1,"maximum":30},
+    {"id":"dexterity","label":"Dexterity","description":"Agility and coordination","default":10,"minimum":1,"maximum":30},
+    {"id":"constitution","label":"Constitution","description":"Endurance and resilience","default":10,"minimum":1,"maximum":30},
+    {"id":"intelligence","label":"Intelligence","description":"Reasoning and knowledge","default":10,"minimum":1,"maximum":30},
+    {"id":"wisdom","label":"Wisdom","description":"Awareness and judgment","default":10,"minimum":1,"maximum":30},
+    {"id":"charisma","label":"Charisma","description":"Presence and force of personality","default":10,"minimum":1,"maximum":30}
+  ],
+  "roles": [
+    {"id":"explorer","label":"Explorer","description":"Survey unfamiliar places and uncover discoveries."},
+    {"id":"pilot","label":"Pilot","description":"Focus on operating and navigating vehicles."},
+    {"id":"industrialist","label":"Industrialist","description":"Gather, process, and manufacture resources."},
+    {"id":"mercenary","label":"Mercenary","description":"Take on dangerous work and combat contracts."}
+  ],
+  "species": [
+    {"id":"human","label":"Human","description":"A versatile baseline species."},
+    {"id":"android","label":"Android","description":"An artificial person with a biological appearance."},
+    {"id":"ysoki","label":"Ysoki","description":"A small, resourceful ratlike people."}
+  ]
+}

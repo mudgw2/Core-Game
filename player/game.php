@@ -4,6 +4,7 @@ $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/player
 if (session_status() !== PHP_SESSION_ACTIVE) { $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'); session_set_cookie_params(['httponly'=>true,'secure'=>$secure,'samesite'=>'Lax','path'=>'/']); session_start(); }
 if (empty($_SESSION['core_user'])) { header('Location: ' . $base . '/account.php'); exit; }
 $root = preg_replace('#/player$#', '', $base) ?? '';
+$releaseVersion = require dirname(__DIR__) . '/config/version.php';
 ?>
 <!doctype html>
 <html lang="en">
@@ -19,7 +20,7 @@ $root = preg_replace('#/player$#', '', $base) ?? '';
   <header class="topbar">
     <a class="brand" href="<?=htmlspecialchars($base,ENT_QUOTES,'UTF-8')?>/index.php"><span class="brand-mark">C</span><span>CORE <small>PLAYER PORTAL</small></span></a>
     <nav class="portal-nav"><a href="<?=$base?>/index.php">Public site</a><a href="<?=$base?>/account.php">Account / Profile</a></nav>
-    <span class="build-tag">0.1.52 · PROTOTYPE</span>
+    <span class="build-tag"><?= htmlspecialchars($releaseVersion, ENT_QUOTES, 'UTF-8') ?> · PROTOTYPE</span>
   </header>
   <main id="top">
     <section class="welcome panel">
@@ -35,19 +36,30 @@ $root = preg_replace('#/player$#', '', $base) ?? '';
 
     <div id="notice" class="notice" role="status" aria-live="polite">Load a universe to begin. Existing backend records are not changed until you create a character.</div>
 
+    <section id="characterCreationScreen" class="panel creation-screen hidden" aria-labelledby="creationTitle">
+      <div class="eyebrow">NEW CHARACTER · INITIAL PROFILE</div>
+      <h2 id="creationTitle">Create your character</h2>
+      <p class="creation-intro">This first profile uses six Starfinder 1E-inspired abilities. Values and choices are validated by the server and defined in editable JSON data.</p>
+      <form id="characterForm" class="creation-form">
+        <div class="creation-grid">
+          <div class="creation-field"><label for="characterName">Character name</label><input id="characterName" maxlength="40" minlength="2" required placeholder="Enter a character name" autocomplete="off"></div>
+          <div class="creation-field"><label for="characterRole">Starting role</label><select id="characterRole" required></select></div>
+          <div class="creation-field"><label for="characterSpecies">Species</label><select id="characterSpecies" required></select></div>
+        </div>
+        <h3>Abilities</h3><p class="fine-print">Starting defaults are 10. Current permitted range: 1–30. Full point-buy and species adjustments are not implemented yet.</p>
+        <div id="attributeFields" class="attribute-grid"></div>
+        <div class="creation-actions"><button type="button" id="cancelCharacterCreation" class="button-secondary">Back to selection</button><button type="submit" id="createCharacterButton" disabled>Create character</button></div>
+      </form>
+    </section>
+
     <section id="gameLayout" class="game-layout hidden">
       <aside class="sidebar">
         <section class="panel section-panel">
           <div class="section-heading"><div><div class="eyebrow">COMMAND</div><h2>Character</h2></div><span class="status-dot"></span></div>
           <label for="characterSelect">Select character</label>
           <select id="characterSelect" disabled><option value="">Load a universe first</option></select>
-          <form id="characterForm" class="character-form">
-            <label for="characterName">Create character</label>
-            <input id="characterName" maxlength="40" minlength="2" required placeholder="Character name">
-            <label for="characterRole">Role</label>
-            <select id="characterRole"><option>Explorer</option><option>Pilot</option><option>Industrialist</option><option>Mercenary</option></select>
-            <button type="submit" class="button-secondary" disabled id="createCharacterButton">Create character</button>
-          </form>
+          <p class="fine-print">Choose an existing character to continue, or create a new character with an extensible Starfinder-inspired starting profile.</p>
+          <button type="button" id="newCharacterButton" class="button-secondary" disabled>Create a character</button>
         </section>
         <section class="panel section-panel">
           <div class="eyebrow">UNIVERSE DATA</div><h2 id="universeName">No universe loaded</h2>
@@ -69,7 +81,7 @@ $root = preg_replace('#/player$#', '', $base) ?? '';
         <div class="map-footer"><span id="mapStatus">Waiting for universe data</span><span>Drag to orbit · Scroll to zoom · Select a sphere</span></div>
       </section>
     </section>
-    <footer>CORE 0.1.52 · Player portal prototype. Account login is an initial implementation; gameplay APIs remain development/private-network restricted.</footer>
+    <footer>CORE <?= htmlspecialchars($releaseVersion, ENT_QUOTES, 'UTF-8') ?> · Player portal prototype. Account login is an initial implementation; gameplay APIs remain development/private-network restricted.</footer>
   </main>
 </body>
 </html>

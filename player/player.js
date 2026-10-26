@@ -3,7 +3,7 @@
   const $ = (id) => document.getElementById(id);
   const apiRoot = document.body.dataset.apiRoot || '';
   const api = (path) => `${apiRoot}/api/${path}`;
-  const state = { universe: null, characters: [], character: null, navigation: null, engine: null, scene: null, nodes: new Map(), selectedSystem: null };
+  const state = { universe: null, characters: [], character: null, navigation: null, engine: null, scene: null, nodes: new Map(), selectedSystem: null, characterOptions: null };
 
   function notice(message, type = '') { const el = $('notice'); el.textContent = message; el.className = `notice ${type}`.trim(); }
   async function request(url, options = {}) {
@@ -15,6 +15,33 @@
   }
   function systemName(id) { return state.universe?.baseline?.systems?.find(s => s.id === id)?.name || id || 'Unknown'; }
   function currentSystemId() { return state.character?.current_system_id || state.character?.location?.system_id || ''; }
+  async function loadCharacterOptions() {
+    const data = await request(api('character-options.php'));
+    state.characterOptions = data.options;
+    const roleSelect = $('characterRole'); const speciesSelect = $('characterSpecies');
+    roleSelect.replaceChildren(); speciesSelect.replaceChildren();
+    (state.characterOptions.roles || []).forEach(item => roleSelect.add(new Option(item.label, item.id)));
+    (state.characterOptions.species || []).forEach(item => speciesSelect.add(new Option(item.label, item.id)));
+    const fields = $('attributeFields'); fields.replaceChildren();
+    (state.characterOptions.attributes || []).forEach(definition => {
+      const wrapper = document.createElement('div'); wrapper.className = 'attribute-field';
+      const label = document.createElement('label'); label.htmlFor = `attribute-${definition.id}`; label.textContent = definition.label;
+      const input = document.createElement('input'); input.id = `attribute-${definition.id}`; input.name = definition.id; input.type = 'number'; input.required = true;
+      input.min = String(definition.minimum ?? 1); input.max = String(definition.maximum ?? 30); input.step = '1'; input.value = String(definition.default ?? 10);
+      const hint = document.createElement('small'); hint.textContent = definition.description || `${input.min}–${input.max}`;
+      wrapper.append(label, input, hint); fields.append(wrapper);
+    });
+  }
+  $('newCharacterButton').addEventListener('click', () => {
+    if (!state.universe) return;
+    $('createCharacterButton').disabled = !state.characterOptions;
+    $('gameLayout').classList.add('hidden'); $('characterCreationScreen').classList.remove('hidden');
+    $('characterName').focus(); notice('Create a starting profile. Your existing character records will not be changed.', '');
+  });
+  $('cancelCharacterCreation').addEventListener('click', () => {
+    $('characterCreationScreen').classList.add('hidden'); $('gameLayout').classList.remove('hidden');
+  });
+  loadCharacterOptions().catch(error => notice(`Character options could not be loaded: ${error.message}`, 'error'));
 
   $('universeForm').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -31,7 +58,7 @@
       $('universeName').textContent = `Universe ${state.universe.id}`;
       $('systemCount').textContent = String(state.universe.baseline?.systems?.length ?? state.universe.baseline?.system_count ?? 0);
       $('seedFingerprint').textContent = state.universe.seed_fingerprint || state.universe.baseline?.seed_fingerprint || '—';
-      $('createCharacterButton').disabled = false;
+      $('newCharacterButton').disabled = false;
       await loadCharacters();
       await loadNavigation();
       renderMap();
@@ -76,22 +103,26 @@
     event.preventDefault();
     if (!state.universe) return;
     const name = $('characterName').value.trim();
-    const role = $('characterRole').value;
+    const role_id = $('characterRole').value;
+    const species_id = $('characterSpecies').value;
+    const attributes = {};
+    (state.characterOptions?.attributes || []).forEach(definition => { attributes[definition.id] = Number($(`attribute-${definition.id}`).value); });
     if (!name) return;
     $('createCharacterButton').disabled = true;
     notice('Creating character…');
     try {
-      const data = await request(api('characters.php'), { method: 'POST', body: JSON.stringify({ universe_id: state.universe.id, name, role }) });
+      const data = await request(api('characters.php'), { method: 'POST', body: JSON.stringify({ universe_id: state.universe.id, name, role_id, species_id, attributes }) });
       await loadCharacters();
       state.character = state.characters.find(c => c.id === data.character.id) || data.character;
       $('characterSelect').value = state.character.id;
       $('characterName').value = '';
+      $('characterCreationScreen').classList.add('hidden'); $('gameLayout').classList.remove('hidden');
       updateCharacterPanel();
       updateTravelButton();
       notice(`Character ${state.character.name} created and saved.`, 'success');
       if (currentSystemId()) selectSystem(currentSystemId());
     } catch (error) { notice(error.message, 'error'); }
-    finally { $('createCharacterButton').disabled = !state.universe; }
+    finally { $('createCharacterButton').disabled = !state.universe || !state.characterOptions; }
   });
 
   function updateTravelButton() {

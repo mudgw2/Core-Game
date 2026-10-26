@@ -178,7 +178,7 @@ final class Application
         $this->router->get('/api/health', static fn(): Response => Response::json([
             'ok' => true,
             'application' => 'CORE',
-            'version' => '0.1.56',
+            'version' => require CORE_ROOT . '/config/version.php',
         ]));
 
         // Read-only game definitions are externalized to config/content/*.json and exposed through the API.
@@ -418,16 +418,27 @@ final class Application
             }
         });
 
+        $this->router->get('/api/character-options', static function (): Response {
+            $path = CORE_ROOT . '/storage/data/content/character-options.json';
+            if (!is_file($path)) return Response::json(['ok' => false, 'error' => ['code' => 'character_options_missing', 'message' => 'Character creation definitions are missing.']], 500);
+            try { $options = json_decode((string)file_get_contents($path), true, 512, JSON_THROW_ON_ERROR); }
+            catch (Throwable $e) { Logger::error('Character option definitions are invalid', ['message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'character_options_invalid', 'message' => 'Character creation definitions are invalid. Check CORE logs.']], 500); }
+            if (!is_array($options) || !is_array($options['roles'] ?? null) || !is_array($options['species'] ?? null) || !is_array($options['attributes'] ?? null)) return Response::json(['ok' => false, 'error' => ['code' => 'character_options_invalid', 'message' => 'Character creation definitions have an invalid structure.']], 500);
+            return Response::json(['ok' => true, 'options' => $options]);
+        });
+
         $this->router->get('/api/characters', static function (Request $request) use ($characterService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character API is available only in development mode from a local/private network.']], 403);
             }
             $universeId = $request->query('universe_id', '');
-            if (!is_string($universeId) || trim($universeId) === '') {
-                return Response::json(['ok' => false, 'error' => ['code' => 'missing_universe_id', 'message' => 'Provide a universe_id query parameter.']], 400);
-            }
+            if (!is_string($universeId)) return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_id', 'message' => 'universe_id must be a string.']], 400);
             try {
+                if (trim($universeId) === '') {
+                    $all = (new JsonStorage((string)$config['storage']['path']))->all('characters');
+                    return Response::json(['ok' => true, 'characters' => $all]);
+                }
                 return Response::json(['ok' => true, 'universe_id' => trim($universeId), 'characters' => $characterService->listForUniverse($universeId)]);
             } catch (Throwable $e) {
                 if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
@@ -741,19 +752,21 @@ final class Application
             $body = $request->jsonBody();
             $universeId = isset($body['universe_id']) && is_string($body['universe_id']) ? trim($body['universe_id']) : '';
             $name = isset($body['name']) && is_string($body['name']) ? $body['name'] : '';
-            $role = isset($body['role']) && is_string($body['role']) ? $body['role'] : 'Explorer';
-            if ($universeId === '' || trim($name) === '') {
+            $role = isset($body['role_id']) && is_string($body['role_id']) ? $body['role_id'] : (isset($body['role']) && is_string($body['role']) ? $body['role'] : 'Explorer');
+            $speciesId = isset($body['species_id']) && is_string($body['species_id']) ? $body['species_id'] : 'human';
+            $attributes = is_array($body['attributes'] ?? null) ? $body['attributes'] : [];
+            if (trim($name) === '') {
                 Logger::warning('Character creation validation failed', ['error_code' => 'invalid_character_request']);
-                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_request', 'message' => 'Provide universe_id and a non-empty character name.']], 400);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_request', 'message' => 'Provide a non-empty character name.']], 400);
             }
             try {
-                $character = $characterService->create($universeId, $name, $role);
-                Logger::info('Character created', ['character_id' => $character['id'], 'universe_id' => $universeId]);
+                $character = $characterService->create($universeId, $name, $role, $speciesId, $attributes);
+                Logger::info('Character created', ['character_id' => $character['id'], 'universe_id' => $universeId !== '' ? $universeId : null]);
                 return Response::json(['ok' => true, 'character' => $character], 201);
             } catch (Throwable $e) {
                 $message = $e->getMessage();
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'required') || str_contains($message, 'cannot be empty') || str_contains($message, 'must be between') || str_contains($message, 'must be a non-empty') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
+                if (str_contains($message, 'required') || str_contains($message, 'cannot be empty') || str_contains($message, 'must be between') || str_contains($message, 'must be a non-empty') || str_contains($message, 'valid character role') || str_contains($message, 'valid character species') || str_contains($message, 'must be between') || str_contains($message, 'must be a whole number') || str_contains($message, 'Unknown character attribute') || str_contains($message, 'Universe is disabled') || str_contains($message, 'Universe is locked')) {
                     Logger::warning('Character creation rejected', ['universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character', 'message' => $message]], 400);
                 }

@@ -14,12 +14,36 @@ final class CharacterService
 {
     public function __construct(private JsonStorage $storage) {}
 
-    public function create(string $universeId, string $name, string $role = 'Explorer'): array
+    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = []): array
     {
         $universeId = trim($universeId);
         $name = trim($name);
         $role = trim($role);
-        if ($universeId === '') throw new RuntimeException('A universe_id is required.');
+        $optionsPath = CORE_ROOT . '/storage/data/content/character-options.json';
+        $options = is_file($optionsPath) ? json_decode((string)file_get_contents($optionsPath), true) : null;
+        if (!is_array($options)) throw new RuntimeException('Character creation definitions are missing or invalid.');
+        $roles = is_array($options['roles'] ?? null) ? $options['roles'] : [];
+        $species = is_array($options['species'] ?? null) ? $options['species'] : [];
+        $roleDefinition = null;
+        foreach ($roles as $entry) { if (is_array($entry) && (($entry['id'] ?? null) === $role || ($entry['label'] ?? null) === $role)) { $roleDefinition = $entry; break; } }
+        if ($roleDefinition === null) throw new RuntimeException('Select a valid character role from the available options.');
+        $speciesId = trim($speciesId);
+        $speciesDefinition = null;
+        foreach ($species as $entry) { if (is_array($entry) && ($entry['id'] ?? null) === $speciesId) { $speciesDefinition = $entry; break; } }
+        if ($speciesDefinition === null) throw new RuntimeException('Select a valid character species from the available options.');
+        $validatedAttributes = [];
+        foreach (($options['attributes'] ?? []) as $definition) {
+            if (!is_array($definition) || !is_string($definition['id'] ?? null)) continue;
+            $attributeId = $definition['id'];
+            $value = $attributes[$attributeId] ?? $definition['default'] ?? 10;
+            if (filter_var($value, FILTER_VALIDATE_INT) === false) throw new RuntimeException('Attribute ' . $attributeId . ' must be a whole number.');
+            $value = (int)$value;
+            $minimum = (int)($definition['minimum'] ?? 1); $maximum = (int)($definition['maximum'] ?? 30);
+            if ($value < $minimum || $value > $maximum) throw new RuntimeException('Attribute ' . $attributeId . ' must be between ' . $minimum . ' and ' . $maximum . '.');
+            $validatedAttributes[$attributeId] = $value;
+        }
+        foreach ($attributes as $attributeId => $_) { if (!array_key_exists((string)$attributeId, $validatedAttributes)) throw new RuntimeException('Unknown character attribute: ' . (string)$attributeId . '.'); }
+        $role = (string)$roleDefinition['label'];
         if ($name === '') throw new RuntimeException('Character name cannot be empty.');
         $nameLength = preg_match_all('/./us', $name);
         if ($nameLength === false || $nameLength < 2 || $nameLength > 40) {
@@ -29,9 +53,27 @@ final class CharacterService
         if ($role === '' || $roleLength === false || $roleLength > 40) {
             throw new RuntimeException('Character role must be a non-empty string of at most 40 characters.');
         }
+        // Unassigned characters are valid persistent identities. They deliberately have no
+        // location/exploration state and cannot enter gameplay until safely assigned later.
+        if ($universeId === '') {
+            $id = 'chr_' . bin2hex(random_bytes(12));
+            $now = gmdate('c');
+            $record = [
+                'id' => $id, 'schema_version' => 1, 'universe_id' => null,
+                'name' => $name, 'role' => (string)$roleDefinition['label'],
+                'role_id' => (string)$roleDefinition['id'],
+                'species_id' => (string)$speciesDefinition['id'],
+                'species' => (string)$speciesDefinition['label'],
+                'attributes' => $validatedAttributes,
+                'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created_unassigned'],
+                'location' => null, 'current_system_id' => null,
+                'created_at' => $now, 'revision' => 0,
+            ];
+            return $this->storage->createIfAbsent('characters', $id, $record);
+        }
         // Character creation shares the universe lock with universe deletion. This closes the race
         // where a new dependent character could appear after deletion enumerates its dependents.
-        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role): array {
+        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes): array {
             $universe = $this->storage->read('universes', $universeId);
             if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
                 throw new RuntimeException('The selected universe does not exist.');
@@ -49,6 +91,10 @@ final class CharacterService
                 'universe_id' => $universeId,
                 'name' => $name,
                 'role' => $role,
+                'role_id' => (string)$roleDefinition['id'],
+                'species_id' => (string)$speciesDefinition['id'],
+                'species' => (string)$speciesDefinition['label'],
+                'attributes' => $validatedAttributes,
                 'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
                 'current_system_id' => (string)$firstSystem['id'],
                 'location' => [
@@ -196,7 +242,6 @@ final class CharacterService
     public function navigationForUniverse(string $universeId): array
     {
         $universeId = trim($universeId);
-        if ($universeId === '') throw new RuntimeException('A universe_id is required.');
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
             throw new RuntimeException('The selected universe does not exist.');
@@ -217,7 +262,6 @@ final class CharacterService
     public function listForUniverse(string $universeId): array
     {
         $universeId = trim($universeId);
-        if ($universeId === '') throw new RuntimeException('A universe_id is required.');
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
             throw new RuntimeException('The selected universe does not exist.');

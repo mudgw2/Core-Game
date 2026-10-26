@@ -89,3 +89,18 @@ This release establishes and tests the framework contract. Existing routes and g
 
 
 Player-facing entry point: `/player/index.php`. Account access: `/player/account.php`. The initial account prototype stores password hashes in `storage/data/player-accounts.json`; gameplay APIs remain development/private-network restricted and are not yet authorized against account ownership.
+
+## Development test account (0.1.53)
+
+Open the Workbench **Player Accounts** tab and click **Create / reset test account**. Use `test@core.local` with password `CoreTest2026!` at `/player/account.php`. This convenience is restricted to development mode and local/private-network clients. It is not safe for public deployment; do not expose the Workbench or account administration endpoint publicly.
+
+
+## CORE 0.1.54
+Player Accounts now uses a searchable, paginated email-only list. Select an email to open the account detail screen to edit the email, account type, creation timestamp, access status, optionally reset the password, or delete the account. Account administration remains development-only. See `RELEASE-NOTES-0.1.54.md`.
+
+
+## CORE 0.1.55
+When the development account list is requested and the account store file is missing, CORE automatically creates the development test account instead of silently presenting an empty list. Existing account stores are not reset automatically. The Player Accounts panel also explains when no accounts exist. See `RELEASE-NOTES-0.1.55.md`.
+
+## CORE 0.1.56
+Player sign-in no longer incorrectly applies the registration-only 10-character minimum to existing passwords. Registration and Workbench password reset retain the 10-character minimum.

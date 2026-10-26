@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     else {
         $action=(string)($_POST['action'] ?? ''); $email=strtolower(trim((string)($_POST['email'] ?? ''))); $password=(string)($_POST['password'] ?? '');
         if ($action==='logout') { $_SESSION=[]; session_regenerate_id(true); $_SESSION['core_csrf']=bin2hex(random_bytes(32)); $success='You have signed out.'; }
-        elseif (!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>254 || strlen($password)<10 || strlen($password)>4096) { $error='Enter a valid email and a password between 10 and 4096 characters.'; }
+        elseif (!filter_var($email,FILTER_VALIDATE_EMAIL) || strlen($email)>254 || $password==='' || strlen($password)>4096 || ($action==='register' && strlen($password)<10)) { $error = $action==='register' ? 'Enter a valid email and a password between 10 and 4096 characters.' : 'Enter a valid email and password.'; }
         else {
             if (!is_dir($storeDir) && !mkdir($storeDir,0750,true) && !is_dir($storeDir)) $error='Account storage is unavailable.';
             else {

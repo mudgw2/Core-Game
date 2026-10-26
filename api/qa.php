@@ -1953,13 +1953,13 @@ $run('Player prototype uses Babylon.js and backend entity IDs', static function 
     }
     return 'Babylon.js renders primitive system markers mapped to stable backend system IDs and uses existing universe/navigation/character APIs.';
 });
-$run('Active release version labels are consistent at 0.1.52', static function () use ($assert): string {
+$run('Active release version labels are consistent at 0.1.56', static function () use ($assert): string {
     $workbench = file_get_contents(dirname(__DIR__) . '/index.php');
     $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
-    $assert(is_string($workbench) && str_contains($workbench, 'Foundation 0.1.52'), 'Workbench version label is stale.');
-    $assert(is_string($application) && str_contains($application, "'version' => '0.1.52'"), 'Application version is stale.');
-    return 'Workbench and application metadata report release 0.1.52.';
+    $assert(is_string($workbench) && str_contains($workbench, 'Foundation 0.1.56'), 'Workbench version label is stale.');
+    $assert(is_string($application) && str_contains($application, "'version' => '0.1.56'"), 'Application version is stale.');
+    return 'Workbench and application metadata report release 0.1.56.';
 });
 
 
-echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.52', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => '0.1.56', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

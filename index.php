@@ -86,7 +86,7 @@ declare(strict_types=1);
 <body>
 <main>
     <header class="app-header">
-        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.52</div>
+        <div class="eyebrow">Procedural sci-fi sandbox · Foundation 0.1.56</div>
         <h1>CORE</h1>
         <p class="lead">A single workbench for universe setup, character operations, exploration, and development tools.</p>
     </header>
@@ -97,6 +97,7 @@ declare(strict_types=1);
         <button type="button" role="tab" id="tab-discoveries" aria-controls="panel-discoveries" aria-selected="false" tabindex="-1" data-tab="discoveries">Scanning &amp; Discoveries</button>
         <button type="button" role="tab" id="tab-content" aria-controls="panel-content" aria-selected="false" tabindex="-1" data-tab="content">Content Management</button>
         <button type="button" role="tab" id="tab-data" aria-controls="panel-data" aria-selected="false" tabindex="-1" data-tab="data">Data Management</button>
+        <button type="button" role="tab" id="tab-accounts" aria-controls="panel-accounts" aria-selected="false" tabindex="-1" data-tab="accounts">Player Accounts</button>
         <button type="button" role="tab" id="tab-operations" aria-controls="panel-operations" aria-selected="false" tabindex="-1" data-tab="operations">Operations &amp; QA</button>
     </nav>
     <div class="tab-summary" aria-live="polite"><span class="menu-indicator"></span><span id="activeSectionLabel">Overview</span><span class="tab-summary-hint">Use the main menu to switch work areas.</span></div>
@@ -398,6 +399,21 @@ declare(strict_types=1);
             <p id="cleanupUniverseDeleteStatus" class="status" role="status" aria-live="assertive">Select a universe above and preview it. The deletion button stays disabled until the exact phrase matches.</p>
         </section>
     </section>
+    <section class="tab-panel grid" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts" data-panel="accounts" hidden>
+        <section style="grid-column:1/-1">
+            <h2>Player accounts</h2>
+            <p>Find an account by email, then open its dedicated detail screen to edit account information or change its access state.</p>
+            <div class="actions"><button id="ensureTestAccountButton" type="button">Create / reset test account</button><button id="refreshPlayerAccountsButton" type="button" class="secondary">Refresh</button></div>
+            <p class="fine-print">Development-only account administration. Test credentials: <strong>test@core.local</strong> / <strong>CoreTest2026!</strong>. Do not expose this Workbench or its account API publicly.</p>
+            <div class="account-search-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:16px 0">
+              <div><label for="playerAccountSearch">Search accounts by email</label><input id="playerAccountSearch" type="search" autocomplete="off" placeholder="Enter all or part of an email address"></div>
+              <button id="searchPlayerAccountsButton" type="button">Search</button>
+            </div>
+            <p id="playerAccountsStatus" class="status" role="status" aria-live="polite">Load accounts to begin.</p>
+            <div class="table-wrap"><table><thead><tr><th>Email</th></tr></thead><tbody id="playerAccountsRows"><tr><td>Account list not loaded.</td></tr></tbody></table></div>
+            <div class="actions" style="justify-content:space-between;align-items:center;margin-top:12px"><span id="playerAccountsPageInfo" class="status">—</span><div class="actions"><button id="playerAccountsPrevious" class="secondary" type="button" disabled>Previous</button><button id="playerAccountsNext" class="secondary" type="button" disabled>Next</button></div></div>
+        </section>
+    </section>
     <section class="tab-panel grid" id="panel-operations" role="tabpanel" aria-labelledby="tab-operations" data-panel="operations" hidden>
         <section style="grid-column:1/-1">
             <h2>Response</h2>
@@ -435,7 +451,7 @@ declare(strict_types=1);
     const tabs = Array.from(document.querySelectorAll('[role="tab"][data-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-panel]'));
     const sectionLabel = document.getElementById('activeSectionLabel');
-    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', content: 'Content Management', data: 'Data Management', operations: 'Operations & QA' };
+    const sectionNames = { overview: 'Overview', universe: 'Universe', characters: 'Characters & Travel', discoveries: 'Scanning & Discoveries', content: 'Content Management', data: 'Data Management', accounts: 'Player Accounts', operations: 'Operations & QA' };
     function activateTab(name, moveFocus = false) {
         const tab = tabs.find(item => item.dataset.tab === name);
         if (!tab) return;
@@ -458,6 +474,46 @@ declare(strict_types=1);
             else if (event.key === 'End') next = tabs.length - 1;
             if (next !== null) { event.preventDefault(); activateTab(tabs[next].dataset.tab, true); }
         });
+    });
+    const playerAccountsRows = document.getElementById('playerAccountsRows');
+    const playerAccountsStatus = document.getElementById('playerAccountsStatus');
+    const playerAccountSearch = document.getElementById('playerAccountSearch');
+    let playerAccountPage = 1, playerAccountTotalPages = 1;
+    async function playerAccountsRequest(action, extra = {}) {
+        const response = await fetch('api/player-accounts-admin.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ action, ...extra }), cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Account management request failed.');
+        return data;
+    }
+    async function refreshPlayerAccounts(resetPage = false) {
+        if (resetPage) playerAccountPage = 1;
+        playerAccountsStatus.className = 'status'; playerAccountsStatus.textContent = 'Loading accounts…';
+        try {
+            const data = await playerAccountsRequest('list', { search: playerAccountSearch.value.trim(), page: playerAccountPage, per_page: 50 });
+            playerAccountsRows.replaceChildren();
+            if (!data.accounts.length) { const tr=document.createElement('tr'); const td=document.createElement('td'); td.textContent='No matching accounts found.'; tr.append(td); playerAccountsRows.append(tr); }
+            data.accounts.forEach(account => {
+                const tr=document.createElement('tr'), td=document.createElement('td'), link=document.createElement('a');
+                link.href='admin/player-account.php?id='+encodeURIComponent(account.id); link.textContent=account.email || '(no email)'; link.style.fontWeight='700';
+                td.append(link); tr.append(td); playerAccountsRows.append(tr);
+            });
+            playerAccountTotalPages = data.pagination.total_pages || 1;
+            document.getElementById('playerAccountsPageInfo').textContent = `${data.pagination.total} account(s) · Page ${data.pagination.page} of ${data.pagination.total_pages}`;
+            document.getElementById('playerAccountsPrevious').disabled = data.pagination.page <= 1;
+            document.getElementById('playerAccountsNext').disabled = data.pagination.page >= data.pagination.total_pages;
+            playerAccountsStatus.className = 'status success'; playerAccountsStatus.textContent = data.test_account_provisioned ? 'No account store was found, so the development test account was created automatically. Sign-in: test@core.local / CoreTest2026!.' : (data.pagination.total === 0 ? 'No accounts exist in the account store. Use Create / reset test account to create the development test account.' : `Showing ${data.accounts.length} account(s)${playerAccountSearch.value.trim() ? ' matching your search' : ''}. Select an email to manage that account.`);
+        } catch (e) { playerAccountsStatus.className = 'status error'; playerAccountsStatus.textContent = e.message; }
+    }
+    document.getElementById('refreshPlayerAccountsButton')?.addEventListener('click', () => refreshPlayerAccounts());
+    document.getElementById('searchPlayerAccountsButton')?.addEventListener('click', () => refreshPlayerAccounts(true));
+    playerAccountSearch?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); refreshPlayerAccounts(true); } });
+    document.getElementById('playerAccountsPrevious')?.addEventListener('click', () => { if (playerAccountPage > 1) { playerAccountPage--; refreshPlayerAccounts(); } });
+    document.getElementById('playerAccountsNext')?.addEventListener('click', () => { if (playerAccountPage < playerAccountTotalPages) { playerAccountPage++; refreshPlayerAccounts(); } });
+    document.getElementById('ensureTestAccountButton')?.addEventListener('click', async () => {
+        if (!confirm('Create the CORE test account or reset its password to the displayed development credential?')) return;
+        playerAccountsStatus.className='status'; playerAccountsStatus.textContent='Preparing test account…';
+        try { const data=await playerAccountsRequest('ensure-test-account'); playerAccountsStatus.className='status success'; playerAccountsStatus.textContent=data.message; playerAccountSearch.value=''; await refreshPlayerAccounts(true); }
+        catch(e) { playerAccountsStatus.className='status error'; playerAccountsStatus.textContent=e.message; }
     });
     activateTab('overview');
     const output = document.getElementById('output');
@@ -767,7 +823,7 @@ declare(strict_types=1);
     function applySchemaField(){if(!schemaDoc)throw new Error('Load the schema first.');const category=schemaCategorySelect.value,fields=schemaCurrentCategory()?.fields;if(!fields)throw new Error('Choose a category.');const id=schemaNewField?schemaVal('schemaFieldId').trim():schemaFieldSelect.value;const label=schemaVal('schemaFieldLabel').trim(),type=schemaVal('schemaFieldType');if(!/^[a-z][a-z0-9_]{1,63}$/.test(id))throw new Error('Field ID must start with a lowercase letter and contain 2–64 lowercase letters, numbers, or underscores.');if(schemaNewField&&Object.hasOwn(fields,id))throw new Error('That field ID already exists in this category.');if(!label)throw new Error('Display label is required.');const field={label,type,required:document.getElementById('schemaFieldRequired').checked};const desc=schemaVal('schemaFieldDescription').trim();if(desc)field.description=desc;const min=schemaVal('schemaFieldMin').trim(),max=schemaVal('schemaFieldMax').trim();if(['number','integer'].includes(type)){if(min!==''){field.min=Number(min);if(!Number.isFinite(field.min))throw new Error('Minimum must be numeric.');}if(max!==''){field.max=Number(max);if(!Number.isFinite(field.max))throw new Error('Maximum must be numeric.');}if(min!==''&&max!==''&&field.min>field.max)throw new Error('Minimum cannot exceed maximum.');}
         const rawDefault=schemaVal('schemaFieldDefault').trim();if(rawDefault!==''){if(type==='boolean'){if(!['true','false'].includes(rawDefault))throw new Error('Boolean default must be true or false.');field.default=rawDefault==='true';}else if(type==='number'||type==='integer'){field.default=Number(rawDefault);if(!Number.isFinite(field.default)||(type==='integer'&&!Number.isInteger(field.default)))throw new Error('Default must match the selected numeric type.');if(field.min!==undefined&&field.default<field.min||field.max!==undefined&&field.default>field.max)throw new Error('Default must be within the configured limits.');}else if(type==='enum'){field.options=parseSchemaOptions(schemaVal('schemaFieldOptions'));if(!Object.hasOwn(field.options,rawDefault))throw new Error('Default must match one of the option IDs.');field.default=rawDefault;}else field.default=rawDefault;}
         if(type==='enum'){field.options=parseSchemaOptions(schemaVal('schemaFieldOptions'));if(field.default!==undefined&&!Object.hasOwn(field.options,field.default))throw new Error('Default must match one of the option IDs.');}
-        if(schemaNewField)fields[id]=field;else fields[id]=field;schemaDoc.content_version='0.1.52';schemaDoc.categories[category].fields=fields;schemaDoc.dirty=true;refreshSchemaFields(id);schemaMsg('info',`Draft updated: ${category}/${id}. Validate before saving.`);logActivity('info','Characteristic definition draft updated',`${category}/${id}`);}
+        if(schemaNewField)fields[id]=field;else fields[id]=field;schemaDoc.content_version='0.1.56';schemaDoc.categories[category].fields=fields;schemaDoc.dirty=true;refreshSchemaFields(id);schemaMsg('info',`Draft updated: ${category}/${id}. Validate before saving.`);logActivity('info','Characteristic definition draft updated',`${category}/${id}`);}
     async function schemaRequest(path,body){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body),cache:'no-store'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.error?.message||'Schema request failed.');return data;}
     async function loadSchemaManager(){try{schemaMsg('info','Loading characteristic definitions…');const r=await fetch('api/content/item-characteristics.php',{headers:{'Accept':'application/json'},cache:'no-store'});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error?.message||'Could not load schema.');schemaDoc=cloneContent(data.document);schemaRevision=Number.isInteger(schemaDoc.revision)?schemaDoc.revision:1;delete schemaDoc.catalog;delete schemaDoc.entries;schemaCategorySelect.replaceChildren();const categories=contentDraftDocuments.item_categories?.entries||{};Object.entries(schemaDoc.categories).forEach(([id])=>schemaCategorySelect.add(new Option(categories[id]?.label||id,id)));if(!schemaCategorySelect.options.length)throw new Error('No item categories are configured.');refreshSchemaFields();schemaMsg('success',`Loaded ${schemaCategorySelect.options.length} category schemas · revision ${schemaRevision}.`);}
         catch(e){schemaMsg('error','Load failed: '+e.message);logActivity('error','Characteristic schema load failed',e.message);}}

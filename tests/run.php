@@ -421,19 +421,18 @@ $test('player-created unassigned character persists its account owner', static f
         if (is_dir($dir)) rmdir($dir);
     }
 });
-$test('Workbench can safely delete an unassigned character with exact-name and revision checks', static function () use ($assert, $equal): void {
-    $dir = sys_get_temp_dir() . '/core-unassigned-delete-' . bin2hex(random_bytes(6));
+$test('Character records cannot be permanently deleted and remain available for archival', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-retention-' . bin2hex(random_bytes(6));
     try {
         $storage = new JsonStorage($dir); $service = new CharacterService($storage);
-        $character = $service->create('', 'Unassigned QA Pilot', 'Explorer', 'human', [], 'qa-owner');
-        $equal(null, $character['universe_id'] ?? null, 'Character should begin unassigned.');
-        try { $service->deleteCharacter('', $character['id'], 'Wrong Name', 0); throw new RuntimeException('Incorrect confirmation name was accepted.'); }
-        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Confirmation name'), 'Wrong-name rejection should be explicit.'); }
-        $result = $service->deleteCharacter('', $character['id'], 'Unassigned QA Pilot', 0);
-        $equal(true, $result['deleted']); $equal(null, $storage->read('characters', $character['id']));
+        $character = $service->create('', 'Retention QA Pilot', 'Explorer', 'human', [], 'qa-owner');
+        try { $service->deleteCharacter('', $character['id'], 'Retention QA Pilot', 0); throw new RuntimeException('Permanent character deletion unexpectedly succeeded.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Permanent character deletion is disabled'), 'Retention policy should reject permanent deletion explicitly.'); }
+        $saved = $storage->read('characters', $character['id']);
+        $equal($character['id'], $saved['id']); $equal('Retention QA Pilot', $saved['name']);
+        $equal('qa-owner', $saved['owner_account_id']);
     } finally { foreach (glob($dir . '/*') ?: [] as $file) { if (is_file($file)) @unlink($file); } @rmdir($dir); }
 });
-
 
 
 $test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
@@ -760,14 +759,16 @@ $test('Universe settings are deterministic, persisted in generated baseline, and
 });
 $test('Gameplay script only targets controls present on the game page and surfaces boot failures', static function () use ($assert): void {
     $game = (string)file_get_contents(CORE_ROOT . '/player/game.php'); $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
-    foreach (['notice','gameLayout','renderCanvas','mapStatus','universeName','travelButton','resetMapView','selectedName'] as $id) $assert(str_contains($game, 'id="' . $id . '"'), 'Gameplay page is missing required element ' . $id . '.');
+    foreach (['notice','gameLayout','renderCanvas','mapStatus','universeName','travelButton','selectedName'] as $id) $assert(str_contains($game, 'id="' . $id . '"'), 'Gameplay page is missing required element ' . $id . '.');
     $assert(!str_contains($js, "$('universeForm')") && !str_contains($js, "$('characterRole')"), 'Gameplay script must not bind controls belonging to the removed creation screen.');
     $assert(str_contains($js, 'Could not enter gameplay:') && str_contains($js, 'non-JSON data'), 'Gameplay boot and API failures must be shown clearly.');
+    $assert(str_contains($js, 'AbortSignal.timeout(12000)'), 'Gameplay API requests must time out instead of leaving the loading screen indefinitely.');
+    $assert(str_contains($js, 'try { await loadNavigation(); } catch (error)') && str_contains($js, 'renderMap();'), 'Navigation API failure must not prevent the assigned universe map from rendering.');
 });
 $test('Play page boots assigned universe and selected character directly', static function () use ($assert): void {
     $game = file_get_contents(CORE_ROOT . '/player/game.php'); $js = file_get_contents(CORE_ROOT . '/player/player.js');
     $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
-    $assert(str_contains($js, 'const boot = window.CORE_BOOT || {}') && str_contains($js, 'await loadNavigation();updateCharacterPanel();renderMap()'), 'Player JS must boot the actual assigned universe and character without reseeding.');
+    $assert(str_contains($js, 'const boot = window.CORE_BOOT || {}') && str_contains($js, 'try { await loadNavigation(); } catch (error)') && str_contains($js, 'updateCharacterPanel();') && str_contains($js, 'renderMap();'), 'Player JS must boot the actual assigned universe and character without reseeding.');
 });
 $test('Universe creation exposes settings and uses server-generated Babylon preview data', static function () use ($assert): void {
     $page = file_get_contents(CORE_ROOT . '/player/universe-create.php');
@@ -780,6 +781,16 @@ $test('Character Selection removes disabled Play and provides separate 3D charac
     $assert(str_contains($selection, 'character-portrait-canvas'), 'Character portrait canvas missing');
     $assert(str_contains($selection, 'character-universe-canvas'), 'Universe preview canvas missing');
     $assert(str_contains($selection, 'character-roster-preview.js'), 'Roster preview script is not loaded');
+});
+$test('Character selection has one account navigation action and shows player workflow progress', static function () use ($assert): void {
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/player.css');
+    $assert(str_contains($selection, 'aria-label="Player navigation"'), 'Player navigation needs an accessible label.');
+    $assert(str_contains($selection, 'Account &amp; sign out'), 'Account navigation should clearly identify account/sign-out access.');
+    $assert(!str_contains($selection, 'Account / sign out'), 'Duplicate account navigation item remains.');
+    $assert(str_contains($selection, 'aria-label="Player setup progress"'), 'Player setup progress indicator is missing.');
+    $assert(str_contains($selection, 'aria-current="step"'), 'Current workflow step must be announced accessibly.');
+    $assert(str_contains($css, '.flow-steps') && str_contains($css, '@media(max-width:560px){.player-flow'), 'Responsive workflow progress styling is missing.');
 });
 $test('Gameplay does not expose redundant character creation action', static function () use ($assert): void {
     $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
@@ -830,9 +841,32 @@ $test('Player prototype QA matches authenticated boot-data architecture', static
     $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the selected character and assigned universe.');
 });
 
-$test('CORE release version is centralized at 0.1.71', static function () use ($assert): void {
+$test('Workbench character registry uses a compact table with adjacent row actions', static function () use ($assert): void {
+    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    foreach (['character-admin-table', '<th scope="col">Character</th>', '<th scope="col">ID</th>', '<th scope="col">Universe</th>', "lifecycleButton.textContent = character.lifecycle?.enabled === false ? 'Restore' : 'Disable'", "selectButton.textContent = 'Select'"] as $needle) {
+        $assert(str_contains($workbench, $needle), 'Character registry table is missing expected feature: ' . $needle);
+    }
+    $assert(!str_contains($workbench, '.character-admin-list{display:grid'), 'Character registry must not use the old card grid.');
+    $assert(str_contains($workbench, 'characterViewArchiveButton'), 'Character archive view should be available.');
+    $assert(!str_contains($workbench, 'deleteCharacterButton'), 'Permanent character deletion controls must be absent.');
+    $assert(!str_contains($workbench, 'Permanent character removal'), 'The separate permanent character deletion panel should be removed.');
+});
+
+$test('Gameplay navigation keeps Character Selection in the page header', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $assert(str_contains($html, 'class="character-selection-link"'), 'Character Selection should be a styled header navigation link.');
+    $assert(!str_contains($html, 'map-back-link'), 'Character Selection must not be duplicated beside the map toolbar.');
+});
+$test('Gameplay map toolbar has no redundant Reset view control', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(!str_contains($html, 'resetMapView'), 'Reset view control should be removed from the map toolbar.');
+    $assert(!str_contains($js, "$('resetMapView')"), 'Reset view handler should be removed with its control.');
+});
+
+$test('CORE release version is centralized at 0.1.75', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert($version === '0.1.71', 'Unexpected CORE release version: ' . (string)$version);
+    $assert($version === '0.1.76', 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

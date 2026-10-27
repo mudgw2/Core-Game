@@ -5,10 +5,10 @@
     "name": "6787",
     "role": "Industrialist",
     "lifecycle": {
-        "enabled": true,
+        "enabled": false,
         "locked": false,
-        "updated_at": "2026-10-26T02:58:19+00:00",
-        "last_action": "created"
+        "updated_at": "2026-10-27T06:10:55+00:00",
+        "last_action": "disable"
     },
     "current_system_id": "sys_eab2a07c66af8e19",
     "location": {
@@ -26,5 +26,5 @@
         ]
     },
     "created_at": "2026-10-26T02:58:19+00:00",
-    "revision": 0
+    "revision": 1
 }

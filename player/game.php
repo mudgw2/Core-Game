@@ -23,12 +23,32 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.css">
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script>window.CORE_BOOT = <?= json_encode(['universe' => $assignedUniverse, 'character' => $selectedCharacter, 'characterId' => $selectedCharacterId], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>;</script>
-  <script defer src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.js"></script>
+  <script>
+    // Fail visibly if the external gameplay script is blocked, stale, or fails before startup.
+    window.CORE_PLAYER_SCRIPT_LOADED = false;
+    window.setTimeout(function () {
+      if (!window.CORE_PLAYER_SCRIPT_LOADED) {
+        var notice = document.getElementById('notice');
+        if (notice && notice.textContent.indexOf('Loading your selected character') !== -1) {
+          notice.textContent = 'Gameplay JavaScript did not start. Check that player.js loads successfully, then hard-refresh this page.';
+          notice.className = 'notice error';
+        }
+      }
+    }, 4000);
+    window.addEventListener('error', function (event) {
+      var notice = document.getElementById('notice');
+      if (notice && notice.textContent.indexOf('Loading your selected character') !== -1) {
+        notice.textContent = 'Gameplay startup error: ' + (event.message || 'A script failed to load. Check the browser Console and Network tabs.');
+        notice.className = 'notice error';
+      }
+    });
+  </script>
+  <script defer src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.js?v=<?= rawurlencode((string)$releaseVersion) ?>" onload="window.CORE_PLAYER_SCRIPT_LOADED = true" onerror="(function(){var n=document.getElementById('notice');if(n){n.textContent='Could not load player.js. Verify the player script URL and Apache file permissions.';n.className='notice error';}})()"></script>
 </head>
 <body data-api-root="<?= htmlspecialchars($urlRoot, ENT_QUOTES, 'UTF-8') ?>" data-character-id="<?= htmlspecialchars($selectedCharacterId, ENT_QUOTES, 'UTF-8') ?>" data-universe-seed="<?= htmlspecialchars($assignedSeed, ENT_QUOTES, 'UTF-8') ?>">
   <header class="topbar">
     <a class="brand" href="<?=htmlspecialchars($base,ENT_QUOTES,'UTF-8')?>/index.php"><span class="brand-mark">C</span><span>CORE <small>PLAYER PORTAL</small></span></a>
-    <nav class="portal-nav"><a href="<?=$base?>/selection.php">← Character Selection</a><a href="<?=$base?>/account.php">Account / sign out</a></nav>
+    <nav class="portal-nav" aria-label="Player navigation"><a class="character-selection-link" href="<?=$base?>/selection.php">← Character Selection</a><a href="<?=$base?>/account.php">Account / sign out</a></nav>
     <span class="build-tag"><?= htmlspecialchars($releaseVersion, ENT_QUOTES, 'UTF-8') ?> · PROTOTYPE</span>
   </header>
   <main id="top">
@@ -68,7 +88,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
       </aside>
 
       <section class="map-panel panel">
-        <div class="map-toolbar"><div><div class="eyebrow">TACTICAL OVERVIEW</div><h2>Universe map</h2></div><div class="map-toolbar-actions"><button type="button" id="resetMapView" class="button-secondary">Reset view</button><a class="button-secondary map-back-link" href="<?=$base?>/selection.php">Character Selection</a><span class="map-legend"><i></i> Star systems</span></div></div>
+        <div class="map-toolbar"><div><div class="eyebrow">TACTICAL OVERVIEW</div><h2>Universe map</h2></div><div class="map-toolbar-actions"><span class="map-legend"><i></i> Star systems</span></div></div>
         <div class="canvas-wrap"><canvas id="renderCanvas" aria-label="Interactive 3D universe map"></canvas><div id="canvasFallback" class="canvas-fallback hidden">Babylon.js could not initialize. Check network access to the Babylon.js CDN.</div></div>
         <div class="map-footer"><span id="mapStatus">Waiting for universe data</span><span>Drag to pan · Scroll to zoom · Select a star system</span></div>
       </section>

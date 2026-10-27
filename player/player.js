@@ -1,13 +1,23 @@
 (() => {
   'use strict';
+  window.CORE_PLAYER_SCRIPT_LOADED = true;
   const $ = id => document.getElementById(id);
+  // Catch synchronous startup faults that occur before start().catch() is reached.
+  window.addEventListener('error', event => {
+    const el = $('notice');
+    if (el) { el.textContent = `Gameplay JavaScript error: ${event.message || 'unknown error'}`; el.className = 'notice error'; }
+  });
+  window.addEventListener('unhandledrejection', event => {
+    const el = $('notice');
+    if (el) { const reason = event.reason; el.textContent = `Gameplay request failed: ${reason?.message || String(reason || 'unknown error')}`; el.className = 'notice error'; }
+  });
   const apiRoot = document.body.dataset.apiRoot || '';
   const api = path => `${apiRoot}/api/${path}`;
   const boot = window.CORE_BOOT || {};
   const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, dragStart: null, dragged: false };
   const notice = (message, type='') => { const el=$('notice'); if(el){el.textContent=message;el.className=`notice ${type}`.trim();} };
   async function request(url, options={}) {
-    const response = await fetch(url, {headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{})},...options});
+    const response = await fetch(url, {signal: AbortSignal.timeout(12000), headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{})},...options});
     const raw = await response.text(); let data;
     try { data = JSON.parse(raw); } catch { throw new Error(`API ${url} returned non-JSON data (HTTP ${response.status}). ${raw.slice(0,180)}`); }
     if (!response.ok || data.ok === false) throw new Error(data.error?.message || `Request failed (HTTP ${response.status}).`);
@@ -75,8 +85,9 @@
       setStatus(`${list.length} systems rendered · ${routes.length} navigation links · drag to pan · wheel to zoom`);selectSystem(currentSystemId()||list[0].id);
     } catch(error){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent=`3D map initialization failed: ${error.message||error}`;setStatus('Map initialization failed.');}
   }
-  $('resetMapView').addEventListener('click',()=>{const camera=state.scene?.activeCamera;if(!camera)return;const list=systems();const xs=list.map(s=>Number(s.x)||0),ys=list.map(s=>Number(s.y)||0);const span=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys),1);camera.setTarget(BABYLON.Vector3.Zero());camera.radius=Math.max(18,Math.min(70,span*1.35));camera.alpha=-Math.PI/2;camera.beta=Math.PI/3;});
-  $('travelButton').addEventListener('click',async()=>{
+  const travelButton = $('travelButton');
+  if (!travelButton) { notice('Gameplay page is incomplete: travelButton is missing. Check that game.php and player.js are from the same CORE release.', 'error'); return; }
+  travelButton.addEventListener('click',async()=>{
     if(!state.character||!state.selectedSystem||!state.universe)return;
     const button=$('travelButton');button.disabled=true;
     try{
@@ -92,7 +103,12 @@
     if(state.character.universe_id!==state.universe.id)throw new Error('The selected character is not assigned to the universe loaded by this page.');
     if(state.character.lifecycle?.enabled===false)throw new Error('This character is disabled. Enable it in the Workbench before playing.');
     if(state.character.lifecycle?.locked===true)throw new Error('This character is locked. Unlock it in the Workbench before playing.');
-    $('gameLayout').classList.remove('hidden');await loadNavigation();updateCharacterPanel();renderMap();notice(`Loaded ${state.character.name} into ${state.universe.name||'the assigned universe'}.`,'success');
+    $('gameLayout').classList.remove('hidden');
+    updateCharacterPanel();
+    let navigationWarning = '';
+    try { await loadNavigation(); } catch (error) { state.navigation = null; navigationWarning = ` Navigation links could not be loaded: ${error.message}`; }
+    renderMap();
+    notice(`Loaded ${state.character.name} into ${state.universe.name||'the assigned universe'}.${navigationWarning}`, navigationWarning ? 'error' : 'success');
   }
   start().catch(error=>{notice(`Could not enter gameplay: ${error.message}`,'error');setStatus('Gameplay initialization failed.');});
 })();

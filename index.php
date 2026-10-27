@@ -96,7 +96,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         @media(max-width:600px) { .account-search-row { grid-template-columns:1fr; } .account-search-row button { width:100%; } }
         @media (max-width:600px) { main { width:min(100% - 20px,1000px); padding-top:20px; } .global-menu { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .global-menu button { width:100%; padding:8px; } .global-menu button:last-child { grid-column:1/-1; } .tab-summary-hint { margin-left:0; flex-basis:100%; } }
     
-.character-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px;margin:18px 0 12px;border:1px solid var(--line);border-radius:10px;background:#0b1423}.character-admin-toolbar strong,.character-admin-toolbar span{display:block}.character-admin-toolbar span{font-size:12px;color:var(--muted);margin-top:3px}.character-admin-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin:12px 0 24px}.character-admin-card{display:block;width:100%;text-align:left;padding:16px;border:1px solid var(--line);border-radius:10px;background:#0b1423;color:var(--text);cursor:pointer;min-height:120px}.character-admin-card:hover{border-color:var(--accent);background:#102136}.character-admin-card[aria-selected=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:#11283a}.character-admin-card strong{display:block;font-size:17px;margin-bottom:6px}.character-admin-card .admin-meta{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere;line-height:1.55}.character-admin-card .admin-state{display:inline-block;margin-top:9px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:99px;border:1px solid #40546e;color:#b8cce1}.character-admin-card .admin-state.warning{border-color:#936c3a;color:#f5c66a}.character-admin-card .admin-state.danger{border-color:#8b4545;color:#ffb8b8}.character-admin-details{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+.character-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px;margin:18px 0 12px;border:1px solid var(--line);border-radius:10px;background:#0b1423}.character-admin-toolbar strong,.character-admin-toolbar span{display:block}.character-admin-toolbar span{font-size:12px;color:var(--muted);margin-top:3px}.character-admin-list{display:block;max-width:100%;overflow:auto;margin:12px 0 12px;border:1px solid var(--line);border-radius:8px}.character-admin-table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35;white-space:nowrap}.character-admin-table th{position:sticky;top:0;background:#111f35;color:#c7d7ea;text-align:left;font-size:11px;font-weight:650;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid var(--line)}.character-admin-table td{padding:6px 10px;border-bottom:1px solid #233249;vertical-align:middle}.character-admin-table tbody tr:last-child td{border-bottom:0}.character-admin-table tbody tr:hover{background:#102136}.character-admin-table tbody tr[aria-selected=true]{background:#142b3e;box-shadow:inset 3px 0 var(--accent)}.character-admin-table .character-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;color:var(--muted)}.character-admin-table .admin-state{font-size:10px;text-transform:uppercase;letter-spacing:.04em}.character-admin-table .admin-state.warning{color:#f5c66a}.character-admin-table .admin-state.danger{color:#ffb8b8}.character-admin-actions{display:flex;gap:6px;align-items:center}.character-admin-actions button{padding:5px 8px;font-size:11px;min-height:28px;white-space:nowrap}.character-admin-actions .row-delete{background:#5a252b;color:#ffe1e1;border:1px solid #8b4545}.character-admin-actions .row-delete:hover{background:#793139}.character-admin-empty{padding:10px 12px;font-size:12px;color:var(--muted)}.character-admin-details{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
 </style>
 </head>
 <body>
@@ -177,9 +177,10 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     <section class="tab-panel grid" id="panel-characters" role="tabpanel" aria-labelledby="tab-characters" data-panel="characters" hidden>
         <section style="grid-column:1/-1">
             <h2>Character management</h2>
-            <p>Backend registry for every saved character, across all universes. Select a record to inspect its status, travel state, and destructive actions. This is separate from the player-facing character roster.</p>
-            <div class="character-admin-toolbar"><div><strong id="characterRosterCount">Characters not loaded</strong><span>Saved records · all universes</span></div><div class="actions"><button id="refreshCharactersButton" type="button">Refresh registry</button></div></div>
-            <div id="characterAdminList" class="character-admin-list" role="listbox" aria-label="Saved characters"><p class="status">Select Refresh registry to load saved characters.</p></div>
+            <p>Backend registry for every saved character, across all universes. Select a record to inspect its status and travel state. Character records are permanent: disable to archive and restore to reactivate. This is separate from the player-facing character roster.</p>
+            <div class="character-admin-toolbar"><div><strong id="characterRosterCount">Characters not loaded</strong><span>Saved records · all universes · IDs are never recycled</span></div><div class="actions"><button id="characterViewActiveButton" type="button" aria-pressed="true">Active</button><button id="characterViewArchiveButton" type="button" class="secondary" aria-pressed="false">Archive</button><button id="refreshCharactersButton" type="button">Refresh registry</button></div></div>
+            <div id="characterAdminList" class="character-admin-list" aria-label="Saved characters"><p class="character-admin-empty">Select Refresh registry to load saved characters.</p></div>
+            <p id="characterArchiveStatus" class="status" role="status" aria-live="polite">Disable a character to archive it. Archived records retain their IDs and complete progress and can be restored.</p>
             <label for="characterUniverseId">Universe ID</label>
             <input id="characterUniverseId" autocomplete="off" placeholder="Filled after Create / Load">
             <label for="characterName">Character name</label>
@@ -226,12 +227,6 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
                     <button id="lockCharacterButton" type="button" class="secondary" disabled>Lock character</button>
                     <button id="unlockCharacterButton" type="button" class="secondary" disabled>Unlock character</button>
                 </div>
-            </section>
-            <section style="margin-top:16px;border-color:#8b4545;background:#211725">
-                <h3 style="color:#ffb8b8;margin-top:0">Danger zone: delete character</h3>
-                <p>This permanently deletes the selected character record, including its location, exploration history, discoveries, inventory, crafting ledger, travel progress, and ship loadout. It does not delete the universe or other characters. This cannot be undone.</p>
-                <div class="actions"><button id="deleteCharacterButton" type="button" style="background:#ffb8b8;color:#321010" disabled>Delete selected character…</button></div>
-                <p id="deleteCharacterStatus" class="status" role="status" aria-live="polite">Select a character to enable deletion.</p>
             </section>
             <p id="characterLocationStatus" class="status" aria-live="polite">New characters start in the universe's first system. Only directly connected systems are valid destinations. Repeating a move to the current system will not increment the revision.</p>
             <p id="characterExplorationStatus" class="status" aria-live="polite">Select a character to view its location and exploration history.</p>
@@ -393,17 +388,14 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             <div id="backupList" class="dashboard-list">No backup inventory loaded.</div>
             <p class="status">Restore is additive and conflict-safe: it restores missing records and accepts already-identical records, but refuses to overwrite different live records. Keep external/off-host backups too; an on-disk backup does not protect against disk loss.</p>
         </section>
-        <section>
-            <h2>Permanent character removal</h2>
-            <p>Character deletion removes only the selected character record and its embedded data. Type the exact character name and confirm.</p>
-            <label for="cleanupConfirmationName">Exact character name confirmation</label>
-            <input id="cleanupConfirmationName" maxlength="40" autocomplete="off" placeholder="Type the selected character name">
-            <div class="actions"><button id="deleteManagedCharacterButton" type="button" disabled>Delete selected character permanently</button></div>
-            <p id="cleanupDeleteStatus" class="status" aria-live="polite">Select a character and generate a character deletion preview first.</p>
+        <section hidden aria-hidden="true">
+            <h2>Character retention policy</h2>
+            <input id="cleanupConfirmationName"><button id="deleteManagedCharacterButton" type="button" disabled>Permanent character deletion retired</button>
+            <p id="cleanupDeleteStatus">Permanent character deletion is disabled.</p>
         </section>
         <section>
             <h2>Permanent universe removal</h2>
-            <p>Deletes the selected universe and all associated character records. CORE creates a checksum-verified backup first and retains it after deletion. Use an off-host backup for disaster recovery.</p>
+            <p>Universe removal must never delete character records. Universes with associated characters cannot be permanently removed; disable or lock the universe instead. Use backups for disaster recovery.</p>
             <label for="managedUniverseSearch">Find universe by name or ID</label>
             <input id="managedUniverseSearch" type="search" autocomplete="off" placeholder="Search universes by name or ID">
             <label for="managedUniverseTarget">Universe to remove</label>
@@ -1138,39 +1130,54 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         }
         document.getElementById('startTravelButton').disabled = !canPlay;
     }
+    let characterRegistryView = 'active';
     function populateCharacterChoices() {
         const select = document.getElementById('characterSelect');
         const prior = select.value;
         const list = document.getElementById('characterAdminList');
         const count = document.getElementById('characterRosterCount');
         select.replaceChildren(); list.replaceChildren();
-        count.textContent = `${loadedCharacters.length} saved character${loadedCharacters.length === 1 ? '' : 's'}`;
+        count.textContent = `${loadedCharacters.length.toLocaleString()} saved character${loadedCharacters.length === 1 ? '' : 's'}`;
         if (!loadedCharacters.length) {
             const option = document.createElement('option'); option.value = ''; option.textContent = 'No saved characters'; select.append(option);
-            const empty = document.createElement('p'); empty.className = 'status'; empty.textContent = 'No saved characters found. Create a character after loading a universe, or refresh the registry.'; list.append(empty);
-            updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability(); return;
+            const empty = document.createElement('p'); empty.className = 'character-admin-empty'; empty.textContent = 'No saved characters found. Create a character after loading a universe, or refresh the registry.'; list.append(empty);
+            updateCharacterDetails(); populateSystemChoices(); return;
+        }
+        const table = document.createElement('table'); table.className = 'character-admin-table';
+        table.innerHTML = '<thead><tr><th scope="col">Character</th><th scope="col">ID</th><th scope="col">Universe</th><th scope="col">Location</th><th scope="col">Revision</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>';
+        const body = document.createElement('tbody');
+        const visibleCharacters = loadedCharacters.filter(character => ((character.lifecycle?.enabled ?? true) ? 'active' : 'archive') === characterRegistryView);
+        document.getElementById('characterViewActiveButton').setAttribute('aria-pressed', String(characterRegistryView === 'active'));
+        document.getElementById('characterViewArchiveButton').setAttribute('aria-pressed', String(characterRegistryView === 'archive'));
+        count.textContent = `${visibleCharacters.length.toLocaleString()} ${characterRegistryView === 'active' ? 'active' : 'archived'} character${visibleCharacters.length === 1 ? '' : 's'} · ${loadedCharacters.length.toLocaleString()} total`;
+        if (!visibleCharacters.length) {
+            const empty = document.createElement('p'); empty.className = 'character-admin-empty'; empty.textContent = characterRegistryView === 'archive' ? 'No archived characters. Disable a character to move it here; its complete record will be retained.' : 'No active characters in this registry view. Switch to Archive to inspect disabled records.'; list.append(empty);
         }
         for (const character of loadedCharacters) {
             const option = document.createElement('option'); option.value = character.id;
-            option.textContent = `${character.name} — ${character.id}` + ((character.lifecycle?.enabled ?? true) ? '' : ' [DISABLED]') + (character.lifecycle?.locked ? ' [LOCKED]' : '');
+            option.textContent = `${character.name} — ${character.id}` + ((character.lifecycle?.enabled ?? true) ? '' : ' [ARCHIVED]') + (character.lifecycle?.locked ? ' [LOCKED]' : '');
             option.dataset.revision = String(character.revision ?? 0); select.append(option);
-            const card = document.createElement('button'); card.type = 'button'; card.className = 'character-admin-card'; card.setAttribute('role','option'); card.dataset.characterId = character.id;
-            const name = document.createElement('strong'); name.textContent = character.name || 'Unnamed character';
-            const meta = document.createElement('span'); meta.className = 'admin-meta';
-            meta.textContent = `${character.species || character.species_id || 'Unknown species'} · ${character.role || 'No role'}\nUniverse: ${character.universe_id || 'Unassigned'}\nLocation: ${character.current_system_id || character.location?.system_id || 'Not recorded'} · Revision ${character.revision ?? 0}`;
-            const badge = document.createElement('span'); badge.className = 'admin-state' + ((character.lifecycle?.enabled === false || character.lifecycle?.locked) ? ' warning' : '');
-            badge.textContent = character.lifecycle?.locked ? 'Locked' : character.lifecycle?.enabled === false ? 'Disabled' : 'Active';
-            card.append(name,meta,badge); card.addEventListener('click',()=>{select.value=character.id;select.dispatchEvent(new Event('change',{bubbles:true}));}); list.append(card);
         }
-        if (loadedCharacters.some(character => character.id === prior)) select.value = prior;
-        else select.selectedIndex = 0;
+        for (const character of visibleCharacters) {
+            const row = document.createElement('tr'); row.dataset.characterId = character.id;
+            const values = [character.name || 'Unnamed character', character.id, character.universe_id || 'Unassigned', character.current_system_id || character.location?.system_id || 'Not recorded', String(character.revision ?? 0)];
+            values.forEach((value, index) => { const cell = document.createElement('td'); cell.textContent = value; if (index === 1) cell.className = 'character-id'; row.append(cell); });
+            const stateCell = document.createElement('td'); const badge = document.createElement('span'); badge.className = 'admin-state' + ((character.lifecycle?.enabled === false || character.lifecycle?.locked) ? ' warning' : ''); badge.textContent = character.lifecycle?.locked ? (character.lifecycle?.enabled === false ? 'Archived · Locked' : 'Locked') : character.lifecycle?.enabled === false ? 'Archived' : 'Active'; stateCell.append(badge); row.append(stateCell);
+            const actionCell = document.createElement('td'); const actions = document.createElement('div'); actions.className = 'character-admin-actions';
+            const selectButton = document.createElement('button'); selectButton.type = 'button'; selectButton.textContent = 'Select'; selectButton.setAttribute('aria-label', 'Select ' + (character.name || character.id)); selectButton.addEventListener('click', () => { select.value = character.id; select.dispatchEvent(new Event('change', { bubbles: true })); });
+            const lifecycleButton = document.createElement('button'); lifecycleButton.type = 'button'; lifecycleButton.className = 'secondary'; lifecycleButton.textContent = character.lifecycle?.enabled === false ? 'Restore' : 'Disable'; lifecycleButton.setAttribute('aria-label', (character.lifecycle?.enabled === false ? 'Restore ' : 'Disable ') + (character.name || character.id));
+            lifecycleButton.addEventListener('click', async () => { select.value = character.id; select.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('characterRevision').value = String(character.revision ?? 0); await applyCharacterLifecycle(character.lifecycle?.enabled === false ? 'enable' : 'disable'); characterRegistryView = character.lifecycle?.enabled === false ? 'active' : 'archive'; populateCharacterChoices(); });
+            actions.append(selectButton, lifecycleButton); actionCell.append(actions); row.append(actionCell); body.append(row);
+        }
+        table.append(body); list.append(table);
+        if (loadedCharacters.some(character => character.id === prior)) select.value = prior; else select.selectedIndex = 0;
         syncCharacterAdminSelection();
         document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
-        updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability();
+        updateCharacterDetails(); populateSystemChoices();
     }
     function syncCharacterAdminSelection() {
         const selectedId = document.getElementById('characterSelect').value;
-        document.querySelectorAll('.character-admin-card').forEach(card => card.setAttribute('aria-selected', String(card.dataset.characterId === selectedId)));
+        document.querySelectorAll('.character-admin-table tbody tr').forEach(row => row.setAttribute('aria-selected', String(row.dataset.characterId === selectedId)));
     }
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
@@ -1315,6 +1322,8 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         }
     }
     document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
+    document.getElementById('characterViewActiveButton').addEventListener('click', () => { characterRegistryView = 'active'; populateCharacterChoices(); });
+    document.getElementById('characterViewArchiveButton').addEventListener('click', () => { characterRegistryView = 'archive'; populateCharacterChoices(); });
     document.getElementById('characterSelect').addEventListener('change', async () => {
         syncCharacterAdminSelection();
         const selected = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
@@ -1324,7 +1333,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             // Global inventory rows are intentionally sufficient for selecting and deleting; reload scoped records when possible.
             if (selected.revision !== undefined && selected.name) {
                 document.getElementById('characterRevision').value = String(selected.revision ?? 0);
-                updateCharacterDetails(); updateDeleteCharacterAvailability();
+                updateCharacterDetails();
                 return;
             }
             await refreshCharacters();
@@ -1631,45 +1640,6 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     document.getElementById('lockCharacterButton').addEventListener('click', () => applyCharacterLifecycle('lock'));
     document.getElementById('unlockCharacterButton').addEventListener('click', () => applyCharacterLifecycle('unlock'));
 
-    const deleteCharacterButton = document.getElementById('deleteCharacterButton');
-    function updateDeleteCharacterAvailability() { deleteCharacterButton.disabled = !document.getElementById('characterSelect').value; }
-    document.getElementById('characterSelect').addEventListener('change', updateDeleteCharacterAvailability);
-    deleteCharacterButton.addEventListener('click', async () => {
-        const universeId = document.getElementById('characterUniverseId').value.trim();
-        const characterId = document.getElementById('characterSelect').value;
-        const character = loadedCharacters.find(item => item.id === characterId);
-        const revision = Number(document.getElementById('characterRevision').value);
-        const status = document.getElementById('deleteCharacterStatus');
-        if (!character) { status.textContent = 'Select a character first.'; return; }
-        const assignedUniverseId = String(character.universe_id || '');
-        if (universeId && assignedUniverseId && universeId !== assignedUniverseId) { status.textContent = 'The selected character belongs to a different universe. Refresh the registry and select it again.'; return; }
-        if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
-        if (!window.confirm('Permanently delete ' + character.name + '? This removes all character progress, discoveries, inventory, and ship fitting. The universe and other characters will remain. This cannot be undone.')) return;
-        const confirmationName = window.prompt('To permanently delete this character, type its exact name: ' + character.name);
-        if (confirmationName === null) { status.textContent = 'Deletion cancelled.'; return; }
-        if (confirmationName !== character.name) { status.textContent = 'Deletion cancelled: the name did not match exactly.'; logActivity('warning', 'Character deletion cancelled', 'Confirmation name mismatch for ' + character.name); return; }
-        deleteCharacterButton.disabled = true; status.textContent = 'Deleting character and its saved progress…';
-        try {
-            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: assignedUniverseId, character_id: characterId, confirmation_name: confirmationName, expected_revision: revision }) });
-            const text = await response.text(); let data;
-            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
-            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
-            if (response.ok && data.ok) {
-                status.textContent = 'Character permanently deleted: ' + data.deletion.name + ' (' + data.deletion.character_id + ').';
-                logActivity('warning', 'Character permanently deleted', data.deletion.name + ' (' + data.deletion.character_id + ')');
-                await refreshCharacters();
-                const select = document.getElementById('characterSelect');
-                if (select.options.length) select.selectedIndex = 0;
-                document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
-                updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability();
-            } else {
-                status.textContent = (data.error?.code || 'character_delete_failed') + ': ' + (data.error?.message || 'Character deletion failed.');
-                logActivity('error', 'Character deletion rejected', JSON.stringify(data));
-                if (response.status === 409) { await refreshCharacters(); selectCharacterIfPresent(characterId); }
-            }
-        } catch (error) { status.textContent = 'Character deletion request failed. Check the server and activity log.'; logActivity('error', 'Character deletion request failed', error.stack || error.message); }
-        finally { updateDeleteCharacterAvailability(); }
-    });
     function selectCharacterIfPresent(characterId) {
         const select = document.getElementById('characterSelect');
         if (loadedCharacters.some(item => item.id === characterId)) select.value = characterId;
@@ -1937,35 +1907,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         }
     }
     document.getElementById('cleanupUniverseConfirmation').addEventListener('input', updateUniverseDeleteConfirmationState);
-    document.getElementById('deleteManagedCharacterButton').addEventListener('click', async () => {
-        const id = document.getElementById('cleanupRecordId').value;
-        const confirmationName = document.getElementById('cleanupConfirmationName').value;
-        const character = dataInventoryCache?.characters?.find(item => item.id === id);
-        const status = document.getElementById('cleanupDeleteStatus');
-        if (!lastCleanupPreview || lastCleanupPreview.scope !== 'character' || !lastCleanupPreview.executable || !character) { status.textContent = 'Generate a fresh character deletion preview first.'; return; }
-        if (confirmationName !== character.name) { status.textContent = 'The confirmation must exactly match the character name.'; return; }
-        if (!window.confirm('Permanently delete character "' + character.name + '" and all data embedded in its record? This cannot be undone.')) return;
-        const button = document.getElementById('deleteManagedCharacterButton'); button.disabled = true; status.textContent = 'Deleting character…';
-        try {
-            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: character.universe_id, character_id: character.id, confirmation_name: confirmationName, expected_revision: character.revision }) });
-            const data = await response.json();
-            if (!response.ok || !data.ok) throw new Error(data.error?.message || 'Character deletion failed. Refresh inventory and preview again.');
-            status.textContent = 'Character permanently deleted: ' + character.name + '. Other records were not targeted.';
-            document.getElementById('cleanupPreviewOutput').textContent = JSON.stringify(data, null, 2);
-            document.getElementById('cleanupConfirmationName').value = ''; lastCleanupPreview = null;
-            logActivity('warning', 'Character permanently deleted through Data Management', character.name + ' (' + character.id + ')');
-            if (document.getElementById('characterSelect').value === character.id) {
-                loadedCharacters = loadedCharacters.filter(item => item.id !== character.id); populateCharacterChoices();
-            }
-            await refreshDataInventory();
-            if (document.getElementById('characterUniverseId').value === character.universe_id) await refreshCharacters();
-            status.textContent = 'Character permanently deleted: ' + character.name + '. Inventory refreshed.';
-        } catch (error) {
-            status.textContent = 'Deletion rejected or failed: ' + error.message;
-            logActivity('error', 'Managed character deletion failed', error.stack || error.message);
-            await refreshDataInventory();
-        }
-    });
+    document.getElementById('deleteManagedCharacterButton').addEventListener('click', () => { document.getElementById('cleanupDeleteStatus').textContent = 'Permanent character deletion is disabled by CORE retention policy. Use Disable to archive the character.'; });
 
     document.getElementById('deleteManagedUniverseButton').addEventListener('click', async () => {
         const preview = lastCleanupPreview;

@@ -25,6 +25,9 @@ final class UniverseDeletionService
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) throw new RuntimeException('Universe does not exist.');
         $characters = $this->charactersFor($universeId);
+        if ($characters !== []) {
+            throw new RuntimeException('Universe removal is blocked because it has associated character records. Character records are permanent; disable or lock the universe instead, or reassign characters through an explicit future workflow. No data was changed.');
+        }
         $actualIds = array_map(static fn(array $c): string => (string)($c['id'] ?? ''), $characters); sort($actualIds, SORT_STRING);
         $stateRevision = (int)($universe['state']['revision'] ?? 0);
         $lifecycleRevision = (int)($universe['lifecycle']['revision'] ?? 0);

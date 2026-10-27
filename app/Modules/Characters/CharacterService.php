@@ -217,18 +217,17 @@ final class CharacterService
         $universeId = trim($universeId);
         $characterId = trim($characterId);
         $confirmationName = trim($confirmationName);
-        if ($universeId === '' || $characterId === '' || $confirmationName === '') {
-            throw new RuntimeException('universe_id, character_id, and confirmation_name are required.');
+        if ($characterId === '' || $confirmationName === '') {
+            throw new RuntimeException('character_id and confirmation_name are required.');
         }
         if ($expectedRevision < 0) throw new RuntimeException('Expected character revision must be zero or greater.');
-        $universe = $this->storage->read('universes', $universeId);
-        if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
-            throw new RuntimeException('The selected universe does not exist.');
+        if ($universeId !== '') {
+            $universe = $this->storage->read('universes', $universeId);
+            if ($universe === null || ($universe['id'] ?? null) !== $universeId) throw new RuntimeException('The selected universe does not exist.');
         }
         $deleted = $this->storage->delete('characters', $characterId, static function (array $character) use ($universeId, $confirmationName, $expectedRevision): void {
-            if (($character['universe_id'] ?? null) !== $universeId) {
-                throw new RuntimeException('Character does not belong to the selected universe.');
-            }
+            $actualUniverseId = (string)($character['universe_id'] ?? '');
+            if ($actualUniverseId !== $universeId) throw new RuntimeException($actualUniverseId === '' ? 'Character is unassigned; leave universe_id empty.' : 'Character does not belong to the selected universe.');
             if (!hash_equals((string)($character['name'] ?? ''), $confirmationName)) {
                 throw new RuntimeException('Confirmation name does not match the character name.');
             }

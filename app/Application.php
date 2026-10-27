@@ -720,9 +720,9 @@ final class Application
             $characterId = isset($body['character_id']) && is_string($body['character_id']) ? trim($body['character_id']) : '';
             $confirmationName = isset($body['confirmation_name']) && is_string($body['confirmation_name']) ? $body['confirmation_name'] : '';
             $expectedRevision = $body['expected_revision'] ?? null;
-            if ($universeId === '' || $characterId === '' || trim($confirmationName) === '' || !is_int($expectedRevision)) {
+            if ($characterId === '' || trim($confirmationName) === '' || !is_int($expectedRevision)) {
                 Logger::warning('Character deletion request validation failed', ['error_code' => 'invalid_character_delete_request']);
-                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_delete_request', 'message' => 'Provide universe_id, character_id, confirmation_name, and integer expected_revision.']], 400);
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_delete_request', 'message' => 'Provide character_id, confirmation_name, integer expected_revision, and universe_id when the character is assigned.']], 400);
             }
             try {
                 $result = $characterService->deleteCharacter($universeId, $characterId, $confirmationName, $expectedRevision);
@@ -735,7 +735,7 @@ final class Application
                     return Response::json(['ok' => false, 'error' => ['code' => 'revision_conflict', 'message' => $message]], 409);
                 }
                 if (str_contains($message, 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'character_not_found', 'message' => $message]], 404);
-                if (str_contains($message, 'required') || str_contains($message, 'must be zero') || str_contains($message, 'Confirmation name')) {
+                if (str_contains($message, 'required') || str_contains($message, 'must be zero') || str_contains($message, 'Confirmation name') || str_contains($message, 'leave universe_id empty')) {
                     Logger::warning('Character deletion rejected', ['character_id' => $characterId, 'universe_id' => $universeId, 'message' => $message]);
                     return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_delete', 'message' => $message]], 400);
                 }

@@ -82,8 +82,22 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         .tab-panel { margin-top:14px; background:transparent; border:0; padding:0; }
         .tab-panel[hidden] { display:none !important; }
         .tab-panel > section { align-self:start; }
+        .account-search-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end; margin:16px 0; }
+        #panel-accounts .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+        #panel-accounts table { width:100%; border-collapse:collapse; min-width:620px; }
+        #panel-accounts th,#panel-accounts td { text-align:left; padding:12px 14px; border-bottom:1px solid #2b3a57; }
+        #panel-accounts th { color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; background:#10192b; }
+        #panel-accounts tbody tr:last-child td { border-bottom:0; }
+        #panel-accounts tbody tr:hover { background:#ffffff06; }
+        #panel-accounts td a { color:var(--accent); overflow-wrap:anywhere; }
+        .account-status { text-transform:capitalize; }
+        .account-status-locked,.account-status-banned,.account-status-disabled { color:#ffb5bc; }
+        .account-status-active { color:#a7f3d0; }
+        @media(max-width:600px) { .account-search-row { grid-template-columns:1fr; } .account-search-row button { width:100%; } }
         @media (max-width:600px) { main { width:min(100% - 20px,1000px); padding-top:20px; } .global-menu { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .global-menu button { width:100%; padding:8px; } .global-menu button:last-child { grid-column:1/-1; } .tab-summary-hint { margin-left:0; flex-basis:100%; } }
-    </style>
+    
+.character-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px;margin:18px 0 12px;border:1px solid var(--line);border-radius:10px;background:#0b1423}.character-admin-toolbar strong,.character-admin-toolbar span{display:block}.character-admin-toolbar span{font-size:12px;color:var(--muted);margin-top:3px}.character-admin-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin:12px 0 24px}.character-admin-card{display:block;width:100%;text-align:left;padding:16px;border:1px solid var(--line);border-radius:10px;background:#0b1423;color:var(--text);cursor:pointer;min-height:120px}.character-admin-card:hover{border-color:var(--accent);background:#102136}.character-admin-card[aria-selected=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:#11283a}.character-admin-card strong{display:block;font-size:17px;margin-bottom:6px}.character-admin-card .admin-meta{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere;line-height:1.55}.character-admin-card .admin-state{display:inline-block;margin-top:9px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:99px;border:1px solid #40546e;color:#b8cce1}.character-admin-card .admin-state.warning{border-color:#936c3a;color:#f5c66a}.character-admin-card .admin-state.danger{border-color:#8b4545;color:#ffb8b8}.character-admin-details{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+</style>
 </head>
 <body>
 <main>
@@ -162,17 +176,19 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     </section>
     <section class="tab-panel grid" id="panel-characters" role="tabpanel" aria-labelledby="tab-characters" data-panel="characters" hidden>
         <section style="grid-column:1/-1">
-            <h2>Player characters (development only)</h2>
-            <p>Create a basic character record linked to the currently selected universe. This is a prototype registry, not an account-owned character system; do not expose it publicly.</p>
+            <h2>Character management</h2>
+            <p>Backend registry for every saved character, across all universes. Select a record to inspect its status, travel state, and destructive actions. This is separate from the player-facing character roster.</p>
+            <div class="character-admin-toolbar"><div><strong id="characterRosterCount">Characters not loaded</strong><span>Saved records · all universes</span></div><div class="actions"><button id="refreshCharactersButton" type="button">Refresh registry</button></div></div>
+            <div id="characterAdminList" class="character-admin-list" role="listbox" aria-label="Saved characters"><p class="status">Select Refresh registry to load saved characters.</p></div>
             <label for="characterUniverseId">Universe ID</label>
             <input id="characterUniverseId" autocomplete="off" placeholder="Filled after Create / Load">
             <label for="characterName">Character name</label>
             <input id="characterName" maxlength="40" autocomplete="off" placeholder="e.g. Mira Voss">
             <label for="characterRole">Role / starting concept</label>
             <input id="characterRole" maxlength="40" value="Explorer" autocomplete="off">
-            <div class="actions"><button id="createCharacterButton" type="button">Create character</button><button id="refreshCharactersButton" class="secondary" type="button">Refresh character list</button></div>
+            <div class="actions"><button id="createCharacterButton" type="button">Create character in selected universe</button></div>
             <p id="characterStatus" class="status" aria-live="polite">Select a universe before creating a character.</p>
-            <h3>Character Status &amp; Travel Dashboard</h3>
+            <h3>Selected character details &amp; travel operations</h3>
             <div class="dashboard-grid" aria-live="polite" aria-atomic="true">
                 <div class="dashboard-tile"><span class="dashboard-label">Selected character</span><strong id="dashboardCharacter">None selected</strong><span id="dashboardRole" class="dashboard-detail">Choose a character below.</span></div>
                 <div class="dashboard-tile"><span class="dashboard-label">Current system</span><strong id="dashboardLocation">—</strong><span id="dashboardRevision" class="dashboard-detail">Revision: —</span></div>
@@ -406,13 +422,13 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             <h2>Player accounts</h2>
             <p>Find an account by email, then open its dedicated detail screen to edit account information or change its access state.</p>
             <div class="actions"><button id="ensureTestAccountButton" type="button">Create / reset test account</button><button id="refreshPlayerAccountsButton" type="button" class="secondary">Refresh</button></div>
-            <p class="fine-print">Development-only account administration. Test credentials: <strong>test@core.local</strong> / <strong>CoreTest2026!</strong>. Do not expose this Workbench or its account API publicly.</p>
+            <p class="fine-print">Development-only account administration. Listing and searching are read-only. Creating or resetting the development test account is an explicit action. Do not expose this Workbench or its account API publicly.</p>
             <div class="account-search-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:16px 0">
               <div><label for="playerAccountSearch">Search accounts by email</label><input id="playerAccountSearch" type="search" autocomplete="off" placeholder="Enter all or part of an email address"></div>
               <button id="searchPlayerAccountsButton" type="button">Search</button>
             </div>
             <p id="playerAccountsStatus" class="status" role="status" aria-live="polite">Load accounts to begin.</p>
-            <div class="table-wrap"><table><thead><tr><th>Email</th></tr></thead><tbody id="playerAccountsRows"><tr><td>Account list not loaded.</td></tr></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Email</th><th>Type</th><th>Status</th><th>Created</th></tr></thead><tbody id="playerAccountsRows"><tr><td colspan="4">Account list not loaded.</td></tr></tbody></table></div>
             <div class="actions" style="justify-content:space-between;align-items:center;margin-top:12px"><span id="playerAccountsPageInfo" class="status">—</span><div class="actions"><button id="playerAccountsPrevious" class="secondary" type="button" disabled>Previous</button><button id="playerAccountsNext" class="secondary" type="button" disabled>Next</button></div></div>
         </section>
     </section>
@@ -493,17 +509,18 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         try {
             const data = await playerAccountsRequest('list', { search: playerAccountSearch.value.trim(), page: playerAccountPage, per_page: 50 });
             playerAccountsRows.replaceChildren();
-            if (!data.accounts.length) { const tr=document.createElement('tr'); const td=document.createElement('td'); td.textContent='No matching accounts found.'; tr.append(td); playerAccountsRows.append(tr); }
+            if (!data.accounts.length) { const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=4; td.textContent='No matching accounts found. Account listing does not create records.'; tr.append(td); playerAccountsRows.append(tr); }
             data.accounts.forEach(account => {
-                const tr=document.createElement('tr'), td=document.createElement('td'), link=document.createElement('a');
+                const tr=document.createElement('tr'), emailCell=document.createElement('td'), typeCell=document.createElement('td'), statusCell=document.createElement('td'), createdCell=document.createElement('td'), link=document.createElement('a');
                 link.href='admin/player-account.php?id='+encodeURIComponent(account.id); link.textContent=account.email || '(no email)'; link.style.fontWeight='700';
-                td.append(link); tr.append(td); playerAccountsRows.append(tr);
+                emailCell.append(link); typeCell.textContent=account.account_type || 'player'; statusCell.textContent=account.status || 'active'; statusCell.className='account-status account-status-'+(account.status || 'active');
+                const parsedDate=account.created_at ? new Date(account.created_at) : null; createdCell.textContent=parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toLocaleString() : '—'; tr.append(emailCell,typeCell,statusCell,createdCell); playerAccountsRows.append(tr);
             });
             playerAccountTotalPages = data.pagination.total_pages || 1;
             document.getElementById('playerAccountsPageInfo').textContent = `${data.pagination.total} account(s) · Page ${data.pagination.page} of ${data.pagination.total_pages}`;
             document.getElementById('playerAccountsPrevious').disabled = data.pagination.page <= 1;
             document.getElementById('playerAccountsNext').disabled = data.pagination.page >= data.pagination.total_pages;
-            playerAccountsStatus.className = 'status success'; playerAccountsStatus.textContent = data.test_account_provisioned ? 'No account store was found, so the development test account was created automatically. Sign-in: test@core.local / CoreTest2026!.' : (data.pagination.total === 0 ? 'No accounts exist in the account store. Use Create / reset test account to create the development test account.' : `Showing ${data.accounts.length} account(s)${playerAccountSearch.value.trim() ? ' matching your search' : ''}. Select an email to manage that account.`);
+            playerAccountsStatus.className = 'status success'; playerAccountsStatus.textContent = data.pagination.total === 0 ? 'No accounts found. Listing did not modify account storage.' : `Showing ${data.accounts.length} account(s)${playerAccountSearch.value.trim() ? ' matching your search' : ''}. Select an email to manage that account.`;
         } catch (e) { playerAccountsStatus.className = 'status error'; playerAccountsStatus.textContent = e.message; }
     }
     document.getElementById('refreshPlayerAccountsButton')?.addEventListener('click', () => refreshPlayerAccounts());
@@ -1124,25 +1141,36 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     function populateCharacterChoices() {
         const select = document.getElementById('characterSelect');
         const prior = select.value;
-        select.replaceChildren();
+        const list = document.getElementById('characterAdminList');
+        const count = document.getElementById('characterRosterCount');
+        select.replaceChildren(); list.replaceChildren();
+        count.textContent = `${loadedCharacters.length} saved character${loadedCharacters.length === 1 ? '' : 's'}`;
         if (!loadedCharacters.length) {
-            const option = document.createElement('option'); option.value = ''; option.textContent = 'No characters in this universe'; select.append(option);
-            updateCharacterDetails();
-            populateSystemChoices();
-            updateDeleteCharacterAvailability();
-            return;
+            const option = document.createElement('option'); option.value = ''; option.textContent = 'No saved characters'; select.append(option);
+            const empty = document.createElement('p'); empty.className = 'status'; empty.textContent = 'No saved characters found. Create a character after loading a universe, or refresh the registry.'; list.append(empty);
+            updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability(); return;
         }
         for (const character of loadedCharacters) {
             const option = document.createElement('option'); option.value = character.id;
-            option.textContent = character.name + ' — ' + character.id + ((character.lifecycle?.enabled ?? true) ? '' : ' [DISABLED]') + (character.lifecycle?.locked ? ' [LOCKED]' : '');
-            option.dataset.revision = String(character.revision ?? 0);
-            select.append(option);
+            option.textContent = `${character.name} — ${character.id}` + ((character.lifecycle?.enabled ?? true) ? '' : ' [DISABLED]') + (character.lifecycle?.locked ? ' [LOCKED]' : '');
+            option.dataset.revision = String(character.revision ?? 0); select.append(option);
+            const card = document.createElement('button'); card.type = 'button'; card.className = 'character-admin-card'; card.setAttribute('role','option'); card.dataset.characterId = character.id;
+            const name = document.createElement('strong'); name.textContent = character.name || 'Unnamed character';
+            const meta = document.createElement('span'); meta.className = 'admin-meta';
+            meta.textContent = `${character.species || character.species_id || 'Unknown species'} · ${character.role || 'No role'}\nUniverse: ${character.universe_id || 'Unassigned'}\nLocation: ${character.current_system_id || character.location?.system_id || 'Not recorded'} · Revision ${character.revision ?? 0}`;
+            const badge = document.createElement('span'); badge.className = 'admin-state' + ((character.lifecycle?.enabled === false || character.lifecycle?.locked) ? ' warning' : '');
+            badge.textContent = character.lifecycle?.locked ? 'Locked' : character.lifecycle?.enabled === false ? 'Disabled' : 'Active';
+            card.append(name,meta,badge); card.addEventListener('click',()=>{select.value=character.id;select.dispatchEvent(new Event('change',{bubbles:true}));}); list.append(card);
         }
         if (loadedCharacters.some(character => character.id === prior)) select.value = prior;
+        else select.selectedIndex = 0;
+        syncCharacterAdminSelection();
         document.getElementById('characterRevision').value = select.selectedOptions[0]?.dataset.revision ?? '0';
-        updateCharacterDetails();
-        populateSystemChoices();
-        updateDeleteCharacterAvailability();
+        updateCharacterDetails(); populateSystemChoices(); updateDeleteCharacterAvailability();
+    }
+    function syncCharacterAdminSelection() {
+        const selectedId = document.getElementById('characterSelect').value;
+        document.querySelectorAll('.character-admin-card').forEach(card => card.setAttribute('aria-selected', String(card.dataset.characterId === selectedId)));
     }
     function logActivity(level, message, details = '') {
         const stamp = new Date().toLocaleTimeString();
@@ -1269,42 +1297,29 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     });
 
     async function refreshCharacters() {
-        const universeId = document.getElementById('characterUniverseId').value.trim();
         const status = document.getElementById('characterStatus');
         try {
-            let data, response;
-            if (!universeId) {
-                // The Workbench must be able to discover records even before a universe has been selected.
-                response = await fetch('api/data-management.php', { headers: { 'Accept': 'application/json' } });
-                const payload = await response.json();
-                if (!response.ok || !payload.ok || !payload.inventory) throw new Error(payload.error?.message || 'Saved-data inventory request failed.');
-                const all = payload.inventory.characters || [];
-                loadedCharacters = all.map(c => ({ ...c, role: c.role || 'Adventurer' }));
-                document.getElementById('characterOutput').textContent = JSON.stringify({ ok: true, source: 'global saved-data inventory', characters: loadedCharacters }, null, 2);
-                populateCharacterChoices();
-                status.textContent = loadedCharacters.length ? `${loadedCharacters.length} saved character(s) across all universes. Select one to load its universe context; deletion remains available.` : 'No saved characters exist in storage.';
-                logActivity('info', 'Global character inventory', status.textContent);
-                return;
-            }
-            response = await fetch('api/characters.php?universe_id=' + encodeURIComponent(universeId), { headers: { 'Accept': 'application/json' } });
-            const text = await response.text();
-            try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
-            document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);
-            loadedCharacters = response.ok && data.ok ? data.characters : [];
+            const response = await fetch('api/characters.php', { headers: { 'Accept': 'application/json' } });
+            const raw = await response.text(); let payload;
+            try { payload = JSON.parse(raw); } catch { throw new Error('Character registry returned non-JSON data (HTTP ' + response.status + ').'); }
+            if (!response.ok || !payload.ok || !Array.isArray(payload.characters)) throw new Error(payload.error?.message || 'Saved-character registry request failed.');
+            loadedCharacters = payload.characters.map(c => ({ ...c, role: c.role || 'Adventurer' }));
+            document.getElementById('characterOutput').textContent = JSON.stringify({ ok: true, source: 'global saved-character registry', characters: loadedCharacters }, null, 2);
             populateCharacterChoices();
-            status.textContent = response.ok && data.ok ? data.characters.length + ' character(s) linked to this universe.' : (data.error?.message || 'Could not load characters.');
-            logActivity(response.ok && data.ok ? 'info' : 'error', 'Character list', status.textContent);
+            status.textContent = loadedCharacters.length ? `${loadedCharacters.length} saved character(s) across all universes. Select a card to inspect its record and manage it.` : 'No saved characters exist in storage.';
+            logActivity('info', 'Global character registry refreshed', status.textContent);
         } catch (error) {
-            status.textContent = 'Character request failed: ' + error.message;
+            status.textContent = 'Character registry request failed: ' + error.message;
             document.getElementById('characterOutput').textContent = String(error);
-            logActivity('error', 'Character list request failed', String(error));
+            logActivity('error', 'Character registry request failed', error.stack || error.message);
         }
     }
     document.getElementById('refreshCharactersButton').addEventListener('click', refreshCharacters);
     document.getElementById('characterSelect').addEventListener('change', async () => {
+        syncCharacterAdminSelection();
         const selected = loadedCharacters.find(item => item.id === document.getElementById('characterSelect').value);
         if (selected?.universe_id && selected.universe_id !== document.getElementById('characterUniverseId').value.trim()) {
-            document.getElementById('characterUniverseId').value = selected.universe_id;
+            document.getElementById('characterUniverseId').value = selected.universe_id || '';
             document.getElementById('characterStatus').textContent = 'Selected character belongs to universe ' + selected.universe_id + '. Refresh its universe-scoped character list before using movement and lifecycle tools.';
             // Global inventory rows are intentionally sufficient for selecting and deleting; reload scoped records when possible.
             if (selected.revision !== undefined && selected.name) {
@@ -1583,7 +1598,9 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         const character = loadedCharacters.find(item => item.id === characterId);
         const status = document.getElementById('characterLifecycleStatus');
         const revision = Number(document.getElementById('characterRevision').value);
-        if (!universeId || !character) { status.textContent = 'Load a universe and select a character first.'; return; }
+        if (!character) { status.textContent = 'Select a character first.'; return; }
+        const assignedUniverseId = String(character.universe_id || '');
+        if (universeId && assignedUniverseId && universeId !== assignedUniverseId) { status.textContent = 'The selected character belongs to a different universe. Refresh the registry and select it again.'; return; }
         if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
         const labels = {disable:'Disable', enable:'Enable', lock:'Lock', unlock:'Unlock'};
         if (!window.confirm(labels[action] + ' character ' + character.name + '? This preserves all character data and can be reversed.')) return;
@@ -1623,7 +1640,9 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         const character = loadedCharacters.find(item => item.id === characterId);
         const revision = Number(document.getElementById('characterRevision').value);
         const status = document.getElementById('deleteCharacterStatus');
-        if (!universeId || !character) { status.textContent = 'Load a universe and select a character first.'; return; }
+        if (!character) { status.textContent = 'Select a character first.'; return; }
+        const assignedUniverseId = String(character.universe_id || '');
+        if (universeId && assignedUniverseId && universeId !== assignedUniverseId) { status.textContent = 'The selected character belongs to a different universe. Refresh the registry and select it again.'; return; }
         if (!Number.isSafeInteger(revision) || revision < 0) { status.textContent = 'Expected character revision must be a non-negative integer.'; return; }
         if (!window.confirm('Permanently delete ' + character.name + '? This removes all character progress, discoveries, inventory, and ship fitting. The universe and other characters will remain. This cannot be undone.')) return;
         const confirmationName = window.prompt('To permanently delete this character, type its exact name: ' + character.name);
@@ -1631,7 +1650,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
         if (confirmationName !== character.name) { status.textContent = 'Deletion cancelled: the name did not match exactly.'; logActivity('warning', 'Character deletion cancelled', 'Confirmation name mismatch for ' + character.name); return; }
         deleteCharacterButton.disabled = true; status.textContent = 'Deleting character and its saved progress…';
         try {
-            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: universeId, character_id: characterId, confirmation_name: confirmationName, expected_revision: revision }) });
+            const response = await fetch('api/character-delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ universe_id: assignedUniverseId, character_id: characterId, confirmation_name: confirmationName, expected_revision: revision }) });
             const text = await response.text(); let data;
             try { data = JSON.parse(text); } catch { data = { ok: false, error: { message: text || 'Invalid server response' } }; }
             document.getElementById('characterOutput').textContent = JSON.stringify(data, null, 2);

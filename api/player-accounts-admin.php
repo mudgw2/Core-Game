@@ -11,18 +11,10 @@ $lock=fopen($file.'.lock','c');if(!$lock||!flock($lock,LOCK_EX)){http_response_c
 function save_accounts(string $file,array $accounts):void{$json=json_encode($accounts,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);$tmp=$file.'.tmp';if($json===false||file_put_contents($tmp,$json,LOCK_EX)===false||!rename($tmp,$file))throw new RuntimeException('Could not save account data.');}
 try{
  $storeExisted=is_file($file);$raw=$storeExisted?file_get_contents($file):'{}';$accounts=json_decode(is_string($raw)?$raw:'{}',true);if(!is_array($accounts))$accounts=[];
- $testAccountProvisioned=false;
- // On a fresh development install, provision a test account instead of silently showing an empty list.
- // Never reset credentials when an account store already exists; use the explicit reset button for that.
- if(!$storeExisted && $action==='list'){
-  $id='usr_'.bin2hex(random_bytes(12));
-  $accounts[$id]=['id'=>$id,'email'=>'test@core.local','password_hash'=>password_hash('CoreTest2026!',PASSWORD_DEFAULT),'created_at'=>gmdate('c'),'status'=>'active','account_type'=>'test'];
-  save_accounts($file,$accounts);$testAccountProvisioned=true;
- }
  if($action==='list'){
   $search=strtolower(trim((string)($in['search']??'')));$page=max(1,(int)($in['page']??1));$perPage=max(10,min(100,(int)($in['per_page']??50)));$rows=[];
-  foreach($accounts as $id=>$a)if(is_array($a)){ $email=(string)($a['email']??'');if($search!==''&&!str_contains(strtolower($email),$search))continue;$rows[]=['id'=>(string)($a['id']??$id),'email'=>$email]; }
-  usort($rows,static fn($a,$b)=>strcmp(strtolower($a['email']),strtolower($b['email'])));$total=count($rows);$pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);echo json_encode(['ok'=>true,'accounts'=>array_slice($rows,($page-1)*$perPage,$perPage),'pagination'=>['total'=>$total,'page'=>$page,'per_page'=>$perPage,'total_pages'=>$pages],'test_account_provisioned'=>$testAccountProvisioned],JSON_UNESCAPED_SLASHES);exit;
+  foreach($accounts as $id=>$a)if(is_array($a)){ $email=(string)($a['email']??'');if($search!==''&&!str_contains(strtolower($email),$search))continue;$rows[]=['id'=>(string)($a['id']??$id),'email'=>$email,'status'=>(string)($a['status']??'active'),'account_type'=>(string)($a['account_type']??'player'),'created_at'=>(string)($a['created_at']??'')]; }
+  usort($rows,static fn($a,$b)=>strcmp(strtolower($a['email']),strtolower($b['email'])));$total=count($rows);$pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);echo json_encode(['ok'=>true,'accounts'=>array_slice($rows,($page-1)*$perPage,$perPage),'pagination'=>['total'=>$total,'page'=>$page,'per_page'=>$perPage,'total_pages'=>$pages]],JSON_UNESCAPED_SLASHES);exit;
  }
  if($action==='get'){$id=(string)($in['id']??'');if(!isset($accounts[$id])||!is_array($accounts[$id])){http_response_code(404);echo json_encode(['ok'=>false,'error'=>['message'=>'Account not found.']]);exit;}$a=$accounts[$id];unset($a['password_hash']);$a['id']=(string)($a['id']??$id);$a['email']=(string)($a['email']??'');$a['status']=(string)($a['status']??'active');echo json_encode(['ok'=>true,'account'=>$a],JSON_UNESCAPED_SLASHES);exit;}
  if($action==='ensure-test-account'){$email='test@core.local';$password='CoreTest2026!';$id=null;foreach($accounts as $key=>$a)if(is_array($a)&&strtolower((string)($a['email']??''))===$email){$id=(string)$key;break;}$created=$id===null;if($created)$id='usr_'.bin2hex(random_bytes(12));$accounts[$id]=array_merge(is_array($accounts[$id]??null)?$accounts[$id]:[],['id'=>$id,'email'=>$email,'password_hash'=>password_hash($password,PASSWORD_DEFAULT),'created_at'=>$accounts[$id]['created_at']??gmdate('c'),'status'=>'active','account_type'=>'test']);save_accounts($file,$accounts);echo json_encode(['ok'=>true,'message'=>$created?'Test account created. Sign in at /player/account.php with test@core.local and the displayed test password.':'Test account password reset and account re-enabled.']);exit;}

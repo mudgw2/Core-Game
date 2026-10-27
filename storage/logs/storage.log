@@ -14,3 +14,15 @@
 {"time":"2026-10-26T04:45:40+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
 {"time":"2026-10-26T04:45:43+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_86630525f2cd56bf27a5235c","record_count":2,"cleanup_complete":true}}
 {"time":"2026-10-26T04:45:43+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_f7787d3fac90b733cf65de2b","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-26T04:56:19+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-26T04:56:19+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-26T04:56:22+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_52c334018d71e4ce990e9615","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-26T04:56:22+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_23aea9d4d75e4616b8609799","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-27T05:43:08+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-27T05:43:09+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-27T05:43:11+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_dd03ec578e07ce1c44b9edd4","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-27T05:43:11+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_5f8638daa1e8a868100ec538","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-27T05:50:23+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-27T05:50:23+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-27T05:50:25+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_77b9e5084dd6c6175b9bdf49","record_count":2,"cleanup_complete":true}}
+{"time":"2026-10-27T05:50:25+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_867dc4c6991d22b6bb654f62","record_count":3,"cleanup_complete":true}}

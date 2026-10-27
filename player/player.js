@@ -1,263 +1,98 @@
 (() => {
   'use strict';
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
   const apiRoot = document.body.dataset.apiRoot || '';
-  const api = (path) => `${apiRoot}/api/${path}`;
-  const state = { universe: null, characters: [], character: null, navigation: null, engine: null, scene: null, nodes: new Map(), selectedSystem: null, characterOptions: null, requestedCharacterId: window.CORE_BOOT?.characterId || document.body.dataset.characterId || '', assignedSeed: document.body.dataset.universeSeed || '' };
-
-  function notice(message, type = '') { const el = $('notice'); el.textContent = message; el.className = `notice ${type}`.trim(); }
-  async function request(url, options = {}) {
-    const response = await fetch(url, { headers: { 'Accept': 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}) }, ...options });
-    let data;
-    try { data = await response.json(); } catch { throw new Error(`Server returned an unreadable response (HTTP ${response.status}).`); }
+  const api = path => `${apiRoot}/api/${path}`;
+  const boot = window.CORE_BOOT || {};
+  const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, dragStart: null, dragged: false };
+  const notice = (message, type='') => { const el=$('notice'); if(el){el.textContent=message;el.className=`notice ${type}`.trim();} };
+  async function request(url, options={}) {
+    const response = await fetch(url, {headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{})},...options});
+    const raw = await response.text(); let data;
+    try { data = JSON.parse(raw); } catch { throw new Error(`API ${url} returned non-JSON data (HTTP ${response.status}). ${raw.slice(0,180)}`); }
     if (!response.ok || data.ok === false) throw new Error(data.error?.message || `Request failed (HTTP ${response.status}).`);
     return data;
   }
-  function systemName(id) { return state.universe?.baseline?.systems?.find(s => s.id === id)?.name || id || 'Unknown'; }
-  function currentSystemId() { return state.character?.current_system_id || state.character?.location?.system_id || ''; }
-  async function loadCharacterOptions() {
-    const data = await request(api('character-options.php'));
-    state.characterOptions = data.options;
-    const roleSelect = $('characterRole'); const speciesSelect = $('characterSpecies');
-    roleSelect.replaceChildren(); speciesSelect.replaceChildren();
-    (state.characterOptions.roles || []).forEach(item => roleSelect.add(new Option(item.label, item.id)));
-    (state.characterOptions.species || []).forEach(item => speciesSelect.add(new Option(item.label, item.id)));
-    const fields = $('attributeFields'); fields.replaceChildren();
-    (state.characterOptions.attributes || []).forEach(definition => {
-      const wrapper = document.createElement('div'); wrapper.className = 'attribute-field';
-      const label = document.createElement('label'); label.htmlFor = `attribute-${definition.id}`; label.textContent = definition.label;
-      const input = document.createElement('input'); input.id = `attribute-${definition.id}`; input.name = definition.id; input.type = 'number'; input.required = true;
-      input.min = String(definition.minimum ?? 1); input.max = String(definition.maximum ?? 30); input.step = '1'; input.value = String(definition.default ?? 10);
-      const hint = document.createElement('small'); hint.textContent = definition.description || `${input.min}–${input.max}`;
-      wrapper.append(label, input, hint); fields.append(wrapper);
-    });
-  }
-  loadCharacterOptions().catch(error => notice(`Character options could not be loaded: ${error.message}`, 'error'));
-  async function activateUniverse(universe, fallbackSeed = '') {
-    state.universe = universe;
-    if (!state.universe?.baseline?.systems || !Array.isArray(state.universe.baseline.systems)) throw new Error('Universe record does not contain baseline.systems.');
-    const displaySeed = state.universe.seed || state.universe.baseline.seed || fallbackSeed || 'Seed unavailable for legacy universe';
-    $('universeSeed').value = state.universe.seed || state.universe.baseline.seed || fallbackSeed || '';
-    $('gameLayout').classList.remove('hidden');
-    $('universeName').textContent = `Universe seed: ${displaySeed}`;
-    $('systemCount').textContent = String(state.universe.baseline.systems.length);
-    $('seedFingerprint').textContent = state.universe.seed_fingerprint || state.universe.baseline.seed_fingerprint || '—';
-    await loadCharacters();
-    if (state.requestedCharacterId) {
-      const match = state.characters.find(c => c.id === state.requestedCharacterId);
-      if (!match) throw new Error('The selected character was not returned for its assigned universe.');
-      state.character = match; $('characterSelect').value = match.id;
-    }
-    await loadNavigation(); renderMap(); updateCharacterPanel();
-    notice(`Universe ${displaySeed} loaded for ${state.character?.name || 'inspection'}. ${state.universe.baseline.systems.length} systems are ready.`, 'success');
-  }
-  $('universeForm').addEventListener('submit', async (event) => {
-    event.preventDefault(); const seed = $('universeSeed').value.trim(); if (!seed) return;
-    notice('Loading universe from CORE…');
-    try { const data = await request(api('universe.php'), { method: 'POST', body: JSON.stringify({ seed }) }); await activateUniverse(data.universe || data.data?.universe || null, seed); }
-    catch (error) { notice(error.message, 'error'); }
-  });
-  if (window.CORE_BOOT?.universe) {
-    activateUniverse(window.CORE_BOOT.universe, window.CORE_BOOT.universe.seed || '').catch(error => notice(`Could not enter gameplay: ${error.message}`, 'error'));
-  } else if (state.assignedSeed) { $('universeSeed').value = state.assignedSeed; queueMicrotask(() => $('universeForm').requestSubmit()); }
-
-  async function loadCharacters() {
-    const data = await request(api(`characters.php?universe_id=${encodeURIComponent(state.universe.id)}`));
-    state.characters = Array.isArray(data.characters) ? data.characters : [];
-    const select = $('characterSelect');
-    select.replaceChildren();
-    if (!state.characters.length) {
-      select.add(new Option('No characters yet', ''));
-      state.character = null;
-    } else {
-      select.add(new Option('Select a character…', ''));
-      state.characters.forEach(character => select.add(new Option(`${character.name} · ${character.role || 'Adventurer'}`, character.id)));
-      const requestedMatch = state.requestedCharacterId ? state.characters.find(c => c.id === state.requestedCharacterId) : null;
-      const previouslySelected = requestedMatch?.id || (state.character && state.characters.some(c => c.id === state.character.id) ? state.character.id : state.characters[0].id);
-      select.value = previouslySelected;
-      state.character = state.characters.find(c => c.id === previouslySelected) || null;
-    }
-    select.disabled = false;
-    updateCharacterPanel();
+  const systems = () => state.universe?.baseline?.systems || [];
+  const systemName = id => systems().find(s=>s.id===id)?.name || id || 'Unknown';
+  const currentSystemId = () => state.character?.current_system_id || state.character?.location?.system_id || '';
+  function setStatus(message) { $('mapStatus').textContent=message; }
+  function updateCharacterPanel() {
+    $('characterLocation').textContent = state.character ? systemName(currentSystemId()) : 'No character loaded';
+    $('universeName').textContent = state.universe?.name || `Universe seed: ${state.universe?.seed || state.universe?.baseline?.seed || 'Unavailable'}`;
+    $('systemCount').textContent = String(systems().length);
+    $('seedFingerprint').textContent = state.universe?.seed_fingerprint || state.universe?.baseline?.seed_fingerprint || '—';
   }
   async function loadNavigation() {
-    const data = await request(api(`navigation.php?universe_id=${encodeURIComponent(state.universe.id)}`));
-    state.navigation = data.navigation || data || null;
-  }
-  function updateCharacterPanel() {
-    $('characterLocation').textContent = state.character ? systemName(currentSystemId()) : 'No character selected';
-    $('characterSelect').value = state.character?.id || '';
-    if (state.character) notice(`Selected ${state.character.name}. Current system: ${systemName(currentSystemId())}.`, 'success');
-  }
-  $('characterSelect').addEventListener('change', () => {
-    state.character = state.characters.find(c => c.id === $('characterSelect').value) || null;
-    updateCharacterPanel();
-    if (state.character && currentSystemId()) selectSystem(currentSystemId());
-    updateTravelButton();
-  });
-  $('characterForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!state.universe) return;
-    const name = $('characterName').value.trim();
-    const role_id = $('characterRole').value;
-    const species_id = $('characterSpecies').value;
-    const attributes = {};
-    (state.characterOptions?.attributes || []).forEach(definition => { attributes[definition.id] = Number($(`attribute-${definition.id}`).value); });
-    if (!name) return;
-    $('createCharacterButton').disabled = true;
-    notice('Creating character…');
-    try {
-      const data = await request(api('characters.php'), { method: 'POST', body: JSON.stringify({ universe_id: state.universe.id, name, role_id, species_id, attributes }) });
-      await loadCharacters();
-      state.character = state.characters.find(c => c.id === data.character.id) || data.character;
-      $('characterSelect').value = state.character.id;
-      $('characterName').value = '';
-      $('characterCreationScreen').classList.add('hidden'); $('gameLayout').classList.remove('hidden');
-      updateCharacterPanel();
-      updateTravelButton();
-      notice(`Character ${state.character.name} created and saved.`, 'success');
-      if (currentSystemId()) selectSystem(currentSystemId());
-    } catch (error) { notice(error.message, 'error'); }
-    finally { $('createCharacterButton').disabled = !state.universe || !state.characterOptions; }
-  });
-
-  function updateTravelButton() {
-    const button = $('travelButton');
-    if (!button) return;
-    const enabled = Boolean(state.character && state.selectedSystem && currentSystemId() && state.selectedSystem !== currentSystemId());
-    button.disabled = !enabled;
-    $('travelHint').textContent = !state.character ? 'Select a character first.' : !state.selectedSystem ? 'Select a destination system on the map.' : state.selectedSystem === currentSystemId() ? 'You are already in this system.' : `Destination: ${systemName(state.selectedSystem)}. Travel follows connected navigation links.`;
-  }
-
-  $('travelButton').addEventListener('click', async () => {
-    if (!state.character || !state.selectedSystem || !state.universe) return;
-    const button = $('travelButton'); button.disabled = true;
-    try {
-      notice(`Planning route to ${systemName(state.selectedSystem)}…`);
-      const routeData = await request(api(`navigation-route.php?universe_id=${encodeURIComponent(state.universe.id)}&from_system_id=${encodeURIComponent(currentSystemId())}&to_system_id=${encodeURIComponent(state.selectedSystem)}`));
-      let character = state.character;
-      const started = await request(api('character-travel.php'), {method:'POST', body:JSON.stringify({action:'start', universe_id:state.universe.id, character_id:character.id, destination_system_id:state.selectedSystem, expected_revision:Number(character.revision ?? 0)})});
-      character = started.character || character;
-      const hops = Number(routeData.hops || 0);
-      for (let i=0; i<hops; i++) {
-        notice(`Travel in progress · jump ${i+1} of ${hops}…`);
-        const advanced = await request(api('character-travel.php'), {method:'POST', body:JSON.stringify({action:'advance', universe_id:state.universe.id, character_id:character.id, expected_revision:Number(character.revision ?? 0)})});
-        character = advanced.character;
-      }
-      state.character = character;
-      await loadCharacters();
-      state.character = state.characters.find(c => c.id === character.id) || character;
-      $('characterSelect').value = state.character.id;
-      updateCharacterPanel();
-      renderMap();
-      selectSystem(currentSystemId());
-      notice(`Arrived at ${systemName(currentSystemId())}. ${hops} navigation jump(s) completed.`, 'success');
-    } catch (error) { notice(error.message, 'error'); }
-    finally { updateTravelButton(); }
-  });
-
-  function renderMap() {
-    const systems = state.universe?.baseline?.systems || [];
-    if (!systems.length) {
-      $('mapStatus').textContent = 'No star systems were returned by the universe generator.';
-      $('canvasFallback').classList.remove('hidden');
-      $('canvasFallback').textContent = 'The universe loaded, but it contains no renderable systems.';
-      return;
-    }
-    if (!window.BABYLON) {
-      $('canvasFallback').classList.remove('hidden');
-      $('canvasFallback').textContent = 'Babylon.js did not load. Check browser internet access or CDN blocking.';
-      $('mapStatus').textContent = '3D engine unavailable';
-      return;
-    }
-    const canvas = $('renderCanvas');
-    try {
-      if (!state.engine) {
-        state.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, adaptToDeviceRatio: true });
-        state.scene = new BABYLON.Scene(state.engine);
-        state.scene.clearColor = new BABYLON.Color4(0.025, 0.045, 0.075, 1);
-        const camera = new BABYLON.ArcRotateCamera('map-camera', -Math.PI / 2, Math.PI / 3, 25, BABYLON.Vector3.Zero(), state.scene);
-        camera.attachControl(canvas, true);
-        camera.lowerRadiusLimit = 3;
-        camera.upperRadiusLimit = 150;
-        camera.wheelDeltaPercentage = 0.015;
-        camera.panningSensibility = 45;
-        new BABYLON.HemisphericLight('ambient', new BABYLON.Vector3(0, 1, 0), state.scene).intensity = 1.0;
-        const key = new BABYLON.PointLight('star-light', new BABYLON.Vector3(0, 8, 0), state.scene); key.intensity = 0.7;
-        // Render continuously, and surface render failures instead of leaving an unexplained blank canvas.
-        state.engine.runRenderLoop(() => {
-          try { if (state.scene && !state.scene.isDisposed) state.scene.render(); }
-          catch (error) { $('mapStatus').textContent = `3D render error: ${error.message || error}`; }
-        });
-        window.addEventListener('resize', () => state.engine?.resize());
-        if ('ResizeObserver' in window) new ResizeObserver(() => state.engine?.resize()).observe(canvas.parentElement);
-      }
-      $('canvasFallback').classList.add('hidden');
-      state.engine.resize();
-      state.nodes.forEach(mesh => mesh.dispose()); state.nodes.clear();
-      state.scene.meshes.filter(mesh => mesh.name.startsWith('route-') || mesh.name === 'map-grid').forEach(mesh => mesh.dispose());
-      const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
-      const minX = Math.min(...systems.map(s => finite(s.x))), maxX = Math.max(...systems.map(s => finite(s.x)));
-      const minY = Math.min(...systems.map(s => finite(s.y))), maxY = Math.max(...systems.map(s => finite(s.y)));
-      const span = Math.max(maxX - minX, maxY - minY, 1);
-      const scale = 24 / span;
-      const coords = new Map();
-      systems.forEach(system => coords.set(system.id, new BABYLON.Vector3((finite(system.x) - (minX + maxX) / 2) * scale, 0, (finite(system.y) - (minY + maxY) / 2) * scale)));
-      // A subtle ground grid makes it obvious that the 3D scene has initialized, even for sparse universes.
-      const grid = BABYLON.MeshBuilder.CreateGround('map-grid', { width: 32, height: 32, subdivisions: 16 }, state.scene);
-      const gridMaterial = new BABYLON.StandardMaterial('map-grid-material', state.scene);
-      gridMaterial.wireframe = true; gridMaterial.emissiveColor = new BABYLON.Color3(0.06, 0.12, 0.17); gridMaterial.alpha = 0.35;
-      grid.material = gridMaterial; grid.isPickable = false; grid.position.y = -0.18;
-      const routes = state.navigation?.routes || state.navigation?.edges || [];
-      routes.forEach((route, index) => {
-        const a = coords.get(route.from), b = coords.get(route.to); if (!a || !b) return;
-        const line = BABYLON.MeshBuilder.CreateLines(`route-${index}`, { points: [a, b] }, state.scene);
-        line.color = new BABYLON.Color3(0.18, 0.38, 0.49); line.isPickable = false;
-      });
-      systems.forEach((system, index) => {
-        const position = coords.get(system.id);
-        const mesh = BABYLON.MeshBuilder.CreateSphere(`system-${index}`, { diameter: 0.8, segments: 12 }, state.scene);
-        mesh.position.copyFrom(position); mesh.isPickable = true;
-        mesh.metadata = { entityId: system.id, entityType: 'star_system', entityData: system };
-        const material = new BABYLON.StandardMaterial(`system-material-${index}`, state.scene);
-        material.diffuseColor = new BABYLON.Color3(0.18, 0.68, 0.82); material.emissiveColor = new BABYLON.Color3(0.08, 0.28, 0.38); mesh.material = material;
-        state.nodes.set(system.id, mesh);
-      });
-      state.scene.onPointerObservable.clear();
-      state.scene.onPointerObservable.add((pointerInfo) => {
-        if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK || !pointerInfo.pickInfo?.hit) return;
-        const mesh = pointerInfo.pickInfo.pickedMesh; const id = mesh?.metadata?.entityId;
-        if (id) selectSystem(id);
-      });
-      const target = currentSystemId();
-      const focus = target && coords.has(target) ? coords.get(target) : BABYLON.Vector3.Zero();
-      state.scene.activeCamera.setTarget(focus);
-      state.scene.activeCamera.radius = Math.max(18, Math.min(70, span * scale * 1.35));
-      state.scene.activeCamera.alpha = -Math.PI / 2;
-      state.scene.activeCamera.beta = Math.PI / 3;
-      state.engine.resize();
-      $('mapStatus').textContent = `${systems.length} systems rendered · ${routes.length} navigation links · drag to orbit`;
-      if (!state.selectedSystem && systems.length) selectSystem(systems[0].id);
-    } catch (error) {
-      $('canvasFallback').classList.remove('hidden');
-      $('canvasFallback').textContent = `The 3D map could not be rendered: ${error.message || error}`;
-      $('mapStatus').textContent = '3D map initialization failed';
-    }
+    const result = await request(api(`navigation.php?universe_id=${encodeURIComponent(state.universe.id)}`));
+    state.navigation = result.navigation || result;
   }
   function selectSystem(id) {
-    const system = state.universe?.baseline?.systems?.find(item => item.id === id);
-    if (!system) return;
-    state.selectedSystem = id;
-    $('selectedName').textContent = system.name || id;
-    $('selectedDescription').textContent = `${system.classification || 'Unclassified'} system. Coordinates: ${system.x}, ${system.y}. This map uses generated system coordinates and the backend navigation graph.`;
-    $('selectedId').textContent = id;
-    $('selectedClassification').textContent = system.classification || 'Unclassified';
-    $('selectedCoordinates').textContent = `${system.x}, ${system.y}`;
-    $('selectedWorlds').textContent = Array.isArray(system.worlds) ? String(system.worlds.length) : 'Not generated yet';
-    updateTravelButton();
-    state.nodes.forEach((mesh, systemId) => {
-      const material = mesh.material;
-      if (material) { material.emissiveColor = systemId === id ? new BABYLON.Color3(0.2, 0.12, 0.02) : new BABYLON.Color3(0.04, 0.18, 0.24); material.diffuseColor = systemId === id ? new BABYLON.Color3(1, 0.72, 0.26) : new BABYLON.Color3(0.18, 0.68, 0.82); }
-    });
+    const system=systems().find(s=>s.id===id); if(!system)return;
+    state.selectedSystem=id;
+    $('selectedName').textContent=system.name||id;
+    $('selectedDescription').textContent=`${system.classification||'Unclassified'} system. Select another marker to inspect it; drag the map to pan.`;
+    $('selectedId').textContent=id;
+    $('selectedClassification').textContent=system.classification||'Unclassified';
+    $('selectedCoordinates').textContent=`${system.x}, ${system.y}`;
+    $('selectedWorlds').textContent=Array.isArray(system.worlds)?String(system.worlds.length):'Not generated yet';
+    state.nodes.forEach((mesh,key)=>{if(mesh.material){mesh.material.emissiveColor=key===id?new BABYLON.Color3(.35,.22,.03):new BABYLON.Color3(.04,.18,.24);}});
+    const button=$('travelButton'); const canTravel=Boolean(state.character && id!==currentSystemId()); button.disabled=!canTravel;
+    $('travelHint').textContent=!state.character?'No character is loaded.':id===currentSystemId()?'This is your current system.':`Destination: ${system.name||id}. Travel uses the saved navigation graph.`;
   }
+  function renderMap() {
+    const list=systems(); if(!list.length){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent='The assigned universe contains no generated systems.';setStatus('Universe data has no systems.');return;}
+    if(!window.BABYLON){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent='Babylon.js failed to load. Check CDN/network access.';setStatus('3D engine unavailable.');return;}
+    const canvas=$('renderCanvas');
+    try {
+      if(!state.engine){
+        state.engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:true,stencil:true,adaptToDeviceRatio:true});
+        state.scene=new BABYLON.Scene(state.engine); state.scene.clearColor=new BABYLON.Color4(.025,.045,.075,1);
+        const camera=new BABYLON.ArcRotateCamera('map-camera',-Math.PI/2,Math.PI/3,25,BABYLON.Vector3.Zero(),state.scene);
+        camera.lowerRadiusLimit=3;camera.upperRadiusLimit=150;camera.wheelDeltaPercentage=.015;camera.panningSensibility=45;camera.useCtrlForPanning=false;camera.panningMouseButton=0;camera.attachControl(canvas,true);
+        new BABYLON.HemisphericLight('ambient',new BABYLON.Vector3(0,1,0),state.scene).intensity=1;
+        state.engine.runRenderLoop(()=>{if(state.scene&&!state.scene.isDisposed)state.scene.render();});
+        window.addEventListener('resize',()=>state.engine?.resize());
+        if('ResizeObserver'in window)new ResizeObserver(()=>state.engine?.resize()).observe(canvas.parentElement);
+        // Prevent a drag gesture from selecting a star on pointer-up; ordinary clicks still select.
+        canvas.addEventListener('pointerdown',e=>{state.dragStart={x:e.clientX,y:e.clientY};state.dragged=false;},{passive:true});
+        canvas.addEventListener('pointermove',e=>{if(state.dragStart&&Math.hypot(e.clientX-state.dragStart.x,e.clientY-state.dragStart.y)>6)state.dragged=true;},{passive:true});
+        canvas.addEventListener('pointerup',()=>{setTimeout(()=>{state.dragStart=null;state.dragged=false;},0);},{passive:true});
+        state.scene.onPointerObservable.add(info=>{
+          if(info.type!==BABYLON.PointerEventTypes.POINTERPICK||!info.pickInfo?.hit||state.dragged)return;
+          const mesh=info.pickInfo.pickedMesh;const id=mesh?.metadata?.entityId;if(id)selectSystem(id);
+        });
+      }
+      $('canvasFallback').classList.add('hidden');state.engine.resize();state.nodes.forEach(m=>m.dispose());state.nodes.clear();
+      state.scene.meshes.filter(m=>m.name.startsWith('route-')||m.name==='map-grid').forEach(m=>m.dispose());
+      const finite=v=>Number.isFinite(Number(v))?Number(v):0;
+      const xs=list.map(s=>finite(s.x)),ys=list.map(s=>finite(s.y));const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const span=Math.max(maxX-minX,maxY-minY,1),scale=24/span;
+      const coords=new Map(list.map(s=>[s.id,new BABYLON.Vector3((finite(s.x)-(minX+maxX)/2)*scale,0,(finite(s.y)-(minY+maxY)/2)*scale)]));
+      const grid=BABYLON.MeshBuilder.CreateGround('map-grid',{width:32,height:32,subdivisions:16},state.scene);const gm=new BABYLON.StandardMaterial('map-grid-material',state.scene);gm.wireframe=true;gm.emissiveColor=new BABYLON.Color3(.06,.12,.17);gm.alpha=.35;grid.material=gm;grid.isPickable=false;grid.position.y=-.18;
+      const routes=state.navigation?.routes||state.navigation?.edges||[];routes.forEach((r,i)=>{const a=coords.get(r.from),b=coords.get(r.to);if(!a||!b)return;const line=BABYLON.MeshBuilder.CreateLines(`route-${i}`,{points:[a,b]},state.scene);line.color=new BABYLON.Color3(.18,.38,.49);line.isPickable=false;});
+      list.forEach((system,i)=>{const mesh=BABYLON.MeshBuilder.CreateSphere(`system-${i}`,{diameter:.8,segments:12},state.scene);mesh.position.copyFrom(coords.get(system.id));mesh.metadata={entityId:system.id};const mat=new BABYLON.StandardMaterial(`system-material-${i}`,state.scene);mat.diffuseColor=new BABYLON.Color3(.18,.68,.82);mat.emissiveColor=new BABYLON.Color3(.04,.18,.24);mesh.material=mat;state.nodes.set(system.id,mesh);});
+      const camera=state.scene.activeCamera;camera.setTarget(coords.get(currentSystemId())||BABYLON.Vector3.Zero());camera.radius=Math.max(18,Math.min(70,span*1.35));camera.alpha=-Math.PI/2;camera.beta=Math.PI/3;state.engine.resize();
+      setStatus(`${list.length} systems rendered · ${routes.length} navigation links · drag to pan · wheel to zoom`);selectSystem(currentSystemId()||list[0].id);
+    } catch(error){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent=`3D map initialization failed: ${error.message||error}`;setStatus('Map initialization failed.');}
+  }
+  $('resetMapView').addEventListener('click',()=>{const camera=state.scene?.activeCamera;if(!camera)return;const list=systems();const xs=list.map(s=>Number(s.x)||0),ys=list.map(s=>Number(s.y)||0);const span=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys),1);camera.setTarget(BABYLON.Vector3.Zero());camera.radius=Math.max(18,Math.min(70,span*1.35));camera.alpha=-Math.PI/2;camera.beta=Math.PI/3;});
+  $('travelButton').addEventListener('click',async()=>{
+    if(!state.character||!state.selectedSystem||!state.universe)return;
+    const button=$('travelButton');button.disabled=true;
+    try{
+      const route=await request(api(`navigation-route.php?universe_id=${encodeURIComponent(state.universe.id)}&from_system_id=${encodeURIComponent(currentSystemId())}&to_system_id=${encodeURIComponent(state.selectedSystem)}`));
+      let character=state.character;const started=await request(api('character-travel.php'),{method:'POST',body:JSON.stringify({action:'start',universe_id:state.universe.id,character_id:character.id,destination_system_id:state.selectedSystem,expected_revision:Number(character.revision??0)})});character=started.character||character;
+      for(let i=0;i<Number(route.hops||0);i++){notice(`Travel in progress · jump ${i+1} of ${route.hops}…`);const advanced=await request(api('character-travel.php'),{method:'POST',body:JSON.stringify({action:'advance',universe_id:state.universe.id,character_id:character.id,expected_revision:Number(character.revision??0)})});character=advanced.character||character;}
+      const fresh=await request(api(`character-record.php?character_id=${encodeURIComponent(character.id)}`));state.character=fresh.character||character;updateCharacterPanel();renderMap();notice(`Arrived at ${systemName(currentSystemId())}. ${route.hops||0} jump(s) completed.`,'success');
+    }catch(error){notice(`Travel failed: ${error.message}`,'error');}finally{if(state.selectedSystem)selectSystem(state.selectedSystem);}
+  });
+  async function start() {
+    if(!state.universe||!state.character){throw new Error('The selected character or assigned universe was not embedded in the gameplay page. Return to Character Selection and choose Play again.');}
+    if(!state.universe.id||!Array.isArray(state.universe.baseline?.systems))throw new Error('The assigned universe record is missing its ID or generated system data.');
+    if(state.character.universe_id!==state.universe.id)throw new Error('The selected character is not assigned to the universe loaded by this page.');
+    if(state.character.lifecycle?.enabled===false)throw new Error('This character is disabled. Enable it in the Workbench before playing.');
+    if(state.character.lifecycle?.locked===true)throw new Error('This character is locked. Unlock it in the Workbench before playing.');
+    $('gameLayout').classList.remove('hidden');await loadNavigation();updateCharacterPanel();renderMap();notice(`Loaded ${state.character.name} into ${state.universe.name||'the assigned universe'}.`,'success');
+  }
+  start().catch(error=>{notice(`Could not enter gameplay: ${error.message}`,'error');setStatus('Gameplay initialization failed.');});
 })();

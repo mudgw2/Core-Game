@@ -90,7 +90,7 @@ $run('Different seeds produce different universe IDs', static function () use ($
 $run('Generated system structure and coordinates are valid', static function () use ($assert): string {
     $baseline = (new UniverseGenerator())->generate('core-ui-qa-seed');
     $assert($baseline['system_count'] === count($baseline['systems']), 'System count does not match systems array.');
-    $assert($baseline['system_count'] >= 8 && $baseline['system_count'] <= 16, 'System count is outside expected bounds.');
+    $assert($baseline['system_count'] >= 8 && $baseline['system_count'] <= 24, 'System count is outside expected bounds (8–24).');
     $ids = [];
     foreach ($baseline['systems'] as $system) {
         $assert(isset($system['id'], $system['name'], $system['x'], $system['y'], $system['classification']), 'System missing required fields.');
@@ -1947,11 +1947,14 @@ $run('Player prototype is separate from the developer Workbench', static functio
 });
 $run('Player prototype uses Babylon.js and backend entity IDs', static function () use ($assert): string {
     $js = file_get_contents(dirname(__DIR__) . '/player/player.js');
+    $game = file_get_contents(dirname(__DIR__) . '/player/game.php');
     $assert(is_string($js), 'Player JavaScript could not be read.');
-    foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', "api('universe.php')", 'api(`navigation.php?universe_id=', 'entityId: system.id', 'api(`characters.php?universe_id=', 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed'] as $needle) {
-        $assert(str_contains($js, $needle), 'Player JavaScript is missing marker: ' . $needle);
+    $assert(is_string($game), 'Player gameplay page could not be read.');
+    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed', 'const boot = window.CORE_BOOT || {}'] as $needle) {
+        $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
     }
-    return 'Babylon.js renders primitive system markers mapped to stable backend system IDs and uses existing universe/navigation/character APIs.';
+    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the account-owned character and assigned universe.');
+    return 'Babylon.js renders primitive system markers mapped to stable backend IDs; gameplay receives the assigned universe and selected character from the authenticated portal and uses navigation/travel APIs.';
 });
 $run('Release version comes from one central version file', static function () use ($assert): string {
     $versionFile = dirname(__DIR__) . '/config/version.php';

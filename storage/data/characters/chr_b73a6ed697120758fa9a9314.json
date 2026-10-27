@@ -23,12 +23,12 @@
         "last_action": "universe_assigned"
     },
     "location": {
-        "system_id": "sys_1363f2e4c841d692",
-        "updated_at": "2026-10-26T04:40:10+00:00"
+        "system_id": "sys_211f4f11a6f45899",
+        "updated_at": "2026-10-26T04:57:22+00:00"
     },
-    "current_system_id": "sys_1363f2e4c841d692",
+    "current_system_id": "sys_211f4f11a6f45899",
     "created_at": "2026-10-26T04:39:47+00:00",
-    "revision": 0,
+    "revision": 2,
     "exploration": {
         "explored_systems": [
             {
@@ -36,7 +36,29 @@
                 "name": "System 01",
                 "first_visited_at": "2026-10-26T04:40:10+00:00",
                 "first_visited_revision": 0
+            },
+            {
+                "system_id": "sys_211f4f11a6f45899",
+                "name": "System 02",
+                "first_visited_at": "2026-10-26T04:57:22+00:00",
+                "first_visited_revision": 2
             }
         ]
+    },
+    "route_progress": {
+        "route_id": "rte_adcb849b92f08e3cc02c",
+        "destination_system_id": "sys_211f4f11a6f45899",
+        "destination_name": "System 02",
+        "path_system_ids": [
+            "sys_1363f2e4c841d692",
+            "sys_211f4f11a6f45899"
+        ],
+        "current_step_index": 1,
+        "total_hops": 1,
+        "status": "completed",
+        "planned_from_system_id": "sys_1363f2e4c841d692",
+        "planned_at": "2026-10-26T04:57:22+00:00",
+        "updated_at": "2026-10-26T04:57:22+00:00",
+        "completed_at": "2026-10-26T04:57:22+00:00"
     }
 }

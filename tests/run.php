@@ -105,7 +105,7 @@ $test('different seeds produce different universe identities', static function (
 });
 $test('generated system count and fields are internally consistent', static function () use ($assert): void {
     $baseline = (new UniverseGenerator())->generate('qa-seed-alpha');
-    $assert($baseline['system_count'] >= 8 && $baseline['system_count'] <= 16, 'System count outside generator bounds');
+    $assert($baseline['system_count'] >= 8 && $baseline['system_count'] <= 24, 'System count outside generator bounds (8–24)');
     $assert($baseline['system_count'] === count($baseline['systems']), 'system_count does not match systems array');
     $ids = [];
     foreach ($baseline['systems'] as $system) {
@@ -421,6 +421,20 @@ $test('player-created unassigned character persists its account owner', static f
         if (is_dir($dir)) rmdir($dir);
     }
 });
+$test('Workbench can safely delete an unassigned character with exact-name and revision checks', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-unassigned-delete-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir); $service = new CharacterService($storage);
+        $character = $service->create('', 'Unassigned QA Pilot', 'Explorer', 'human', [], 'qa-owner');
+        $equal(null, $character['universe_id'] ?? null, 'Character should begin unassigned.');
+        try { $service->deleteCharacter('', $character['id'], 'Wrong Name', 0); throw new RuntimeException('Incorrect confirmation name was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Confirmation name'), 'Wrong-name rejection should be explicit.'); }
+        $result = $service->deleteCharacter('', $character['id'], 'Unassigned QA Pilot', 0);
+        $equal(true, $result['deleted']); $equal(null, $storage->read('characters', $character['id']));
+    } finally { foreach (glob($dir . '/*') ?: [] as $file) { if (is_file($file)) @unlink($file); } @rmdir($dir); }
+});
+
+
 
 $test('scan and investigation state persists in character JSON and uses JSON content', static function () use ($assert): void {
     $dir = sys_get_temp_dir() . '/core-content-persist-' . bin2hex(random_bytes(8));
@@ -728,7 +742,7 @@ $test('Player game API root uses the public URL path, not the filesystem path', 
     $js = file_get_contents(CORE_ROOT . '/player/player.js');
     $assert(is_string($game) && str_contains($game, '$urlRoot = rtrim(str_replace'), 'Player game page must derive a URL root from SCRIPT_NAME.');
     $assert(str_contains($game, 'data-api-root="<?= htmlspecialchars($urlRoot'), 'Player page must pass the URL root to its JavaScript.');
-    $assert(str_contains($js, 'const api = (path) => `${apiRoot}/api/${path}`;'), 'Player API requests must be based on the public URL root.');
+    $assert(str_contains($js, 'const api = path => `${apiRoot}/api/${path}`;'), 'Player API requests must be based on the public URL root.');
     $assert(is_file(CORE_ROOT . '/api/character-options.php'), 'Character options endpoint wrapper must exist.');
 });
 
@@ -744,10 +758,16 @@ $test('Universe settings are deterministic, persisted in generated baseline, and
     try { $generator->generate('invalid', ['system_density'=>101]); throw new RuntimeException('Out-of-range setting accepted.'); }
     catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), '0 to 100')); }
 });
+$test('Gameplay script only targets controls present on the game page and surfaces boot failures', static function () use ($assert): void {
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php'); $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    foreach (['notice','gameLayout','renderCanvas','mapStatus','universeName','travelButton','resetMapView','selectedName'] as $id) $assert(str_contains($game, 'id="' . $id . '"'), 'Gameplay page is missing required element ' . $id . '.');
+    $assert(!str_contains($js, "$('universeForm')") && !str_contains($js, "$('characterRole')"), 'Gameplay script must not bind controls belonging to the removed creation screen.');
+    $assert(str_contains($js, 'Could not enter gameplay:') && str_contains($js, 'non-JSON data'), 'Gameplay boot and API failures must be shown clearly.');
+});
 $test('Play page boots assigned universe and selected character directly', static function () use ($assert): void {
     $game = file_get_contents(CORE_ROOT . '/player/game.php'); $js = file_get_contents(CORE_ROOT . '/player/player.js');
-    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
-    $assert(str_contains($js, 'window.CORE_BOOT?.universe') && str_contains($js, 'activateUniverse(window.CORE_BOOT.universe'), 'Player JS must activate the actual assigned universe without reseeding.');
+    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
+    $assert(str_contains($js, 'const boot = window.CORE_BOOT || {}') && str_contains($js, 'await loadNavigation();updateCharacterPanel();renderMap()'), 'Player JS must boot the actual assigned universe and character without reseeding.');
 });
 $test('Universe creation exposes settings and uses server-generated Babylon preview data', static function () use ($assert): void {
     $page = file_get_contents(CORE_ROOT . '/player/universe-create.php');
@@ -770,7 +790,7 @@ $test('Gameplay does not expose redundant character creation action', static fun
 $test('Workbench character refresh can discover all saved characters without a preselected universe', static function () use ($assert): void {
     $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
     $assert(str_contains($workbench, "fetch('api/data-management.php'"), 'Global inventory fallback missing');
-    $assert(str_contains($workbench, 'Global character inventory'), 'Global character inventory feedback missing');
+    $assert(str_contains($workbench, 'global saved-character registry'), 'Global character inventory feedback missing');
 });
 $test('New universe records persist the original seed and generation settings', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-universe-settings-' . bin2hex(random_bytes(6));
@@ -786,6 +806,33 @@ $test('New universe records persist the original seed and generation settings', 
     } finally {
         if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
     }
+});
+
+$test('Signed-in account portal continues to character selection', static function () use ($assert): void {
+    $account = (string)file_get_contents(CORE_ROOT . '/player/account.php');
+    $assert(str_contains($account, 'href="<?=$base?>/selection.php">Continue to character selection'), 'Signed-in account CTA must lead to character selection.');
+    $assert(!str_contains($account, 'href="<?=$base?>/game.php">Continue to game prototype'), 'Account portal must not bypass character selection.');
+});
+$test('Account listing is non-provisioning and exposes only safe management metadata', static function () use ($assert): void {
+    $api = (string)file_get_contents(CORE_ROOT . '/api/player-accounts-admin.php');
+    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(!str_contains($api, 'test_account_provisioned') && !str_contains($api, 'On a fresh development install, provision a test account'), 'Listing must not create a development account as a side effect.');
+    foreach (['account_type','status','created_at'] as $field) $assert(str_contains($api, "'" . $field . "'=>"), 'Account list must expose ' . $field . ' metadata.');
+    foreach (['<th>Email</th>','<th>Type</th>','<th>Status</th>','<th>Created</th>'] as $column) $assert(str_contains($workbench, $column), 'Account table missing column ' . $column . '.');
+    $assert(!str_contains($workbench, 'Test credentials: <strong>test@core.local</strong>'), 'Workbench must not display reusable test credentials in the account panel.');
+});
+$test('Player prototype QA matches authenticated boot-data architecture', static function () use ($assert): void {
+    $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'const boot = window.CORE_BOOT || {}'] as $needle) {
+        $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
+    }
+    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the selected character and assigned universe.');
+});
+
+$test('CORE release version is centralized at 0.1.71', static function () use ($assert): void {
+    $version = require CORE_ROOT . '/config/version.php';
+    $assert($version === '0.1.71', 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

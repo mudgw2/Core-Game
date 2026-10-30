@@ -22,7 +22,7 @@ final class UniverseGenerator
             $value = array_key_exists($key, $settings) ? $settings[$key] : $default;
             // HTML form values arrive as decimal-free strings; accept those and native
             // integers, but reject floats, decimal strings, exponent notation, and booleans.
-            $isInteger = is_int($value) || (is_string($value) && preg_match('/^-?\\d+$/D', $value) === 1);
+            $isInteger = is_int($value) || (is_string($value) && preg_match('/^-?\d+$/D', $value) === 1);
             if (!$isInteger || (int)$value < 0 || (int)$value > 100) {
                 throw new RuntimeException('Universe setting ' . $key . ' must be an integer from 0 to 100.');
             }

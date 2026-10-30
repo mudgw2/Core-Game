@@ -19,8 +19,11 @@ final class UniverseGenerator
     {
         $normalized = [];
         foreach (self::SETTING_DEFAULTS as $key => $default) {
-            $value = $settings[$key] ?? $default;
-            if (!is_numeric($value) || (int)$value < 0 || (int)$value > 100) {
+            $value = array_key_exists($key, $settings) ? $settings[$key] : $default;
+            // HTML form values arrive as decimal-free strings; accept those and native
+            // integers, but reject floats, decimal strings, exponent notation, and booleans.
+            $isInteger = is_int($value) || (is_string($value) && preg_match('/^-?\\d+$/D', $value) === 1);
+            if (!$isInteger || (int)$value < 0 || (int)$value > 100) {
                 throw new RuntimeException('Universe setting ' . $key . ' must be an integer from 0 to 100.');
             }
             $normalized[$key] = (int)$value;

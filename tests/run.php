@@ -731,7 +731,7 @@ $test('Character creation includes an interactive Babylon.js primitive preview',
     $page = file_get_contents(CORE_ROOT . '/player/character-create.php');
     $js = file_get_contents(CORE_ROOT . '/player/character-preview.js');
     $assert(is_string($page) && str_contains($page, 'cdn.babylonjs.com/babylon.js') && str_contains($page, 'characterPreviewCanvas'), 'Character creation page must include Babylon.js and its preview canvas.');
-    foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', 'CreateSphere', 'CreateBox', 'attachControl', 'previewColor', '3D preview failed'] as $needle) {
+    foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', 'CreateSphere', 'CreateCylinder', 'CreateGround', 'CreateTorus', 'attachControl', 'previewColor', '3D preview failed'] as $needle) {
         $assert(is_string($js) && str_contains($js, $needle), 'Character preview script missing marker: ' . $needle);
     }
 });
@@ -864,9 +864,9 @@ $test('Gameplay map toolbar has no redundant Reset view control', static functio
     $assert(!str_contains($js, "$('resetMapView')"), 'Reset view handler should be removed with its control.');
 });
 
-$test('CORE release version is centralized at 0.1.75', static function () use ($assert): void {
+$test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert($version === '0.1.76', 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\.1\.81$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

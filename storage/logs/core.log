@@ -427,3 +427,23 @@
 {"time":"2026-10-27T06:39:02+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-stale-qa-3acde209cda0d2ad/backups/content/recipes_r1_20261027_063902_5c4a2a.json"}}
 {"time":"2026-10-27T06:39:02+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
 {"time":"2026-10-27T06:39:02+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"items","revision":2,"entry_count":9,"backup_path":"/tmp/core-web-item-characteristics-roundtrip-86ab59926be9f9d5/backups/content/items_r1_20261027_063902_6f62c5.json"}}
+{"time":"2026-10-30T03:22:07+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:07+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:08+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:08+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:11+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-10-30T03:22:16+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-30T03:22:16+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-30T03:22:18+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_backup_test","backup_id":"bkp_20261030032218_a0632bd79e","characters":1}}
+{"time":"2026-10-30T03:22:18+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261030032218_d253460bd2","characters":1}}
+{"time":"2026-10-30T03:22:18+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261030032218_d253460bd2","universe_id":"universe_restore_test","characters":1}}
+{"time":"2026-10-30T03:22:18+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261030032218_2a8a5cade4","characters":0}}
+{"time":"2026-10-30T03:22:19+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_6d312bb38d66d442a893cbe4","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-30T03:22:19+00:00","level":"WARNING","message":"Atomic universe deletion aborted before any live record was moved","context":{"transaction_id":"ud_df5b2cb7c3736970140dbc5f","failure":"Injected final-guard rejection."}}
+{"time":"2026-10-30T03:22:19+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-save-qa-c4fba77caa020e82/backups/content/recipes_r1_20261030_032219_fcda79.json"}}
+{"time":"2026-10-30T03:22:19+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-stale-qa-dc687f36bde291c5/backups/content/recipes_r1_20261030_032219_1eb651.json"}}
+{"time":"2026-10-30T03:22:19+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
+{"time":"2026-10-30T03:22:19+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"items","revision":2,"entry_count":9,"backup_path":"/tmp/core-web-item-characteristics-roundtrip-c08451c23b779d24/backups/content/items_r1_20261030_032219_0eed38.json"}}

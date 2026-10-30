@@ -91,6 +91,19 @@ $test('item characteristic manager rejects invalid enum defaults', static functi
     } finally { if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $f)@unlink($f);@rmdir($dir);} }
 });
 
+$test('universe settings accept integer form values and reject fractional or coerced values', static function () use ($assert, $equal): void {
+    $generator = new UniverseGenerator();
+    $equal(42, $generator->normalizeSettings(['system_density' => '42'])['system_density']);
+    foreach ([42.5, '42.5', '4.2e1', true, false, null, -1, 101] as $invalid) {
+        try {
+            $generator->normalizeSettings(['system_density' => $invalid]);
+            throw new RuntimeException('Invalid system_density value was accepted: ' . var_export($invalid, true));
+        } catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'must be an integer from 0 to 100'), 'Unexpected setting validation error: ' . $e->getMessage());
+        }
+    }
+});
+
 $test('same seed produces identical deterministic baseline', static function () use ($equal): void {
     $generator = new UniverseGenerator();
     $equal($generator->generate('qa-seed-alpha'), $generator->generate('qa-seed-alpha'));
@@ -866,7 +879,7 @@ $test('Gameplay map toolbar has no redundant Reset view control', static functio
 
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert(is_string($version) && preg_match('/^0\.1\.82$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\.1\.83$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

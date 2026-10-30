@@ -46,3 +46,6 @@
 {"time":"2026-10-30T03:22:16+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-10-30T03:22:16+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
 {"time":"2026-10-30T03:22:19+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_6d312bb38d66d442a893cbe4","record_count":3,"cleanup_complete":true}}
+{"time":"2026-10-30T03:27:34+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-10-30T03:27:34+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-10-30T03:27:37+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_2540e6e4d7fb0e8de9694b4f","record_count":3,"cleanup_complete":true}}

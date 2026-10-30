@@ -866,7 +866,7 @@ $test('Gameplay map toolbar has no redundant Reset view control', static functio
 
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert(is_string($version) && preg_match('/^0\.1\.81$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\.1\.82$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

@@ -1205,49 +1205,41 @@ $run('Workbench exposes ship fitting controls and persisted module slots', stati
     return 'Workbench exposes module selection, installation action, status feedback, and all three fitting slots.';
 });
 
-$run('Character deletion permanently removes only the selected character record', static function () use ($assert, $equal, $cleanup): string {
+$run('Permanent character deletion is rejected and preserves the complete character record', static function () use ($assert, $equal, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
-        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-delete');
-        $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Delete Me'); $other = $service->create($universe['id'], 'Keep Me');
+        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-retention');
+        $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Retention Pilot');
         $record = $storage->read('characters', $character['id']); $record['inventory'] = ['resources' => ['raw_ore' => 5], 'ledger' => [['id' => 'test']]]; $storage->write('characters', $character['id'], $record);
-        $result = $service->deleteCharacter($universe['id'], $character['id'], 'Delete Me', 0);
-        $equal(true, $result['deleted'], 'Deletion result did not indicate success.'); $equal(null, $storage->read('characters', $character['id']), 'Deleted character JSON still exists.');
-        $equal($other['id'], $storage->read('characters', $other['id'])['id'] ?? null, 'Another character was affected.'); $equal($universe['id'], $storage->read('universes', $universe['id'])['id'] ?? null, 'Universe was affected.');
-        return 'Target character JSON was removed while sibling character and universe remained intact.';
+        try { $service->deleteCharacter($universe['id'], $character['id'], 'Retention Pilot', 0); throw new RuntimeException('Permanent deletion unexpectedly succeeded.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Permanent character deletion is disabled by policy'), 'Retention policy was not explicit.'); }
+        $equal($record, $storage->read('characters', $character['id']), 'Rejected deletion changed character data.');
+        $equal($universe['id'], $storage->read('universes', $universe['id'])['id'] ?? null, 'Rejected deletion affected its universe.');
+        return 'Permanent deletion is explicitly blocked; full character progress and universe remain unchanged.';
     } finally { $cleanup($dir); }
 });
 
-$run('Character deletion requires exact name, current revision, and matching universe', static function () use ($assert, $equal, $cleanup): string {
+$run('Character deletion policy is consistent for missing, stale, and cross-universe requests', static function () use ($assert, $equal, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
-        $storage = new JsonStorage($dir); $universes = new UniverseService($storage); $universe = $universes->createOrLoad('core-ui-qa-character-delete-validation'); $otherUniverse = $universes->createOrLoad('core-ui-qa-character-delete-other');
+        $storage = new JsonStorage($dir); $universes = new UniverseService($storage); $universe = $universes->createOrLoad('core-ui-qa-character-retention-validation'); $otherUniverse = $universes->createOrLoad('core-ui-qa-character-retention-other');
         $service = new CharacterService($storage); $character = $service->create($universe['id'], 'Guarded Character');
-        foreach ([[$universe['id'], 'Wrong Name', 0, 'Confirmation name'], [$universe['id'], 'Guarded Character', 1, 'revision conflict'], [$otherUniverse['id'], 'Guarded Character', 0, 'does not belong']] as [$uid, $name, $revision, $expected]) {
-            try { $service->deleteCharacter($uid, $character['id'], $name, $revision); throw new RuntimeException('Invalid deletion was accepted: ' . $expected); }
-            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), $expected), 'Unexpected deletion rejection: ' . $e->getMessage()); }
-            $equal($character['id'], $storage->read('characters', $character['id'])['id'] ?? null, 'Rejected deletion removed character.');
+        foreach ([[$universe['id'], 'Wrong Name', 0], [$universe['id'], 'Guarded Character', 1], [$otherUniverse['id'], 'Guarded Character', 0], [$universe['id'], 'Missing Character', 0, 'chr_missing123']] as $case) {
+            [$uid, $name, $revision] = $case; $id = $case[3] ?? $character['id'];
+            try { $service->deleteCharacter($uid, $id, $name, $revision); throw new RuntimeException('Permanent deletion unexpectedly succeeded.'); }
+            catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Permanent character deletion is disabled by policy'), 'Unexpected deletion policy response: ' . $e->getMessage()); }
         }
-        return 'Wrong name, stale revision, and cross-universe deletion were rejected without removal.';
+        $equal($character['id'], $storage->read('characters', $character['id'])['id'] ?? null, 'Rejected deletion removed the character.');
+        return 'All permanent deletion requests are consistently blocked without changing existing records.';
     } finally { $cleanup($dir); }
 });
 
-$run('Character deletion reports missing records without affecting other data', static function () use ($assert, $cleanup): string {
-    $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
-    try {
-        $storage = new JsonStorage($dir); $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-delete-missing'); $service = new CharacterService($storage);
-        try { $service->deleteCharacter($universe['id'], 'chr_missing123', 'Missing Character', 0); }
-        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not exist'), 'Unexpected missing-record error.'); return 'Missing character deletion failed safely and universe remained stored.'; }
-        throw new RuntimeException('Missing character deletion unexpectedly succeeded.');
-    } finally { $cleanup($dir); }
-});
-
-$run('Workbench exposes guarded character deletion controls and request wiring', static function () use ($assert): string {
+$run('Workbench exposes retention-safe character lifecycle instead of permanent deletion', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
-    foreach (['deleteCharacterButton', 'deleteCharacterStatus', 'api/character-delete.php', 'confirmation_name', 'expected_revision', 'cannot be undone'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing deletion marker: ' . $needle);
-    $assert(str_contains($app, "'/api/characters/delete'"), 'Deletion API route is missing.');
-    return 'Danger-zone UI, explicit confirmation payload, and guarded deletion API route are present.';
+    foreach (['disableCharacterButton','enableCharacterButton','characterLifecycleStatus','Permanent character deletion is disabled','deleteManagedCharacterButton'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing retention/lifecycle marker: ' . $needle);
+    $assert(str_contains($app, "'/api/characters/delete'"), 'Compatibility deletion route is missing; it must remain guarded by the service retention policy.');
+    return 'Workbench provides reversible lifecycle controls and clearly communicates the permanent-retention policy.';
 });
 
 
@@ -1441,9 +1433,9 @@ $run('Data management rejects unknown records and invalid scopes', static functi
 $run('Workbench exposes data inventory, cleanup previews, and guarded character removal', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
-    foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Exact character name confirmation','DELETE UNIVERSE'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
+    foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Permanent character deletion is disabled','DELETE UNIVERSE'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
     $assert(str_contains($app, "'/api/data-management'") && str_contains($app, "'/api/data-management/preview'"), 'Data management API routes missing.');
-    return 'Inventory, impact preview, exact-name deletion controls, and API routes are present.';
+    return 'Inventory and read-only impact previews are present; permanent character removal is retired under the retention policy.';
 });
 
 $run('Universe backup snapshots include associated characters and checksum', static function () use ($assert, $cleanup): string {
@@ -1489,29 +1481,20 @@ $run('Backup UI and API wiring are present', static function () use ($assert): s
     return 'Backup, list, and guarded restore controls are wired to server routes.';
 });
 
-$run('Universe deletion backs up first and removes only the selected universe tree', static function () use ($assert, $equal, $cleanup): string {
+$run('Universe deletion is blocked while permanent character records are associated', static function () use ($assert, $equal, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-delete-universe-qa-' . bin2hex(random_bytes(6));
     try {
         $storage = new JsonStorage($dir . '/data');
         $universe = ['id' => 'universe_delete_test', 'name' => 'Delete Test', 'seed' => 'delete-seed', 'baseline' => ['systems' => [['id' => 'sys1']]], 'state' => ['revision' => 2, 'changes' => [['type' => 'test']]], 'lifecycle' => ['enabled' => true, 'locked' => false, 'revision' => 1]];
-        $character = ['id' => 'character_delete_test', 'name' => 'Delete Pilot', 'universe_id' => $universe['id'], 'revision' => 4, 'inventory' => ['resources' => ['raw_ore' => 3]]];
-        $otherUniverse = ['id' => 'universe_keep_test', 'name' => 'Keep Me', 'state' => ['revision' => 0, 'changes' => []]];
-        $otherCharacter = ['id' => 'character_keep_test', 'name' => 'Keep Pilot', 'universe_id' => $otherUniverse['id'], 'revision' => 1];
-        foreach ([$universe, $otherUniverse] as $u) $storage->write('universes', $u['id'], $u);
-        foreach ([$character, $otherCharacter] as $c) $storage->write('characters', $c['id'], $c);
-        $backups = new UniverseBackupService($storage, $dir . '/backups');
-        $service = new UniverseDeletionService($storage, $backups);
-        $result = $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 1, [$character['id']]);
-        $assert($result['verified'] === true, 'Deletion was not verified.');
-        $assert($storage->read('universes', $universe['id']) === null, 'Universe still exists after deletion.');
-        $assert($storage->read('characters', $character['id']) === null, 'Associated character still exists after deletion.');
-        $equal($otherUniverse, $storage->read('universes', $otherUniverse['id']), 'Unrelated universe was changed.');
-        $equal($otherCharacter, $storage->read('characters', $otherCharacter['id']), 'Unrelated character was changed.');
-        $equal(1, count($backups->list()), 'Pre-deletion backup was not retained.');
-        $backups->restore($result['backup']['backup_id']);
-        $equal($universe, $storage->read('universes', $universe['id']), 'Pre-deletion backup did not recover universe.');
-        $equal($character, $storage->read('characters', $character['id']), 'Pre-deletion backup did not recover associated character.');
-        return 'Verified backup-before-delete, cascade removal, unrelated-record isolation, and recovery from retained backup.';
+        $character = ['id' => 'character_delete_test', 'name' => 'Retained Pilot', 'universe_id' => $universe['id'], 'revision' => 4, 'inventory' => ['resources' => ['raw_ore' => 3]]];
+        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $backups = new UniverseBackupService($storage, $dir . '/backups'); $service = new UniverseDeletionService($storage, $backups);
+        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 1, [$character['id']]); throw new RuntimeException('Universe with a dependent character was deleted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'associated character records'), 'Unexpected retention rejection: ' . $e->getMessage()); }
+        $equal($universe, $storage->read('universes', $universe['id']), 'Blocked deletion changed universe.');
+        $equal($character, $storage->read('characters', $character['id']), 'Blocked deletion changed character.');
+        $assert($backups->list() === [], 'Blocked deletion should not create a backup.');
+        return 'Universe removal is blocked before backup when associated permanent characters exist; all records remain unchanged.';
     } finally { $cleanup($dir); }
 });
 $run('Universe deletion rejects incorrect confirmation before creating a backup', static function () use ($assert, $cleanup): string {
@@ -1526,21 +1509,21 @@ $run('Universe deletion rejects incorrect confirmation before creating a backup'
         return 'Incorrect confirmation rejected before backup or mutation.';
     } finally { $cleanup($dir); }
 });
-$run('Universe deletion rejects stale revisions and changed dependent-character lists', static function () use ($assert, $cleanup): string {
+$run('Universe deletion validates stale revisions and refuses dependent-character removal', static function () use ($assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-delete-stale-qa-' . bin2hex(random_bytes(6));
     try {
         $storage = new JsonStorage($dir . '/data'); $universe = ['id' => 'universe_stale_delete_test', 'name' => 'Stale', 'state' => ['revision' => 2, 'changes' => []], 'lifecycle' => ['revision' => 3]];
-        $character = ['id' => 'character_stale_delete_test', 'name' => 'Stale Pilot', 'universe_id' => $universe['id'], 'revision' => 1];
-        $storage->write('universes', $universe['id'], $universe); $storage->write('characters', $character['id'], $character);
+        $storage->write('universes', $universe['id'], $universe);
         $backups = new UniverseBackupService($storage, $dir . '/backups'); $service = new UniverseDeletionService($storage, $backups);
-        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 1, 3, [$character['id']]); throw new RuntimeException('Stale revision was accepted.'); }
-        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'stale'), 'Unexpected stale revision rejection.'); }
-        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 3, []); throw new RuntimeException('Stale dependent list was accepted.'); }
-        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'stale'), 'Unexpected dependent-list rejection.'); }
-        $assert($storage->read('universes', $universe['id']) === $universe, 'Stale deletion modified universe.');
-        $assert($storage->read('characters', $character['id']) === $character, 'Stale deletion modified character.');
-        $assert($backups->list() === [], 'Stale preview should be rejected before backup.');
-        return 'Stale universe revisions and stale dependent-record lists rejected without mutation.';
+        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 1, 3, []); throw new RuntimeException('Stale revision was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'stale'), 'Unexpected stale revision rejection: ' . $e->getMessage()); }
+        $character = ['id' => 'character_stale_delete_test', 'name' => 'Retained Pilot', 'universe_id' => $universe['id'], 'revision' => 1]; $storage->write('characters', $character['id'], $character);
+        try { $service->delete($universe['id'], 'DELETE UNIVERSE ' . $universe['id'], 2, 3, [$character['id']]); throw new RuntimeException('Universe with dependent character was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'associated character records'), 'Unexpected dependent-record rejection: ' . $e->getMessage()); }
+        $assert($storage->read('universes', $universe['id']) === $universe, 'Rejected deletion modified universe.');
+        $assert($storage->read('characters', $character['id']) === $character, 'Rejected deletion modified character.');
+        $assert($backups->list() === [], 'Rejected deletion should not create a backup.');
+        return 'Stale revisions are rejected when no dependents exist; dependent permanent characters block universe deletion without mutation.';
     } finally { $cleanup($dir); }
 });
 $run('Atomic universe deletion stages the universe and dependents as one verified set', static function () use ($assert, $equal, $cleanup): string {

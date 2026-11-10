@@ -1,0 +1,12 @@
+CORE 0.1.86 QA RESULTS
+
+CLI suite: 78 passed, 0 failed.
+Browser QA endpoint: 138 passed, 0 failed (HTTP 200).
+PHP syntax: 86 project PHP files passed.
+JavaScript syntax: 5 project JavaScript files passed.
+
+New regression coverage includes data-driven point-buy costs, point-budget enforcement, human flexible ability selection, Android and Ysoki species modifiers, separation of base and final scores, rejection of non-human flexible bonuses, and the Character Creation UI controls.
+
+The existing account authorization, CSRF, character/universe lifecycle, persistence, Workbench, gameplay, and navigation regression suites also passed.
+
+These are assistant-run checks against the exact 0.1.86 patch source. User installation verification is pending.

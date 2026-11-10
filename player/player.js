@@ -17,7 +17,10 @@
   const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, dragStart: null, dragged: false };
   const notice = (message, type='') => { const el=$('notice'); if(el){el.textContent=message;el.className=`notice ${type}`.trim();} };
   async function request(url, options={}) {
-    const response = await fetch(url, {signal: AbortSignal.timeout(12000), headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{})},...options});
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = {Accept:'application/json', ...(options.body?{'Content-Type':'application/json'}:{}), ...(options.headers || {})};
+    if (method !== 'GET') headers['X-CORE-CSRF'] = document.body.dataset.csrfToken || '';
+    const response = await fetch(url, {signal: AbortSignal.timeout(12000), ...options, method, headers});
     const raw = await response.text(); let data;
     try { data = JSON.parse(raw); } catch { throw new Error(`API ${url} returned non-JSON data (HTTP ${response.status}). ${raw.slice(0,180)}`); }
     if (!response.ok || data.ok === false) throw new Error(data.error?.message || `Request failed (HTTP ${response.status}).`);

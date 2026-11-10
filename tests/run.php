@@ -47,6 +47,66 @@ $equal = static function (mixed $expected, mixed $actual, string $message = ''):
     }
 };
 
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+
+$test('player API ownership checks isolate character and universe records by account', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-player-security-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $storage->write('characters', 'chr-owner-a', ['id' => 'chr-owner-a', 'owner_account_id' => 'usr-a', 'universe_id' => 'uni-shared']);
+        $storage->write('characters', 'chr-owner-b', ['id' => 'chr-owner-b', 'owner_account_id' => 'usr-b', 'universe_id' => 'uni-shared']);
+        $assert(Core\Http\PlayerApiSecurity::ownsCharacter($storage, 'chr-owner-a', 'usr-a'));
+        $assert(!Core\Http\PlayerApiSecurity::ownsCharacter($storage, 'chr-owner-a', 'usr-b'));
+        $assert(Core\Http\PlayerApiSecurity::ownsUniverse($storage, 'uni-shared', 'usr-a'));
+        $assert(!Core\Http\PlayerApiSecurity::ownsUniverse($storage, 'uni-missing', 'usr-a'));
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+$test('player API guard rejects unauthenticated access', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-player-security-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        $_SESSION = [];
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+        $request = new Core\Http\Request('GET', '/api/characters/record', ['character_id' => 'chr-any']);
+        $response = Core\Http\PlayerApiSecurity::guard($request, $storage, ['app' => ['environment' => 'production']]);
+        $assert($response instanceof Core\Http\Response, 'Unauthenticated request was not denied');
+        $equal(401, $response->statusCode());
+    } finally {
+        $_SESSION = [];
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+$test('player API guard blocks cross-account character reads and validates write CSRF', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-player-security-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $storage->write('characters', 'chr-private', ['id' => 'chr-private', 'owner_account_id' => 'usr-owner', 'universe_id' => 'uni-private']);
+        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+        $_SESSION = ['core_user' => ['id' => 'usr-other'], 'core_csrf' => 'test-csrf-token'];
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+        $read = new Core\Http\Request('GET', '/api/characters/record', ['character_id' => 'chr-private']);
+        $denied = Core\Http\PlayerApiSecurity::guard($read, $storage, ['app' => ['environment' => 'production']]);
+        $assert($denied instanceof Core\Http\Response, 'Cross-account read was not denied');
+        $equal(404, $denied->statusCode());
+        $writeWithoutToken = new Core\Http\Request('POST', '/api/characters/scan', [], [], json_encode(['character_id' => 'chr-private']));
+        $csrfDenied = Core\Http\PlayerApiSecurity::guard($writeWithoutToken, $storage, ['app' => ['environment' => 'production']]);
+        $assert($csrfDenied instanceof Core\Http\Response, 'Write without CSRF token was not denied');
+        $equal(403, $csrfDenied->statusCode());
+        $writeWithToken = new Core\Http\Request('POST', '/api/characters/scan', [], ['X-CORE-CSRF' => 'test-csrf-token'], json_encode(['character_id' => 'chr-private']));
+        $ownerDenied = Core\Http\PlayerApiSecurity::guard($writeWithToken, $storage, ['app' => ['environment' => 'production']]);
+        $equal(404, $ownerDenied?->statusCode(), 'Valid CSRF does not bypass ownership');
+        $_SESSION['core_user']['id'] = 'usr-owner';
+        $ownerAllowed = Core\Http\PlayerApiSecurity::guard($writeWithToken, $storage, ['app' => ['environment' => 'production']]);
+        $equal(null, $ownerAllowed, 'Owner with valid CSRF should be allowed');
+    } finally {
+        $_SESSION = [];
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
 // Syntax-check every PHP source file in this project, including the test runner.
 $test('PHP syntax: all project PHP files parse', static function () use ($assert): void {
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(CORE_ROOT, FilesystemIterator::SKIP_DOTS));
@@ -374,16 +434,50 @@ $test('character creation definitions are JSON-backed and extensible', static fu
     }
 });
 
+$test('Starfinder-inspired point-buy costs are data-driven and reject over-budget ability arrays', static function () use ($assert, $equal): void {
+    $options = \Core\Modules\Characters\CharacterCreationRules::definitions();
+    $equal(10, $options['ability_generation']['points'] ?? null, 'Unexpected point-buy budget');
+    $valid = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', ['strength'=>12,'dexterity'=>14,'constitution'=>10,'intelligence'=>12,'wisdom'=>10,'charisma'=>11], 'wisdom');
+    $equal(10, $valid['ability_points_spent'], 'Point-buy cost calculation is incorrect');
+    $equal(10, $valid['base_attributes']['wisdom'], 'Human base Wisdom score is incorrect');
+    $equal(12, $valid['attributes']['wisdom'], 'Human flexible species bonus was not applied');
+    try {
+        \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', ['strength'=>16,'dexterity'=>16,'constitution'=>10,'intelligence'=>10,'wisdom'=>10,'charisma'=>10], 'wisdom');
+        throw new RuntimeException('Over-budget ability scores were accepted.');
+    } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'exceed the 10-point budget'), 'Unexpected over-budget rejection: ' . $e->getMessage()); }
+});
+
+$test('species ability adjustments are applied after point-buy and retained separately', static function () use ($assert, $equal): void {
+    $options = \Core\Modules\Characters\CharacterCreationRules::definitions();
+    $base = ['strength'=>10,'dexterity'=>12,'constitution'=>10,'intelligence'=>12,'wisdom'=>10,'charisma'=>10];
+    $android = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'android', $base, null);
+    $equal(14, $android['attributes']['dexterity'], 'Android Dexterity adjustment is incorrect');
+    $equal(14, $android['attributes']['intelligence'], 'Android Intelligence adjustment is incorrect');
+    $equal(8, $android['attributes']['charisma'], 'Android Charisma adjustment is incorrect');
+    $equal($base, $android['base_attributes'], 'Species adjustments overwrote base scores');
+    $ysoki = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'ysoki', $base, null);
+    $equal(8, $ysoki['attributes']['strength'], 'Ysoki Strength adjustment is incorrect');
+    $equal(14, $ysoki['attributes']['dexterity'], 'Ysoki Dexterity adjustment is incorrect');
+    try { \Core\Modules\Characters\CharacterCreationRules::validate($options, 'android', $base, 'strength'); throw new RuntimeException('Non-human species accepted a flexible bonus field.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'does not use a flexible ability bonus'), 'Unexpected non-human bonus rejection: ' . $e->getMessage()); }
+    try { \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', $base, 'unknown_attribute'); throw new RuntimeException('Unknown human bonus ability was accepted.'); }
+    catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'valid ability for the human species bonus'), 'Unexpected human bonus rejection: ' . $e->getMessage()); }
+    $defaultHuman = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', $base, null);
+    $equal('strength', $defaultHuman['human_bonus_attribute'], 'Human fallback ability choice was not deterministic.');
+});
+
 $test('new character persists Starfinder-inspired attributes and data-driven species and role IDs', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-character-profile-' . bin2hex(random_bytes(8));
     try {
         $storage = new JsonStorage($dir);
         $universe = (new UniverseService($storage))->createOrLoad('character-profile-seed');
-        $character = (new CharacterService($storage))->create($universe['id'], 'Profile Tester', 'explorer', 'android', ['strength'=>12,'dexterity'=>14,'constitution'=>10,'intelligence'=>13,'wisdom'=>8,'charisma'=>15]);
+        $character = (new CharacterService($storage))->create($universe['id'], 'Profile Tester', 'explorer', 'android', ['strength'=>12,'dexterity'=>14,'constitution'=>10,'intelligence'=>12,'wisdom'=>10,'charisma'=>11]);
         $saved = $storage->read('characters', $character['id']);
         $equal('explorer', $saved['role_id'] ?? null, 'Role ID was not persisted');
         $equal('android', $saved['species_id'] ?? null, 'Species ID was not persisted');
-        $equal(14, $saved['attributes']['dexterity'] ?? null, 'Ability score was not persisted');
+        $equal(16, $saved['attributes']['dexterity'] ?? null, 'Android Dexterity adjustment was not applied');
+        $equal(14, $saved['base_attributes']['dexterity'] ?? null, 'Unmodified Dexterity score was not retained');
+        $equal(10, $saved['ability_points_spent'] ?? null, 'Ability point-buy total was not persisted');
         $equal(6, count($saved['attributes'] ?? []), 'Unexpected initial attribute count');
         try { (new CharacterService($storage))->create($universe['id'], 'Invalid Role', 'not-a-role'); throw new RuntimeException('Unknown role was accepted.'); }
         catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'valid character role'), 'Unexpected role rejection: ' . $e->getMessage()); }
@@ -396,7 +490,7 @@ $test('character can be created safely without a universe association', static f
     $dir = sys_get_temp_dir() . '/core-unassigned-character-' . bin2hex(random_bytes(8));
     try {
         $storage = new JsonStorage($dir);
-        $character = (new CharacterService($storage))->create('', 'Unassigned Tester', 'explorer', 'human', ['strength'=>10,'dexterity'=>10,'constitution'=>10,'intelligence'=>10,'wisdom'=>10,'charisma'=>10]);
+        $character = (new CharacterService($storage))->create('', 'Unassigned Tester', 'explorer', 'human', ['strength'=>10,'dexterity'=>10,'constitution'=>10,'intelligence'=>10,'wisdom'=>10,'charisma'=>10], null, 'strength');
         $saved = $storage->read('characters', $character['id']);
         $equal(null, $saved['universe_id'] ?? null, 'Unassigned character unexpectedly has a universe');
         $equal(null, $saved['current_system_id'] ?? null, 'Unassigned character unexpectedly has a location');
@@ -412,7 +506,7 @@ $test('player-created unassigned character persists its account owner', static f
     $storage = new \Core\Storage\JsonStorage($dir);
     try {
         $service = new \Core\Modules\Characters\CharacterService($storage);
-        $character = $service->create('', 'Owner QA', 'explorer', 'human', [], 'usr_owner_qa');
+        $character = $service->create('', 'Owner QA', 'explorer', 'human', [], 'usr_owner_qa', 'strength');
         $assert(($character['owner_account_id'] ?? null) === 'usr_owner_qa', 'Character owner account ID was not persisted.');
         $assert(($character['universe_id'] ?? null) === null, 'New character should remain unassigned.');
     } finally {
@@ -421,11 +515,99 @@ $test('player-created unassigned character persists its account owner', static f
         if (is_dir($dir)) rmdir($dir);
     }
 });
+$test('character universe assignment is owner-checked, revisioned, and initializes a valid starting location', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-assignment-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('assignment-service-seed');
+        $character = (new CharacterService($storage))->create('', 'Assignment Tester', 'explorer', 'human', [], 'assignment-owner', 'strength');
+        $assigned = (new Core\Modules\Characters\CharacterUniverseAssignmentService($storage))->assign($character['id'], 'assignment-owner', $universe['id']);
+        $saved = $storage->read('characters', $character['id']);
+        $equal('assigned', $assigned['_assignment_status'] ?? null, 'New assignment status was not reported.');
+        $equal($universe['id'], $saved['universe_id'] ?? null, 'Universe ID was not committed.');
+        $first = $universe['baseline']['systems'][0];
+        $equal($first['id'], $saved['current_system_id'] ?? null, 'Character did not start in the first system.');
+        $equal($first['id'], $saved['location']['system_id'] ?? null, 'Location projection does not match current system.');
+        $equal(1, $saved['revision'] ?? null, 'Assignment did not increment character revision exactly once.');
+        $equal('universe_assigned', $saved['lifecycle']['last_action'] ?? null, 'Assignment lifecycle action was not recorded.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('repeating the same character universe assignment is idempotent and preserves progress', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-assignment-repeat-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('assignment-repeat-seed');
+        $character = (new CharacterService($storage))->create('', 'Repeat Assignment Tester', 'explorer', 'human', [], 'assignment-owner', 'strength');
+        $service = new Core\Modules\Characters\CharacterUniverseAssignmentService($storage);
+        $service->assign($character['id'], 'assignment-owner', $universe['id']);
+        $secondSystem = $universe['baseline']['systems'][1];
+        $storage->transact('characters', $character['id'], static function (array $record) use ($secondSystem): array {
+            $record['current_system_id'] = $secondSystem['id'];
+            $record['location'] = ['system_id' => $secondSystem['id'], 'updated_at' => '2026-01-01T00:00:00+00:00'];
+            $record['revision'] = 7;
+            $record['exploration']['explored_systems'][] = ['system_id' => $secondSystem['id'], 'name' => $secondSystem['name']];
+            return $record;
+        });
+        $before = $storage->read('characters', $character['id']);
+        $result = $service->assign($character['id'], 'assignment-owner', $universe['id']);
+        $after = $storage->read('characters', $character['id']);
+        $equal('already_assigned', $result['_assignment_status'] ?? null, 'Repeated assignment status was not reported.');
+        $equal($before, $after, 'Repeated assignment reset or changed character progress.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('character universe assignment rejects another account and a different second universe without mutation', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-assignment-owner-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universes = new UniverseService($storage);
+        $first = $universes->createOrLoad('assignment-owner-first');
+        $second = $universes->createOrLoad('assignment-owner-second');
+        $character = (new CharacterService($storage))->create('', 'Ownership Assignment Tester', 'explorer', 'human', [], 'correct-owner', 'strength');
+        $service = new Core\Modules\Characters\CharacterUniverseAssignmentService($storage);
+        try { $service->assign($character['id'], 'wrong-owner', $first['id']); throw new RuntimeException('Foreign account assignment was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'ownership could not be verified'), 'Unexpected owner rejection.'); }
+        $equal(null, $storage->read('characters', $character['id'])['universe_id'] ?? null, 'Foreign owner attempt changed the character.');
+        $service->assign($character['id'], 'correct-owner', $first['id']);
+        $before = $storage->read('characters', $character['id']);
+        try { $service->assign($character['id'], 'correct-owner', $second['id']); throw new RuntimeException('Second universe assignment was accepted.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'already assigned to another universe'), 'Unexpected second-universe rejection.'); }
+        $equal($before, $storage->read('characters', $character['id']), 'Rejected reassignment changed the character.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
+$test('character universe assignment respects universe and character lifecycle locks', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-assignment-lifecycle-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('assignment-lifecycle-seed');
+        $character = (new CharacterService($storage))->create('', 'Lifecycle Assignment Tester', 'explorer', 'human', [], 'lifecycle-owner', 'strength');
+        $storage->transact('characters', $character['id'], static function (array $record): array { $record['lifecycle']['locked'] = true; return $record; });
+        try { (new Core\Modules\Characters\CharacterUniverseAssignmentService($storage))->assign($character['id'], 'lifecycle-owner', $universe['id']); throw new RuntimeException('Locked character was assigned.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Character is locked'), 'Unexpected character lifecycle rejection.'); }
+        $equal(null, $storage->read('characters', $character['id'])['universe_id'] ?? null, 'Locked character was partially assigned.');
+        $storage->transact('characters', $character['id'], static function (array $record): array { $record['lifecycle']['locked'] = false; return $record; });
+        $storage->transact('universes', $universe['id'], static function (array $record): array { $record['lifecycle'] = ['enabled' => true, 'locked' => true]; return $record; });
+        try { (new Core\Modules\Characters\CharacterUniverseAssignmentService($storage))->assign($character['id'], 'lifecycle-owner', $universe['id']); throw new RuntimeException('Locked universe accepted assignment.'); }
+        catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Universe is locked'), 'Unexpected universe lifecycle rejection.'); }
+        $equal(null, $storage->read('characters', $character['id'])['universe_id'] ?? null, 'Locked universe attempt partially assigned the character.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname()); @rmdir($dir); }
+    }
+});
+
 $test('Character records cannot be permanently deleted and remain available for archival', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-character-retention-' . bin2hex(random_bytes(6));
     try {
         $storage = new JsonStorage($dir); $service = new CharacterService($storage);
-        $character = $service->create('', 'Retention QA Pilot', 'Explorer', 'human', [], 'qa-owner');
+        $character = $service->create('', 'Retention QA Pilot', 'Explorer', 'human', [], 'qa-owner', 'strength');
         try { $service->deleteCharacter('', $character['id'], 'Retention QA Pilot', 0); throw new RuntimeException('Permanent character deletion unexpectedly succeeded.'); }
         catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'Permanent character deletion is disabled'), 'Retention policy should reject permanent deletion explicitly.'); }
         $saved = $storage->read('characters', $character['id']);
@@ -441,7 +623,7 @@ $test('scan and investigation state persists in character JSON and uses JSON con
         $storage = new JsonStorage($dir);
         $universe = (new UniverseService($storage))->createOrLoad('content-persistence-seed');
         $characters = new CharacterService($storage);
-        $character = $characters->create($universe['id'], 'Content Tester');
+        $character = $characters->create($universe['id'], 'Content Tester', 'Explorer', 'human', [], null, 'strength');
         $scan = (new CharacterScanService($storage))->scanCurrentSystem($universe['id'], $character['id'], 0);
         $definitions = ContentCatalog::entries('discoveries');
         $assert(count($scan['scan']['discoveries']) >= 1, 'Scan returned no discoveries.');
@@ -462,7 +644,7 @@ $test('crafting consumes JSON recipe and persists inventory changes to character
     try {
         $storage = new JsonStorage($dir);
         $universe = (new UniverseService($storage))->createOrLoad('content-crafting-seed');
-        $character = (new CharacterService($storage))->create($universe['id'], 'Crafter');
+        $character = (new CharacterService($storage))->create($universe['id'], 'Crafter', 'Explorer', 'human', [], null, 'strength');
         $character['inventory'] = ['resources' => ['raw_ore' => 6], 'ledger' => []];
         $storage->write('characters', $character['id'], $character);
         $recipe = ContentCatalog::entries('recipes')['refine_ore'];
@@ -514,7 +696,7 @@ $test('item categories are JSON-backed and reject unknown item category IDs', st
 });
 
 $test('item category field is a JSON-driven dropdown rather than free text', static function () use ($assert): void {
-    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php') . (string)file_get_contents(CORE_ROOT . '/assets/admin.js');
     $assert(str_contains($html, 'function itemCategoryOptions(selected'), 'Category dropdown helper is missing.');
     $assert(str_contains($html, 'data-field="category" required'), 'Item category form does not render a required select control.');
     $assert(str_contains($html, 'Category</label><select id="entryField_category"'), 'Item category form does not use a select element.');
@@ -603,7 +785,7 @@ $test('required text characteristics reject blank and whitespace-only values', s
 });
 
 $test('characteristic defaults and required text constraints are rendered in structured editor', static function () use ($assert): void {
-    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $html = (string)file_get_contents(CORE_ROOT . '/assets/admin.js');
     $assert(str_contains($html, 'field.default'), 'Schema defaults are not used to prefill characteristic controls.');
     $assert(str_contains($html, 'field.min_length'), 'Text minimum length is not rendered.');
     $assert(str_contains($html, 'if (control.required) throw new Error(`Characteristic ${key} is required.`)'), 'Required characteristic values are not enforced in the editor.');
@@ -621,7 +803,7 @@ $test('item characteristic values reject unknown enum values and unknown fields'
 });
 
 $test('structured item editor renders characteristic controls from the selected category schema', static function () use ($assert): void {
-    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $html = (string)file_get_contents(CORE_ROOT . '/assets/admin.js');
     $assert(str_contains($html, 'function renderCharacteristicFields(categoryId'), 'Dynamic characteristic renderer is missing.');
     $assert(str_contains($html, 'data-characteristic-type="enum"'), 'Enum characteristic dropdown rendering is missing.');
     $assert(str_contains($html, 'entry.characteristics=readCharacteristicValues()'), 'Item characteristics are not persisted from the structured form.');
@@ -799,7 +981,7 @@ $test('Gameplay does not expose redundant character creation action', static fun
     $assert(!str_contains($js, "$('newCharacterButton').addEventListener"), 'Gameplay still wires the removed character creation action');
 });
 $test('Workbench character refresh can discover all saved characters without a preselected universe', static function () use ($assert): void {
-    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $workbench = (string)file_get_contents(CORE_ROOT . '/assets/admin.js');
     $assert(str_contains($workbench, "fetch('api/data-management.php'"), 'Global inventory fallback missing');
     $assert(str_contains($workbench, 'global saved-character registry'), 'Global character inventory feedback missing');
 });
@@ -826,7 +1008,7 @@ $test('Signed-in account portal continues to character selection', static functi
 });
 $test('Account listing is non-provisioning and exposes only safe management metadata', static function () use ($assert): void {
     $api = (string)file_get_contents(CORE_ROOT . '/api/player-accounts-admin.php');
-    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php') . (string)file_get_contents(CORE_ROOT . '/assets/admin.js');
     $assert(!str_contains($api, 'test_account_provisioned') && !str_contains($api, 'On a fresh development install, provision a test account'), 'Listing must not create a development account as a side effect.');
     foreach (['account_type','status','created_at'] as $field) $assert(str_contains($api, "'" . $field . "'=>"), 'Account list must expose ' . $field . ' metadata.');
     foreach (['<th>Email</th>','<th>Type</th>','<th>Status</th>','<th>Created</th>'] as $column) $assert(str_contains($workbench, $column), 'Account table missing column ' . $column . '.');
@@ -842,7 +1024,7 @@ $test('Player prototype QA matches authenticated boot-data architecture', static
 });
 
 $test('Workbench character registry uses a compact table with adjacent row actions', static function () use ($assert): void {
-    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $workbench = (string)file_get_contents(CORE_ROOT . '/index.php') . (string)file_get_contents(CORE_ROOT . '/assets/admin.js') . (string)file_get_contents(CORE_ROOT . '/assets/admin.css');
     foreach (['character-admin-table', '<th scope="col">Character</th>', '<th scope="col">ID</th>', '<th scope="col">Universe</th>', "lifecycleButton.textContent = character.lifecycle?.enabled === false ? 'Restore' : 'Disable'", "selectButton.textContent = 'Select'"] as $needle) {
         $assert(str_contains($workbench, $needle), 'Character registry table is missing expected feature: ' . $needle);
     }
@@ -864,9 +1046,17 @@ $test('Gameplay map toolbar has no redundant Reset view control', static functio
     $assert(!str_contains($js, "$('resetMapView')"), 'Reset view handler should be removed with its control.');
 });
 
+$test('Workbench styles and behavior are loaded from dedicated assets', static function () use ($assert): void {
+    $html = (string)file_get_contents(CORE_ROOT . '/index.php');
+    $assert(str_contains($html, 'assets/admin.css?v=0.1.86'), 'Workbench stylesheet asset is not referenced.');
+    $assert(str_contains($html, 'assets/admin.js?v=0.1.86'), 'Workbench JavaScript asset is not referenced.');
+    $assert(!str_contains($html, '<style>') && !str_contains($html, '<script>'), 'Workbench still embeds its main stylesheet or script.');
+    $assert(is_file(CORE_ROOT . '/assets/admin.css') && is_file(CORE_ROOT . '/assets/admin.js'), 'Extracted workbench assets are missing.');
+});
+
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert(is_string($version) && preg_match('/^0\.1\.82$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\.1\.86$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

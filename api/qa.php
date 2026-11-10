@@ -72,6 +72,23 @@ $cleanup = static function (string $dir): void {
     rmdir($dir);
 };
 
+/** Read the complete Workbench source, including its externalized assets.
+ * Static UI checks must inspect the shipped HTML and JavaScript together;
+ * otherwise a valid extraction from index.php into assets/admin.js appears missing.
+ */
+function coreWorkbenchSource(string $root): string {
+    $parts = [];
+    foreach (['index.php', 'assets/admin.js', 'assets/admin.css'] as $relative) {
+        $path = $root . '/' . $relative;
+        $contents = is_file($path) ? file_get_contents($path) : false;
+        if (!is_string($contents)) {
+            throw new RuntimeException('Workbench source could not be read: ' . $relative);
+        }
+        $parts[] = $contents;
+    }
+    return implode("\n/* CORE source boundary */\n", $parts);
+}
+
 $run('Same seed produces identical baseline', static function () use ($equal): string {
     $g = new UniverseGenerator();
     $equal($g->generate('core-ui-qa-seed'), $g->generate('core-ui-qa-seed'), 'Baseline differs for the same seed.');
@@ -376,6 +393,53 @@ $run('Character creation links a valid character to its universe', static functi
         $assert(preg_match('/^chr_[a-f0-9]{24}$/', $character['id']) === 1, 'Character ID format is invalid.');
         $equal(0, $character['revision'], 'New character revision must start at zero.');
         return 'Character record contains a unique ID and valid universe link.';
+    } finally { $cleanup($dir); }
+});
+
+$run('Character point-buy enforces its budget and applies species ability modifiers', static function () use ($assert, $equal, $cleanup): string {
+    $options = \Core\Modules\Characters\CharacterCreationRules::definitions();
+    $scores = ['strength'=>12,'dexterity'=>14,'constitution'=>10,'intelligence'=>12,'wisdom'=>10,'charisma'=>11];
+    $creation = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', $scores, 'wisdom');
+    $equal(10, $creation['ability_points_spent'], 'Valid point-buy allocation did not total ten points.');
+    $equal(12, $creation['attributes']['wisdom'], 'Human flexible bonus was not applied.');
+    $android = \Core\Modules\Characters\CharacterCreationRules::validate($options, 'android', $scores, null);
+    $equal(16, $android['attributes']['dexterity'], 'Android Dexterity bonus was not applied.');
+    $equal(9, $android['attributes']['charisma'], 'Android Charisma penalty was not applied.');
+    try {
+        \Core\Modules\Characters\CharacterCreationRules::validate($options, 'human', ['strength'=>16,'dexterity'=>16,'constitution'=>10,'intelligence'=>10,'wisdom'=>10,'charisma'=>10], 'wisdom');
+        throw new RuntimeException('Over-budget ability allocation was accepted.');
+    } catch (RuntimeException $e) { $assert(str_contains($e->getMessage(), 'exceed the 10-point budget'), 'Unexpected point-buy validation error.'); }
+    return 'Ten-point allocation, human flexible bonus, Android fixed adjustments, and over-budget rejection verified.';
+});
+
+$run('Character creation page exposes live point-buy and species adjustment controls', static function () use ($assert): string {
+    $page = (string)file_get_contents(dirname(__DIR__) . '/player/character-create.php');
+    $script = (string)file_get_contents(dirname(__DIR__) . '/player/character-creation.js');
+    $assert(str_contains($page, 'abilityPointsRemaining') && str_contains($page, 'human_bonus_attribute'), 'Point-buy or human bonus controls are missing from the form.');
+    $assert(str_contains($page, 'character-creation.js?v=0.1.86'), 'Character creation behavior is not cache-versioned.');
+    $assert(str_contains($script, 'ability_points_spent') || str_contains($script, 'abilityPointsSpent'), 'Live point-buy display is missing.');
+    $assert(str_contains($script, 'humanBonusSelect.disabled = !flexible'), 'Hidden human-only choice is not disabled for other species.');
+    return 'Character creation exposes point budget, final-score previews, and the flexible human ability choice.';
+});
+
+$run('Owned unassigned characters can be safely assigned once to a universe', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-web-qa-character-assignment-' . bin2hex(random_bytes(8));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('core-ui-qa-character-assignment');
+        $character = (new CharacterService($storage))->create('', 'Assignment Pilot', 'explorer', 'human', [], 'qa-account-owner');
+        $service = new Core\Modules\Characters\CharacterUniverseAssignmentService($storage);
+        $assigned = $service->assign($character['id'], 'qa-account-owner', $universe['id']);
+        $saved = $storage->read('characters', $character['id']);
+        $equal('assigned', $assigned['_assignment_status'] ?? null, 'Assignment did not report a new association.');
+        $equal($universe['id'], $saved['universe_id'] ?? null, 'Character universe association was not saved.');
+        $equal($universe['baseline']['systems'][0]['id'], $saved['current_system_id'] ?? null, 'Starting location was not initialized.');
+        $equal(1, $saved['revision'] ?? null, 'Assignment revision was not incremented.');
+        $before = $saved;
+        $repeated = $service->assign($character['id'], 'qa-account-owner', $universe['id']);
+        $equal('already_assigned', $repeated['_assignment_status'] ?? null, 'Repeat assignment was not idempotent.');
+        $equal($before, $storage->read('characters', $character['id']), 'Repeat assignment modified saved character progress.');
+        return 'Account ownership is checked, initial location and revision are committed once, and repeat assignment preserves the character record.';
     } finally { $cleanup($dir); }
 });
 
@@ -1012,7 +1076,7 @@ $run('Crafting rejects stale revisions and invalid quantities', static function 
 });
 
 $run('Workbench exposes crafting recipes, quantity controls, and result handling', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['craftRecipe','craftQuantity','craftButton','craftStatus','api/character-craft.php','api/content-recipes.php','api/content-items.php','gameContent.recipes','loadGameContent','Crafting completed'] as $needle) {
         $assert(str_contains($html, $needle), 'Workbench is missing crafting marker: ' . $needle);
@@ -1021,7 +1085,7 @@ $run('Workbench exposes crafting recipes, quantity controls, and result handling
 });
 
 $run('Workbench displays character inventory totals and investigation reward details', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['characterInventory','Recovered resources','Recorded recovery events:','Reward: +','data.reward?.quantity','inventory.ledger'] as $needle) {
         $assert(str_contains($html, $needle), 'Workbench is missing inventory/reward marker: ' . $needle);
@@ -1030,7 +1094,7 @@ $run('Workbench displays character inventory totals and investigation reward det
 });
 
 $run('Workbench exposes investigation actions and result rendering', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['investigate-discovery', 'api/character-discovery-investigate.php', 'investigation_status', 'Investigation result:', 'characterScanResults\').addEventListener(\'click\''] as $needle) {
         $assert(str_contains($html, $needle), 'Workbench is missing discovery-investigation marker: ' . $needle);
@@ -1039,7 +1103,7 @@ $run('Workbench exposes investigation actions and result rendering', static func
 });
 
 $run('Workbench exposes accessible system-scan controls and saved discovery rendering', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['scanSystemButton','characterScanStatus','characterScanResults','api/character-scan.php','already_scanned'] as $needle) {
         $assert(str_contains($html, $needle), 'Workbench is missing scan feature marker: ' . $needle);
@@ -1048,7 +1112,7 @@ $run('Workbench exposes accessible system-scan controls and saved discovery rend
 });
 
 $run('Character dashboard exposes status, travel, and distinct exploration summaries', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['dashboardCharacter','dashboardLocation','dashboardRevision','dashboardTravelStatus','dashboardTravelDetail','dashboardExploration','dashboardVisitedList','dashboardGlobalList','renderCharacterDashboard'] as $needle) {
         $assert(str_contains($html, $needle), 'Dashboard is missing required field or renderer: ' . $needle);
@@ -1107,7 +1171,7 @@ $run('Dashboard source data changes after movement, travel completion, and globa
 });
 
 $run('Travel next-jump control remains actionable and reports request failures', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     $assert(str_contains($html, "document.getElementById('advanceTravelButton').addEventListener('click', () => submitTravelAction('advance'))"), 'Travel next-jump click handler is missing.');
     $assert(str_contains($html, 'advanceButton.disabled = !canPlay;'), 'Active route must keep next-jump enabled only when character and universe are playable.');
@@ -1119,7 +1183,7 @@ $run('Travel next-jump control remains actionable and reports request failures',
 
 
 $run('Global menu exposes all major Workbench areas with accessible tab relationships', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach ([
         'role="tablist"', 'role="tab"', 'role="tabpanel"',
@@ -1136,7 +1200,7 @@ $run('Global menu exposes all major Workbench areas with accessible tab relation
 });
 
 $run('Global menu supports click, arrow-key, Home, and End navigation', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (["tab.addEventListener('click'", "tab.addEventListener('keydown'", "event.key === 'ArrowRight'", "event.key === 'ArrowLeft'", "event.key === 'Home'", "event.key === 'End'", "panel.hidden = panel.dataset.panel !== name", "item.setAttribute('aria-selected'", "item.tabIndex = active ? 0 : -1"] as $needle) {
         $assert(str_contains($html, $needle), 'Global menu interaction is missing: ' . $needle);
@@ -1145,7 +1209,7 @@ $run('Global menu supports click, arrow-key, Home, and End navigation', static f
 });
 
 $run('Overview dashboard is wired to current universe, character, location, and travel status', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['overviewUniverse','overviewCharacter','overviewRole','overviewSystem','overviewTravel'] as $needle) {
         $assert(str_contains($html, $needle), 'Overview dashboard is missing: ' . $needle);
@@ -1200,7 +1264,7 @@ $run('Ship fitting rejects insufficient materials and stale revisions', static f
 });
 
 $run('Workbench exposes ship fitting controls and persisted module slots', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $assert(is_string($html), 'Workbench HTML could not be read.');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $assert(is_string($html), 'Workbench HTML could not be read.');
     foreach (['fitModule','fitModuleButton','fitModuleStatus','shipFittingPanel','api/character-fit.php','api/content-ship-modules.php','gameContent.ship_modules','character.ship?.modules'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing ship fitting marker: ' . $needle);
     return 'Workbench exposes module selection, installation action, status feedback, and all three fitting slots.';
 });
@@ -1235,7 +1299,7 @@ $run('Character deletion policy is consistent for missing, stale, and cross-univ
 });
 
 $run('Workbench exposes retention-safe character lifecycle instead of permanent deletion', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
     foreach (['disableCharacterButton','enableCharacterButton','characterLifecycleStatus','Permanent character deletion is disabled','deleteManagedCharacterButton'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing retention/lifecycle marker: ' . $needle);
     $assert(str_contains($app, "'/api/characters/delete'"), 'Compatibility deletion route is missing; it must remain guarded by the service retention policy.');
@@ -1290,7 +1354,7 @@ $run('Lifecycle changes are idempotent and reject stale revisions or invalid act
 });
 
 $run('Workbench exposes reversible lifecycle controls and API wiring', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
     foreach (['disableCharacterButton','enableCharacterButton','lockCharacterButton','unlockCharacterButton','characterLifecycleStatus','api/character-lifecycle.php','preserves all character data'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing lifecycle marker: ' . $needle);
     $assert(str_contains($app, "'/api/characters/lifecycle'"), 'Lifecycle API route is missing.');
@@ -1356,7 +1420,7 @@ $run('Universe lifecycle actions are idempotent and reject stale revisions or in
 });
 
 $run('Workbench exposes universe lifecycle controls and API request wiring', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
     foreach (['disableUniverseButton','enableUniverseButton','lockUniverseButton','unlockUniverseButton','universeLifecycleStatus','api/universe-lifecycle.php','preserve saved data'] as $needle) $assert(str_contains($html, $needle), 'Workbench is missing universe lifecycle marker: ' . $needle);
     $assert(str_contains($app, "'/api/universe/lifecycle'"), 'Universe lifecycle API route is missing.');
@@ -1431,7 +1495,7 @@ $run('Data management rejects unknown records and invalid scopes', static functi
 });
 
 $run('Workbench exposes data inventory, cleanup previews, and guarded character removal', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $assert(is_string($html) && is_string($app), 'Workbench or application source could not be read.');
     foreach (['Data Management','refreshDataInventoryButton','previewCleanupButton','deleteManagedCharacterButton','api/data-management.php','api/data-management-preview.php','Permanent character deletion is disabled','DELETE UNIVERSE'] as $needle) $assert(str_contains($html, $needle) || str_contains($app, $needle), 'Data management wiring missing: ' . $needle);
     $assert(str_contains($app, "'/api/data-management'") && str_contains($app, "'/api/data-management/preview'"), 'Data management API routes missing.');
@@ -1475,7 +1539,7 @@ $run('Universe backup restore refuses conflicting live records', static function
     } finally { $cleanup($dir); }
 });
 $run('Backup UI and API wiring are present', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     foreach (['createUniverseBackupButton', 'refreshBackupsButton', 'restoreUniverseBackupButton', 'backupRestoreConfirmation', 'storage/backups/'] as $needle) $assert(str_contains($html, $needle), 'Backup UI marker missing: ' . $needle);
     foreach (['/api/data-management/backups', '/api/data-management/backups/restore', 'UniverseBackupService'] as $needle) $assert(str_contains($app, $needle), 'Backup API marker missing: ' . $needle);
     return 'Backup, list, and guarded restore controls are wired to server routes.';
@@ -1589,7 +1653,7 @@ $run('Character creation and universe deletion share the universe lock', static 
 });
 
 $run('Universe deletion API and confirmation UI are wired', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php'); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php'); $endpoint = file_get_contents(dirname(__DIR__) . '/api/data-management-universe-delete.php');
+    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php'); $endpoint = file_get_contents(dirname(__DIR__) . '/api/data-management-universe-delete.php');
     foreach (['deleteManagedUniverseButton', 'cleanupUniverseConfirmation', 'DELETE UNIVERSE ', 'pre-deletion backup'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion UI marker missing: ' . $needle);
     foreach (["'/api/data-management/universe-delete'", 'UniverseDeletionService', 'developmentRequestAllowed'] as $needle) $assert(str_contains($app, $needle), 'Universe deletion API marker missing: ' . $needle);
     $assert(str_contains($endpoint, '/api/data-management/universe-delete'), 'Universe deletion endpoint wrapper missing.');
@@ -1597,7 +1661,7 @@ $run('Universe deletion API and confirmation UI are wired', static function () u
 });
 
 $run('Universe deletion selection is searchable and displays the exact ID phrase', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     foreach (['managedUniverseSearch', 'managedUniverseTarget', 'previewUniverseDeletionButton', 'universeConfirmationPhrase', 'cleanupRecordSearch', 'cleanupRecordCount'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion usability control missing: ' . $needle);
     $assert(!str_contains($html, 'copyUniverseConfirmationPhraseButton') && !str_contains($html, 'Copy phrase'), 'Unreliable copy-phrase button should be removed; phrase must remain manually selectable.');
     $assert(str_contains($html, "includes(query)"), 'Search must match universe names and IDs.');
@@ -1606,13 +1670,13 @@ $run('Universe deletion selection is searchable and displays the exact ID phrase
     return 'Universe selector/search and visible, manually selectable exact confirmation phrase are present; unreliable copy button is absent.';
 });
 $run('Incorrect universe deletion confirmation gives visible live feedback', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     foreach (['aria-live="assertive"', 'Confirmation does not match. Required phrase:', 'No data has been deleted.', 'updateUniverseDeleteConfirmationState', 'setVisibleStatus(status, \'Deletion failed:'] as $needle) $assert(str_contains($html, $needle), 'Visible deletion feedback marker missing: ' . $needle);
     $assert(str_contains($html, 'button.disabled = !matches'), 'Delete action must be disabled until confirmation exactly matches.');
     return 'Mismatched confirmation and API failures are shown in a high-contrast live status; unsafe action remains disabled.';
 });
 $run('Universe deletion UI reports progress, failure, and requires a fresh preview after errors', static function () use ($assert): string {
-    $html = file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = coreWorkbenchSource(dirname(__DIR__));
     foreach (['Universe deletion started', 'Step 1 of 3: creating and verifying the pre-deletion backup', 'Deletion failed:', 'Generate a fresh preview before retrying.', 'storage/logs/universe-deletion.log', 'storage/logs/backups.log', 'Universe deletion failed'] as $needle) $assert(str_contains($html, $needle), 'Deletion progress/error handling missing: ' . $needle);
     return 'Destructive operation has start/progress messages, actionable failure details, activity logging, and stale-preview invalidation.';
 });
@@ -1707,7 +1771,7 @@ $run('Content manager rejects stale revision without overwriting newer edit', st
 
 $run('Item categories are a JSON-defined dropdown and arbitrary categories are rejected', static function () use ($assert): string {
     $root = dirname(__DIR__);
-    $html = (string)file_get_contents($root . '/index.php');
+    $html = (string)coreWorkbenchSource($root);
     $application = (string)file_get_contents($root . '/app/Application.php');
     $categoryJson = json_decode((string)file_get_contents($root . '/config/content/item-categories.json'), true, 512, JSON_THROW_ON_ERROR);
     $assert(isset($categoryJson['entries']['resource']['label'], $categoryJson['entries']['material']['label'], $categoryJson['entries']['component']['label']), 'Expected item category labels are missing.');
@@ -1731,7 +1795,7 @@ $run('Required text characteristic validation rejects blank and whitespace-only 
     return 'Required text rejects empty and whitespace-only values during server-side catalog validation using an isolated in-memory schema.';
 });
 $run('Structured characteristic editor applies defaults and enforces required and length constraints', static function () use ($assert): string {
-    $html = (string)file_get_contents(dirname(__DIR__) . '/index.php');
+    $html = (string)coreWorkbenchSource(dirname(__DIR__));
     foreach (['field.default','field.min_length','field.max_length','control.required','Characteristic ${key} is required.'] as $needle) $assert(str_contains($html, $needle), 'Missing editor behavior: '.$needle);
     return 'Default values, required fields, and text-length constraints are represented in the structured editor.';
 });
@@ -1777,7 +1841,7 @@ $run('Item characteristic validation rejects unknown enum values and fields', st
     return 'Invalid characteristic choices and undefined fields are rejected before save.';
 });
 $run('Content Studio renders typed item characteristic fields from JSON schema', static function () use ($assert): string {
-    $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
+    $root = dirname(__DIR__); $html = (string)coreWorkbenchSource($root);
     $assert(str_contains($html, 'function renderCharacteristicFields(categoryId'), 'Dynamic characteristic editor is missing.');
     $assert(str_contains($html, 'data-characteristic-type="enum"'), 'Enum dropdown rendering is missing.');
     $assert(str_contains($html, 'entry.characteristics=readCharacteristicValues()'), 'Item form does not save characteristic values.');
@@ -1785,7 +1849,7 @@ $run('Content Studio renders typed item characteristic fields from JSON schema',
 });
 
 $run('Characteristic schema manager exposes form controls and mutation endpoints', static function () use ($assert): string {
-    $root=dirname(__DIR__); $html=(string)file_get_contents($root.'/index.php'); $app=(string)file_get_contents($root.'/app/Application.php');
+    $root=dirname(__DIR__); $html=(string)coreWorkbenchSource($root); $app=(string)file_get_contents($root.'/app/Application.php');
     foreach (['schemaCategorySelect','schemaFieldSelect','schemaFieldType','schemaFieldRequired','schemaFieldDefault','schemaFieldMin','schemaFieldMax','schemaFieldOptions','schemaApplyFieldButton','schemaValidateButton','schemaSaveButton'] as $id) $assert(str_contains($html,'id="'.$id.'"'),'Characteristic form control is missing: '.$id);
     $assert(str_contains($app,"'/api/content/item-characteristics/validate'"),'Schema validation endpoint is missing.');
     $assert(str_contains($app,"'/api/content/item-characteristics/save'"),'Schema save endpoint is missing.');
@@ -1810,7 +1874,7 @@ $run('Characteristic schema changes use revision checks, atomic saves, and verif
 });
 
 $run('Workbench exposes structured content management and revision-checked APIs', static function () use ($assert): string {
-    $root = dirname(__DIR__); $html = (string)file_get_contents($root . '/index.php');
+    $root = dirname(__DIR__); $html = (string)coreWorkbenchSource($root);
     foreach (['tab-content', 'panel-content', 'contentCatalogSelect', 'contentJsonEditor', 'contentEntrySelect', 'contentEntryForm', 'contentAddEntryButton', 'contentApplyEntryButton', 'contentUseJsonButton', 'contentLoadButton', 'contentValidateButton', 'contentSaveButton', 'api/content-validate.php', 'api/content-save.php'] as $needle) {
         if (str_starts_with($needle, 'api/')) $assert(is_file($root . '/' . $needle), 'Missing content management API wrapper: ' . $needle);
         else $assert(str_contains($html, $needle), 'Workbench content editor is missing: ' . $needle);
@@ -1916,10 +1980,6 @@ $run('Player website, account access, and interactive map controls are present',
 });
 
 
-$passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
-$failed = count($results) - $passed;
-http_response_code($failed === 0 ? 200 : 500);
-
 $run('Player prototype is separate from the developer Workbench', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/player/index.php');
     $assert(is_string($html), 'Player prototype HTML could not be read.');
@@ -1942,7 +2002,7 @@ $run('Player prototype uses Babylon.js and backend entity IDs', static function 
 $run('Release version comes from one central version file', static function () use ($assert): string {
     $versionFile = dirname(__DIR__) . '/config/version.php';
     $version = is_file($versionFile) ? require $versionFile : null;
-    $workbench = file_get_contents(dirname(__DIR__) . '/index.php');
+    $workbench = coreWorkbenchSource(dirname(__DIR__));
     $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $player = file_get_contents(dirname(__DIR__) . '/player/game.php');
     $assert(is_string($version) && preg_match('/^\d+\.\d+\.\d+$/', $version) === 1, 'Central release version file is missing or invalid.');
@@ -1952,5 +2012,55 @@ $run('Release version comes from one central version file', static function () u
     return 'Workbench, health API metadata, and player portal read the single config/version.php source.';
 });
 
+
+$run('Player gameplay APIs enforce account ownership and CSRF protection', static function () use ($assert, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-browser-player-security-' . bin2hex(random_bytes(6));
+    $remote = $_SERVER['REMOTE_ADDR'] ?? null;
+    try {
+        $storage = new JsonStorage($dir);
+        $storage->write('characters', 'chr-security-qa', ['id' => 'chr-security-qa', 'owner_account_id' => 'usr-security-owner', 'universe_id' => 'uni-security-qa']);
+        $sessionWasActive = session_status() === PHP_SESSION_ACTIVE;
+        if (!$sessionWasActive) session_start();
+        $sessionSnapshot = $_SESSION;
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.17';
+        $_SESSION = [];
+        $config = ['app' => ['environment' => 'production']];
+        $unauthenticated = Core\Http\PlayerApiSecurity::guard(new Core\Http\Request('GET', '/api/characters/record', ['character_id' => 'chr-security-qa']), $storage, $config);
+        $assert($unauthenticated instanceof Core\Http\Response && $unauthenticated->statusCode() === 401, 'Unauthenticated character read was not rejected.');
+        $_SESSION = ['core_user' => ['id' => 'usr-security-other'], 'core_csrf' => 'qa-csrf-token'];
+        $crossAccount = Core\Http\PlayerApiSecurity::guard(new Core\Http\Request('GET', '/api/characters/record', ['character_id' => 'chr-security-qa']), $storage, $config);
+        $assert($crossAccount instanceof Core\Http\Response && $crossAccount->statusCode() === 404, 'Cross-account character read was not hidden.');
+        $crossUniverseCreate = Core\Http\PlayerApiSecurity::guard(new Core\Http\Request('POST', '/api/characters', [], ['X-CORE-CSRF' => 'qa-csrf-token'], '{"universe_id":"uni-security-qa","name":"Intruder"}'), $storage, $config);
+        $assert($crossUniverseCreate instanceof Core\Http\Response && $crossUniverseCreate->statusCode() === 404, 'Character creation into another account universe was not denied.');
+        $noCsrf = Core\Http\PlayerApiSecurity::guard(new Core\Http\Request('POST', '/api/characters/scan', [], [], '{"character_id":"chr-security-qa"}'), $storage, $config);
+        $assert($noCsrf instanceof Core\Http\Response && $noCsrf->statusCode() === 403, 'Write without CSRF token was accepted.');
+        $_SESSION['core_user']['id'] = 'usr-security-owner';
+        $valid = Core\Http\PlayerApiSecurity::guard(new Core\Http\Request('POST', '/api/characters/scan', [], ['X-CORE-CSRF' => 'qa-csrf-token'], '{"character_id":"chr-security-qa"}'), $storage, $config);
+        $assert($valid === null, 'Owned character write with valid CSRF token was rejected.');
+        return 'Unauthenticated and cross-account reads are denied; mutating requests require a valid session CSRF token.';
+    } finally {
+        if (session_status() === PHP_SESSION_ACTIVE) { $_SESSION = $sessionSnapshot ?? []; if (empty($sessionWasActive)) session_write_close(); }
+        if ($remote === null) unset($_SERVER['REMOTE_ADDR']); else $_SERVER['REMOTE_ADDR'] = $remote;
+        $cleanup($dir);
+    }
+});
+$run('Gameplay client sends session CSRF token with write requests', static function () use ($assert): string {
+    $game = file_get_contents(dirname(__DIR__) . '/player/game.php');
+    $js = file_get_contents(dirname(__DIR__) . '/player/player.js');
+    $assert(is_string($game) && str_contains($game, 'data-csrf-token='), 'Gameplay page does not expose the session CSRF token to its own client.');
+    $assert(is_string($js) && str_contains($js, "headers['X-CORE-CSRF']") && str_contains($js, 'document.body.dataset.csrfToken'), 'Gameplay API helper does not attach the CSRF header.');
+    return 'Gameplay write requests include the session token in X-CORE-CSRF.';
+});
+$run('Player character collection is account-scoped outside the trusted Workbench', static function () use ($assert): string {
+    $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $security = file_get_contents(dirname(__DIR__) . '/app/Http/PlayerApiSecurity.php');
+    $assert(is_string($application) && str_contains($application, "owner_account_id'] ?? '') === $accountId"), 'Character listing does not filter records by the signed-in account.');
+    $assert(is_string($security) && str_contains($security, 'ownsCharacter') && str_contains($security, 'ownsUniverse'), 'Central ownership checks are missing.');
+    return 'Character collection responses are filtered to the signed-in account; universe navigation and lifecycle operations require an owned character.';
+});
+
+$passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));
+$failed = count($results) - $passed;
+http_response_code($failed === 0 ? 200 : 500);
 
 echo json_encode(['ok' => $failed === 0, 'application' => 'CORE', 'version' => require dirname(__DIR__) . '/config/version.php', 'passed' => $passed, 'failed' => $failed, 'results' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

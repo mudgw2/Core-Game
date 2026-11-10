@@ -23,8 +23,9 @@ try {
         $role = trim((string)($_POST['role_id'] ?? ''));
         $species = trim((string)($_POST['species_id'] ?? 'human'));
         $attributes = is_array($_POST['attributes'] ?? null) ? $_POST['attributes'] : [];
+        $humanBonusAttribute = trim((string)($_POST['human_bonus_attribute'] ?? ''));
         $service = new \Core\Modules\Characters\CharacterService($storage);
-        $service->create('', $name, $role, $species, $attributes, $owner);
+        $service->create('', $name, $role, $species, $attributes, $owner, $humanBonusAttribute !== '' ? $humanBonusAttribute : null);
         header('Location: ' . $base . '/selection.php?created=1'); exit;
     }
     if ($action === 'create_universe') {
@@ -33,25 +34,18 @@ try {
         $character = $storage->read('characters', $characterId);
         if (!$character || ($character['owner_account_id'] ?? null) !== $owner) { http_response_code(404); exit('Character not found for this account.'); }
         if ($seed === '' || strlen($seed) > 120) { http_response_code(400); exit('Seed must be between 1 and 120 characters.'); }
+        if (!empty($character['universe_id'])) {
+            http_response_code(409);
+            exit('This character is already assigned to a universe. Select the character from the roster to continue.');
+        }
+        \Core\Modules\Characters\CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
         $settings = [];
         foreach (['system_density', 'anomaly_rate', 'binary_star_rate', 'nebula_presence'] as $setting) {
             if (isset($_POST[$setting]) && is_scalar($_POST[$setting])) $settings[$setting] = (int)$_POST[$setting];
         }
         $universe = (new \Core\Modules\Universe\UniverseService($storage))->createOrLoad($seed, $settings);
-        $storage->transact('characters', (string)$character['id'], static function (array $current) use ($owner, $universe): array {
-            if (($current['owner_account_id'] ?? null) !== $owner) throw new \RuntimeException('Character ownership changed; no association was made.');
-            if (!empty($current['universe_id']) && $current['universe_id'] !== $universe['id']) throw new \RuntimeException('This character is already assigned to another universe. Safe unassignment is not available.');
-            $first = $universe['baseline']['systems'][0] ?? null;
-            if (!is_array($first) || !isset($first['id'])) throw new \RuntimeException('Universe has no valid starting system.');
-            $current['universe_id'] = $universe['id'];
-            $now = gmdate('c');
-            $current['current_system_id'] = (string)$first['id'];
-            $current['location'] = ['system_id' => (string)$first['id'], 'updated_at' => $now];
-            $current['exploration'] = ['explored_systems' => [['system_id' => (string)$first['id'], 'name' => (string)($first['name'] ?? $first['id']), 'first_visited_at' => $now, 'first_visited_revision' => 0]]];
-            $current['lifecycle']['last_action'] = 'universe_assigned';
-            $current['lifecycle']['updated_at'] = $now;
-            return $current;
-        });
+        $assignedCharacter = (new \Core\Modules\Characters\CharacterUniverseAssignmentService($storage))
+            ->assign((string)$character['id'], $owner, (string)$universe['id']);
         // Keep the player-facing seed as a one-time flash message; universe IDs remain internal.
         $_SESSION['core_flash_universe_seed'] = $seed;
         $_SESSION['core_flash_universe_summary'] = ['system_count' => count($universe['baseline']['systems'] ?? []), 'settings' => $universe['settings'] ?? ($universe['baseline']['settings'] ?? [])];

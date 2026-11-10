@@ -19,8 +19,10 @@ final class Request
         $uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
         $headers = function_exists('getallheaders') ? getallheaders() : [];
+        if (!is_array($headers)) $headers = [];
+        if (isset($_SERVER['HTTP_X_CORE_CSRF']) && !isset($headers['X-CORE-CSRF'])) $headers['X-CORE-CSRF'] = (string)$_SERVER['HTTP_X_CORE_CSRF'];
 
-        return new self($method, rtrim($path, '/') ?: '/', $_GET, is_array($headers) ? $headers : [], (string)file_get_contents('php://input'));
+        return new self($method, rtrim($path, '/') ?: '/', $_GET, $headers, (string)file_get_contents('php://input'));
     }
 
     public function method(): string { return $this->method; }

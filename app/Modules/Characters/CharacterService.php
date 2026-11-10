@@ -14,35 +14,23 @@ final class CharacterService
 {
     public function __construct(private JsonStorage $storage) {}
 
-    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = [], ?string $ownerAccountId = null): array
+    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = [], ?string $ownerAccountId = null, ?string $humanBonusAttribute = null): array
     {
         $universeId = trim($universeId);
         $name = trim($name);
         $role = trim($role);
-        $optionsPath = CORE_ROOT . '/storage/data/content/character-options.json';
-        $options = is_file($optionsPath) ? json_decode((string)file_get_contents($optionsPath), true) : null;
-        if (!is_array($options)) throw new RuntimeException('Character creation definitions are missing or invalid.');
+        $options = CharacterCreationRules::definitions();
         $roles = is_array($options['roles'] ?? null) ? $options['roles'] : [];
-        $species = is_array($options['species'] ?? null) ? $options['species'] : [];
         $roleDefinition = null;
         foreach ($roles as $entry) { if (is_array($entry) && (($entry['id'] ?? null) === $role || ($entry['label'] ?? null) === $role)) { $roleDefinition = $entry; break; } }
         if ($roleDefinition === null) throw new RuntimeException('Select a valid character role from the available options.');
         $speciesId = trim($speciesId);
+        $creation = CharacterCreationRules::validate($options, $speciesId, $attributes, $humanBonusAttribute);
         $speciesDefinition = null;
-        foreach ($species as $entry) { if (is_array($entry) && ($entry['id'] ?? null) === $speciesId) { $speciesDefinition = $entry; break; } }
+        foreach (($options['species'] ?? []) as $entry) { if (is_array($entry) && ($entry['id'] ?? null) === $speciesId) { $speciesDefinition = $entry; break; } }
         if ($speciesDefinition === null) throw new RuntimeException('Select a valid character species from the available options.');
-        $validatedAttributes = [];
-        foreach (($options['attributes'] ?? []) as $definition) {
-            if (!is_array($definition) || !is_string($definition['id'] ?? null)) continue;
-            $attributeId = $definition['id'];
-            $value = $attributes[$attributeId] ?? $definition['default'] ?? 10;
-            if (filter_var($value, FILTER_VALIDATE_INT) === false) throw new RuntimeException('Attribute ' . $attributeId . ' must be a whole number.');
-            $value = (int)$value;
-            $minimum = (int)($definition['minimum'] ?? 1); $maximum = (int)($definition['maximum'] ?? 30);
-            if ($value < $minimum || $value > $maximum) throw new RuntimeException('Attribute ' . $attributeId . ' must be between ' . $minimum . ' and ' . $maximum . '.');
-            $validatedAttributes[$attributeId] = $value;
-        }
-        foreach ($attributes as $attributeId => $_) { if (!array_key_exists((string)$attributeId, $validatedAttributes)) throw new RuntimeException('Unknown character attribute: ' . (string)$attributeId . '.'); }
+        $baseAttributes = $creation['base_attributes'];
+        $validatedAttributes = $creation['attributes'];
         $role = (string)$roleDefinition['label'];
         if ($name === '') throw new RuntimeException('Character name cannot be empty.');
         $nameLength = preg_match_all('/./us', $name);
@@ -65,6 +53,11 @@ final class CharacterService
                 'species_id' => (string)$speciesDefinition['id'],
                 'species' => (string)$speciesDefinition['label'],
                 'attributes' => $validatedAttributes,
+                'base_attributes' => $baseAttributes,
+                'species_adjustments' => $creation['species_adjustments'],
+                'ability_points_spent' => $creation['ability_points_spent'],
+                'ability_point_budget' => $creation['ability_point_budget'],
+                'human_bonus_attribute' => $creation['human_bonus_attribute'],
                 'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created_unassigned'],
                 'location' => null, 'current_system_id' => null,
                 'created_at' => $now, 'revision' => 0,
@@ -73,7 +66,7 @@ final class CharacterService
         }
         // Character creation shares the universe lock with universe deletion. This closes the race
         // where a new dependent character could appear after deletion enumerates its dependents.
-        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes, $ownerAccountId): array {
+        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes, $baseAttributes, $creation, $ownerAccountId): array {
             $universe = $this->storage->read('universes', $universeId);
             if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
                 throw new RuntimeException('The selected universe does not exist.');
@@ -96,6 +89,11 @@ final class CharacterService
                 'species_id' => (string)$speciesDefinition['id'],
                 'species' => (string)$speciesDefinition['label'],
                 'attributes' => $validatedAttributes,
+                'base_attributes' => $baseAttributes,
+                'species_adjustments' => $creation['species_adjustments'],
+                'ability_points_spent' => $creation['ability_points_spent'],
+                'ability_point_budget' => $creation['ability_point_budget'],
+                'human_bonus_attribute' => $creation['human_bonus_attribute'],
                 'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
                 'current_system_id' => (string)$firstSystem['id'],
                 'location' => [

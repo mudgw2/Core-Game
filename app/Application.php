@@ -74,6 +74,7 @@ final class Application
     {
         $config = require CORE_ROOT . '/config/app.php';
         $storage = new JsonStorage((string)$config['storage']['path']);
+        $this->router->setBeforeDispatch(static fn(Request $request): ?Response => \Core\Http\PlayerApiSecurity::guard($request, $storage, $config));
         $universeService = new UniverseService($storage);
         $universeLifecycleService = new UniverseLifecycleService($storage);
         $characterService = new CharacterService($storage);
@@ -366,7 +367,7 @@ final class Application
         });
 
         $this->router->get('/api/navigation', static function (Request $request) use ($characterService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Navigation API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'navigation_api_disabled', 'message' => 'Navigation data is available only in development mode from a local/private network.']], 403);
             }
@@ -382,7 +383,7 @@ final class Application
         });
 
         $this->router->get('/api/navigation/route', static function (Request $request) use ($routeService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Route planning API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'route_api_disabled', 'message' => 'Route planning is available only in development mode from a local/private network.']], 403);
             }
@@ -411,7 +412,7 @@ final class Application
         });
 
         $this->router->get('/api/characters/record', static function (Request $request) use ($characterService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character records are available only in development mode from a local/private network.']], 403);
+            if (!self::gameplayRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character records are available only in development mode from a local/private network.']], 403);
             $characterId = $request->query('character_id', '');
             if (!is_string($characterId) || trim($characterId) === '') return Response::json(['ok' => false, 'error' => ['code' => 'missing_character_id', 'message' => 'Provide a character_id query parameter.']], 400);
             try { return Response::json(['ok' => true, 'character' => $characterService->getById($characterId)]); }
@@ -432,7 +433,7 @@ final class Application
         });
 
         $this->router->get('/api/characters', static function (Request $request) use ($characterService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character API is available only in development mode from a local/private network.']], 403);
             }
@@ -441,9 +442,14 @@ final class Application
             try {
                 if (trim($universeId) === '') {
                     $all = (new JsonStorage((string)$config['storage']['path']))->all('characters');
-                    return Response::json(['ok' => true, 'characters' => $all]);
+                } else {
+                    $all = $characterService->listForUniverse($universeId);
                 }
-                return Response::json(['ok' => true, 'universe_id' => trim($universeId), 'characters' => $characterService->listForUniverse($universeId)]);
+                if (!self::developmentRequestAllowed($config)) {
+                    $accountId = \Core\Http\PlayerApiSecurity::currentUserId() ?? '';
+                    $all = array_values(array_filter($all, static fn(mixed $character): bool => is_array($character) && (string)($character['owner_account_id'] ?? '') === $accountId));
+                }
+                return Response::json(['ok' => true] + (trim($universeId) !== '' ? ['universe_id' => trim($universeId)] : []) + ['characters' => $all]);
             } catch (Throwable $e) {
                 if (str_contains($e->getMessage(), 'does not exist')) return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found', 'message' => $e->getMessage()]], 404);
                 Logger::error('Character list failed', ['universe_id' => $universeId, 'exception' => $e::class, 'message' => $e->getMessage()]);
@@ -452,7 +458,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/scan', static function (Request $request) use ($scanService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character scan API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'scan_api_disabled', 'message' => 'Character scanning is available only in development mode from a local/private network.']], 403);
             }
@@ -485,7 +491,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/craft', static function (Request $request) use ($craftingService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character crafting API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'crafting_api_disabled', 'message' => 'Crafting is available only in development mode from a local/private network.']], 403);
             }
@@ -523,7 +529,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/fit', static function (Request $request) use ($fittingService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Ship fitting API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'fitting_api_disabled', 'message' => 'Ship fitting is available only in development mode from a local/private network.']], 403);
             }
@@ -551,7 +557,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/discoveries/investigate', static function (Request $request) use ($discoveryService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Discovery investigation API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'discovery_api_disabled', 'message' => 'Discovery investigation is available only in development mode from a local/private network.']], 403);
             }
@@ -588,7 +594,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/location', static function (Request $request) use ($characterService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character location API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character location updates are available only in development mode from a local/private network.']], 403);
             }
@@ -632,7 +638,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/travel', static function (Request $request) use ($travelService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character travel API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'travel_api_disabled', 'message' => 'Route execution is available only in development mode from a local/private network.']], 403);
             }
@@ -676,7 +682,7 @@ final class Application
         });
 
         $this->router->post('/api/characters/lifecycle', static function (Request $request) use ($lifecycleService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character lifecycle API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_lifecycle_api_disabled', 'message' => 'Character lifecycle management is available only in development mode from a local/private network.']], 403);
             }
@@ -749,7 +755,7 @@ final class Application
         });
 
         $this->router->post('/api/characters', static function (Request $request) use ($characterService, $config): Response {
-            if (!self::developmentRequestAllowed($config)) {
+            if (!self::gameplayRequestAllowed($config)) {
                 Logger::warning('Character API access denied', ['remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''), 'environment' => (string)($config['app']['environment'] ?? 'production')]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'character_api_disabled', 'message' => 'Character API is available only in development mode from a local/private network.']], 403);
             }
@@ -764,7 +770,8 @@ final class Application
                 return Response::json(['ok' => false, 'error' => ['code' => 'invalid_character_request', 'message' => 'Provide a non-empty character name.']], 400);
             }
             try {
-                $character = $characterService->create($universeId, $name, $role, $speciesId, $attributes);
+                $ownerAccountId = self::developmentRequestAllowed($config) ? null : (\Core\Http\PlayerApiSecurity::currentUserId() ?? null);
+                $character = $characterService->create($universeId, $name, $role, $speciesId, $attributes, $ownerAccountId);
                 Logger::info('Character created', ['character_id' => $character['id'], 'universe_id' => $universeId !== '' ? $universeId : null]);
                 return Response::json(['ok' => true, 'character' => $character], 201);
             } catch (Throwable $e) {
@@ -789,22 +796,27 @@ final class Application
                 'GET /api/content/recipes',
                 'GET /api/content/discoveries',
                 'GET /api/content/ship-modules',
-                'GET /api/characters/record?character_id=... (development/private network only; full persisted character state)',
+                'GET /api/characters/record?character_id=... (account-owned character or trusted Workbench)',
                 'GET /api/universe/preview?seed=your-seed',
                 'POST /api/universe with JSON {"seed":"your-seed"}',
-                'GET /api/characters?universe_id=... (development/private network only)',
-                'GET /api/navigation?universe_id=... (development/private network only)',
-                'GET /api/navigation/route?universe_id=...&from_system_id=...&to_system_id=... (development/private network only)',
-                'POST /api/characters/travel with action start or advance (development/private network only)',
-                'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (development/private network only)',
-                'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (development/private network only)',
-                'POST /api/characters/fit with universe_id, character_id, module_id, and expected_revision (development/private network only)',
-                'POST /api/characters/lifecycle with universe_id, character_id, action, and expected_revision (development/private network only)',
-                'POST /api/characters/delete with universe_id, character_id, confirmation_name, and expected_revision (development/private network only)',
-                'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (development/private network only)',
+                'GET /api/characters?universe_id=... (signed-in account session or trusted development Workbench)',
+                'GET /api/navigation?universe_id=... (signed-in account session or trusted development Workbench)',
+                'GET /api/navigation/route?universe_id=...&from_system_id=...&to_system_id=... (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/travel with action start or advance (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/discoveries/investigate with universe_id, character_id, discovery_id, and expected_revision (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/craft with universe_id, character_id, recipe_id, quantity, and expected_revision (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/fit with universe_id, character_id, module_id, and expected_revision (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/lifecycle with universe_id, character_id, action, and expected_revision (signed-in account session or trusted development Workbench)',
+                'POST /api/characters/delete with universe_id, character_id, confirmation_name, and expected_revision (trusted development Workbench only)',
+                'POST /api/characters with JSON {"universe_id":"...","name":"...","role":"Explorer"} (signed-in account session or trusted development Workbench)',
                 'POST /api/universe/state with JSON {"universe_id":"...","expected_revision":0,"change":{"type":"..."}} (development/private network only)',
             ],
         ]));
+    }
+
+    private static function gameplayRequestAllowed(array $config): bool
+    {
+        return self::developmentRequestAllowed($config) || \Core\Http\PlayerApiSecurity::currentUserId() !== null;
     }
 
     private static function developmentRequestAllowed(array $config): bool

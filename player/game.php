@@ -3,6 +3,7 @@ declare(strict_types=1);
 $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/player/game.php')), '/');
 $urlRoot = rtrim(str_replace('\\', '/', dirname($base)), '/');
 if (session_status() !== PHP_SESSION_ACTIVE) { $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'); session_set_cookie_params(['httponly'=>true,'secure'=>$secure,'samesite'=>'Lax','path'=>'/']); session_start(); }
+if (empty($_SESSION['core_csrf'])) $_SESSION['core_csrf'] = bin2hex(random_bytes(32));
 if (empty($_SESSION['core_user']['id'])) { header('Location: ' . $base . '/account.php'); exit; }
 $root = dirname(__DIR__); define('CORE_ROOT', $root); require $root . '/bootstrap.php'; $cfg = require $root . '/config/app.php'; $portalStorage = new \Core\Storage\JsonStorage((string)$cfg['storage']['path']); $selectedCharacterId = (string)($_GET['character_id'] ?? '');
 if ($selectedCharacterId === '') { header('Location: ' . $base . '/selection.php'); exit; }
@@ -45,7 +46,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   </script>
   <script defer src="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.js?v=<?= rawurlencode((string)$releaseVersion) ?>" onload="window.CORE_PLAYER_SCRIPT_LOADED = true" onerror="(function(){var n=document.getElementById('notice');if(n){n.textContent='Could not load player.js. Verify the player script URL and Apache file permissions.';n.className='notice error';}})()"></script>
 </head>
-<body data-api-root="<?= htmlspecialchars($urlRoot, ENT_QUOTES, 'UTF-8') ?>" data-character-id="<?= htmlspecialchars($selectedCharacterId, ENT_QUOTES, 'UTF-8') ?>" data-universe-seed="<?= htmlspecialchars($assignedSeed, ENT_QUOTES, 'UTF-8') ?>">
+<body data-csrf-token="<?= htmlspecialchars((string)$_SESSION['core_csrf'], ENT_QUOTES, 'UTF-8') ?>" data-api-root="<?= htmlspecialchars($urlRoot, ENT_QUOTES, 'UTF-8') ?>" data-character-id="<?= htmlspecialchars($selectedCharacterId, ENT_QUOTES, 'UTF-8') ?>" data-universe-seed="<?= htmlspecialchars($assignedSeed, ENT_QUOTES, 'UTF-8') ?>">
   <header class="topbar">
     <a class="brand" href="<?=htmlspecialchars($base,ENT_QUOTES,'UTF-8')?>/index.php"><span class="brand-mark">C</span><span>CORE <small>PLAYER PORTAL</small></span></a>
     <nav class="portal-nav" aria-label="Player navigation"><a class="character-selection-link" href="<?=$base?>/selection.php">← Character Selection</a><a href="<?=$base?>/account.php">Account / sign out</a></nav>
@@ -93,7 +94,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
         <div class="map-footer"><span id="mapStatus">Waiting for universe data</span><span>Drag to pan · Scroll to zoom · Select a star system</span></div>
       </section>
     </section>
-    <footer>CORE <?= htmlspecialchars($releaseVersion, ENT_QUOTES, 'UTF-8') ?> · Player portal prototype. Account login is an initial implementation; gameplay APIs remain development/private-network restricted.</footer>
+    <footer>CORE <?= htmlspecialchars($releaseVersion, ENT_QUOTES, 'UTF-8') ?> · Player portal prototype. Player API requests are authenticated and protected by session ownership and CSRF validation.</footer>
   </main>
 </body>
 </html>

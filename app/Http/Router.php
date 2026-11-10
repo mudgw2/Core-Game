@@ -10,6 +10,10 @@ final class Router
 {
     /** @var array<string, array<string, callable>> */
     private array $routes = [];
+    /** @var callable|null */
+    private $beforeDispatch = null;
+
+    public function setBeforeDispatch(callable $guard): void { $this->beforeDispatch = $guard; }
 
     public function get(string $path, callable $handler): void { $this->add('GET', $path, $handler); }
     public function post(string $path, callable $handler): void { $this->add('POST', $path, $handler); }
@@ -30,6 +34,10 @@ final class Router
         }
 
         try {
+            if ($this->beforeDispatch !== null) {
+                $denial = ($this->beforeDispatch)($request);
+                if ($denial instanceof Response) return $denial;
+            }
             $response = $handler($request);
             Logger::info('Request handled', ['method' => $request->method(), 'path' => $request->path()]);
             return $response instanceof Response

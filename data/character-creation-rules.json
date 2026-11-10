@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "ability_generation": {
+    "type": "point_buy",
+    "points": 10,
+    "minimum_score": 7,
+    "maximum_score": 16,
+    "costs": {
+      "7": -4,
+      "8": -2,
+      "9": -1,
+      "10": 0,
+      "11": 1,
+      "12": 2,
+      "13": 3,
+      "14": 5,
+      "15": 7,
+      "16": 10
+    },
+    "description": "Distribute up to 10 points among the six abilities before species adjustments."
+  },
+  "species_adjustments": {
+    "human": {
+      "adjustments": {
+        "choice": 2
+      },
+      "default_choice": "strength",
+      "description": "+2 to one ability score of your choice."
+    },
+    "android": {
+      "adjustments": {
+        "dexterity": 2,
+        "intelligence": 2,
+        "charisma": -2
+      },
+      "description": "+2 Dexterity, +2 Intelligence, −2 Charisma."
+    },
+    "ysoki": {
+      "adjustments": {
+        "dexterity": 2,
+        "intelligence": 2,
+        "strength": -2
+      },
+      "description": "+2 Dexterity, +2 Intelligence, −2 Strength."
+    }
+  }
+}

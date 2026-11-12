@@ -655,3 +655,5 @@
 {"time":"2026-11-12T21:01:02+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-stale-qa-d2a3b47a71f6beed/backups/content/recipes_r1_20261112_210102_995789.json"}}
 {"time":"2026-11-12T21:01:02+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
 {"time":"2026-11-12T21:01:02+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"items","revision":2,"entry_count":9,"backup_path":"/tmp/core-web-item-characteristics-roundtrip-b572c0091800aad1/backups/content/items_r1_20261112_210102_8b90a2.json"}}
+{"time":"2026-11-12T21:08:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:08:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}

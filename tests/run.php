@@ -14,6 +14,7 @@ spl_autoload_register(static function (string $class): void {
 });
 
 use Core\Modules\Universe\UniverseGenerator;
+use Core\Modules\Universe\WorldGenerator;
 use Core\Modules\Universe\UniverseService;
 use Core\Storage\JsonStorage;
 use Core\Modules\UniverseBackupService;
@@ -107,6 +108,29 @@ $test('player API guard blocks cross-account character reads and validates write
     }
 });
 
+$test('account archival disables sign-in while preserving identity and ownership references', static function () use ($assert, $equal): void {
+    $accounts = [
+        'usr-archive' => ['id' => 'usr-archive', 'email' => 'pilot@example.test', 'password_hash' => 'hash-kept', 'status' => 'active'],
+    ];
+    $archived = Core\Modules\Accounts\PlayerAccountArchiveService::archive($accounts, 'usr-archive', '2026-11-10T12:00:00+00:00');
+    $equal('disabled', $archived['usr-archive']['status']);
+    $equal('pilot@example.test', $archived['usr-archive']['email']);
+    $equal('hash-kept', $archived['usr-archive']['password_hash']);
+    $equal('2026-11-10T12:00:00+00:00', $archived['usr-archive']['archived_at']);
+    $again = Core\Modules\Accounts\PlayerAccountArchiveService::archive($archived, 'usr-archive', '2026-11-11T12:00:00+00:00');
+    $equal('2026-11-10T12:00:00+00:00', $again['usr-archive']['archived_at'], 'Repeated archival must preserve the first archive timestamp');
+    $assert(isset($again['usr-archive']), 'Archived account record was removed');
+});
+
+$test('account administration archives rather than permanently deleting account records', static function () use ($assert): void {
+    $api = (string)file_get_contents(CORE_ROOT . '/api/player-accounts-admin.php');
+    $ui = (string)file_get_contents(CORE_ROOT . '/admin/player-account.php');
+    $assert(str_contains($api, "if(\$action==='archive'||\$action==='delete')"), 'Archive action or legacy delete compatibility is missing.');
+    $assert(str_contains($api, 'PlayerAccountArchiveService::archive'), 'Account API does not use the archive service.');
+    $assert(str_contains($ui, 'Archive account') && str_contains($ui, "request('archive')"), 'Account UI does not use the archive workflow.');
+    $assert(!str_contains($ui, 'Permanently delete this account'), 'Account UI still offers permanent deletion.');
+});
+
 // Syntax-check every PHP source file in this project, including the test runner.
 $test('PHP syntax: all project PHP files parse', static function () use ($assert): void {
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(CORE_ROOT, FilesystemIterator::SKIP_DOTS));
@@ -189,6 +213,41 @@ $test('generated system count and fields are internally consistent', static func
         $assert($system['y'] >= -10000 && $system['y'] <= 10000, 'Y coordinate out of bounds');
     }
 });
+$test('world profiles are deterministic and stable for a universe seed and system ID', static function () use ($equal, $assert): void {
+    $generator = new WorldGenerator();
+    $system = ['id' => 'sys_world_qa', 'name' => 'QA System'];
+    $first = $generator->generateForSystem('qa-world-seed', $system);
+    $second = $generator->generateForSystem('qa-world-seed', $system);
+    $equal($first, $second, 'Repeated world generation changed the profile.');
+    $assert(count($first) >= 1 && count($first) <= 9, 'World count is outside expected bounds.');
+    $ids = [];
+    foreach ($first as $world) {
+        $assert(isset($world['id'], $world['name'], $world['type'], $world['uwp']), 'World is missing a required identity/profile field.');
+        $assert(!in_array($world['id'], $ids, true), 'Duplicate world ID was generated.');
+        $ids[] = $world['id'];
+        $assert(strlen($world['uwp']) === 8, 'UWP must contain eight profile characters.');
+        foreach (['size' => 10, 'atmosphere' => 15, 'hydrographics' => 10, 'population' => 10, 'government' => 15, 'law_level' => 15, 'tech_level' => 15] as $field => $maximum) {
+            $assert(is_int($world[$field]) && $world[$field] >= 0 && $world[$field] <= $maximum, 'World field is outside its valid range: ' . $field);
+        }
+    }
+    $assert($first !== $generator->generateForSystem('different-world-seed', $system), 'Different universe seeds produced identical world profiles.');
+});
+$test('world generation leaves the persisted universe baseline unchanged', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-world-qa-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $universe = (new UniverseService($storage))->createOrLoad('qa-world-persistence-seed');
+        $before = $storage->read('universes', $universe['id']);
+        $generator = new WorldGenerator();
+        foreach ($universe['baseline']['systems'] as $system) $generator->generateForSystem($universe['seed'], $system);
+        $after = $storage->read('universes', $universe['id']);
+        $equal($before, $after, 'Runtime world generation modified the persisted universe record.');
+        $assert(!isset($after['baseline']['systems'][0]['worlds']), 'Derived worlds were written into persistent baseline data.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
 $test('create then load returns same universe ID and creation timestamp', static function () use ($equal, $assert): void {
     $dir = sys_get_temp_dir() . '/core-qa-' . bin2hex(random_bytes(8));
     try {
@@ -962,7 +1021,7 @@ $test('Gameplay script only targets controls present on the game page and surfac
 });
 $test('Play page boots assigned universe and selected character directly', static function () use ($assert): void {
     $game = file_get_contents(CORE_ROOT . '/player/game.php'); $js = file_get_contents(CORE_ROOT . '/player/player.js');
-    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
+    $assert(str_contains($game, "'universe' => \$playerUniverse") && str_contains($game, "'character' => \$selectedCharacter") && str_contains($game, "'characterId' => \$selectedCharacterId"), 'Game page must pass its validated universe and character to JS.');
     $assert(str_contains($js, 'const boot = window.CORE_BOOT || {}') && str_contains($js, 'try { await loadNavigation(); } catch (error)') && str_contains($js, 'updateCharacterPanel();') && str_contains($js, 'renderMap();'), 'Player JS must boot the actual assigned universe and character without reseeding.');
 });
 $test('Universe creation exposes settings and uses server-generated Babylon preview data', static function () use ($assert): void {
@@ -1017,6 +1076,7 @@ $test('New universe records persist the original seed and generation settings', 
 $test('Signed-in account portal continues to character selection', static function () use ($assert): void {
     $account = (string)file_get_contents(CORE_ROOT . '/player/account.php');
     $assert(str_contains($account, 'href="<?=$base?>/selection.php">Continue to character selection'), 'Signed-in account CTA must lead to character selection.');
+    $assert(str_contains($account, 'authenticated API writes are protected by session CSRF validation'), 'Account page must not claim implemented authorization is missing.');
     $assert(!str_contains($account, 'href="<?=$base?>/game.php">Continue to game prototype'), 'Account portal must not bypass character selection.');
 });
 $test('Account listing is non-provisioning and exposes only safe management metadata', static function () use ($assert): void {
@@ -1033,7 +1093,7 @@ $test('Player prototype QA matches authenticated boot-data architecture', static
     foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'const boot = window.CORE_BOOT || {}'] as $needle) {
         $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
     }
-    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the selected character and assigned universe.');
+    $assert(str_contains($game, "'universe' => \$playerUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the selected character and assigned universe.');
 });
 
 $test('Workbench character registry uses a compact table with adjacent row actions', static function () use ($assert): void {
@@ -1061,23 +1121,28 @@ $test('Gameplay map toolbar has no redundant Reset view control', static functio
 
 $test('Workbench styles and behavior are loaded from dedicated assets', static function () use ($assert): void {
     $html = (string)file_get_contents(CORE_ROOT . '/index.php');
-    $assert(str_contains($html, 'assets/admin.css?v=0.1.86'), 'Workbench stylesheet asset is not referenced.');
-    $assert(str_contains($html, 'assets/admin.js?v=0.1.86'), 'Workbench JavaScript asset is not referenced.');
+    $assert(str_contains($html, "assets/admin.css?v=<?= htmlspecialchars(\$coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?>"), 'Workbench stylesheet asset is not referenced.');
+    $assert(str_contains($html, "assets/admin.js?v=<?= htmlspecialchars(\$coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?>"), 'Workbench JavaScript asset is not referenced.');
     $assert(!str_contains($html, '<style>') && !str_contains($html, '<script>'), 'Workbench still embeds its main stylesheet or script.');
     $assert(is_file(CORE_ROOT . '/assets/admin.css') && is_file(CORE_ROOT . '/assets/admin.js'), 'Extracted workbench assets are missing.');
 });
 
+
+$test('Player-facing copy uses universe terminology and current account security state', static function () use ($assert): void {
+    $files = ['player/index.php', 'player/account.php', 'player/character-create.php', 'player/universe-create.php', 'player/selection.php', 'player/game.php'];
+    foreach ($files as $file) {
+        $source = (string)file_get_contents(CORE_ROOT . '/' . $file);
+        $assert(!preg_match('/frontier/i', $source), 'Player-facing file still contains prohibited frontier wording: ' . $file);
+    }
+    $account = (string)file_get_contents(CORE_ROOT . '/player/account.php');
+    $assert(str_contains($account, 'authenticated API writes are protected by session CSRF validation'), 'Account security notice is stale.');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $assert(!str_contains($game, 'characterCreationScreen') && !str_contains($game, 'Full point-buy and species adjustments are not implemented yet'), 'Gameplay still contains the obsolete duplicate character-creation screen.');
+});
+
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-<<<<<<< HEAD
-<<<<<<< HEAD
-    $assert(is_string($version) && preg_match('/^0\.1\.86$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
-=======
-    $assert(is_string($version) && preg_match('/^0\.1\.83$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
->>>>>>> 360247e653a3396b94ed2df85d5d5eef63d8fc81
-=======
-    $assert(is_string($version) && preg_match('/^0\.1\.83$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
->>>>>>> 360247e653a3396b94ed2df85d5d5eef63d8fc81
+    $assert(is_string($version) && preg_match('/^0\.1\.90$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

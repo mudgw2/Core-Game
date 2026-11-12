@@ -78,6 +78,24 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
           <dl class="stats"><div><dt>Classification</dt><dd id="selectedClassification">—</dd></div><div><dt>Coordinates</dt><dd id="selectedCoordinates">—</dd></div><div><dt>Worlds</dt><dd id="selectedWorlds">—</dd></div></dl>
           <code id="selectedId" class="entity-id">—</code>
           <div class="world-list-panel"><div class="eyebrow">SYSTEM WORLDS</div><ul id="selectedWorldList" class="world-list"><li>Select a system to inspect its worlds.</li></ul></div>
+          <section id="worldDetailPanel" class="world-detail-panel hidden" aria-live="polite">
+            <div class="eyebrow">WORLD PROFILE</div>
+            <h3 id="selectedWorldName">Select a world</h3>
+            <p id="selectedWorldSummary" class="world-summary">Choose a world above to inspect its generated profile.</p>
+            <div class="world-uwp"><span>UNIVERSAL WORLD PROFILE</span><strong id="selectedWorldUwp">—</strong></div>
+            <dl class="world-stats">
+              <div><dt>World type</dt><dd id="worldType">—</dd></div>
+              <div><dt>Orbital slot</dt><dd id="worldOrbit">—</dd></div>
+              <div><dt>Starport</dt><dd id="worldStarport">—</dd></div>
+              <div><dt>Size</dt><dd id="worldSize">—</dd></div>
+              <div><dt>Atmosphere</dt><dd id="worldAtmosphere">—</dd></div>
+              <div><dt>Hydrographics</dt><dd id="worldHydrographics">—</dd></div>
+              <div><dt>Population</dt><dd id="worldPopulation">—</dd></div>
+              <div><dt>Government</dt><dd id="worldGovernment">—</dd></div>
+              <div><dt>Law level</dt><dd id="worldLaw">—</dd></div>
+              <div><dt>Technology level</dt><dd id="worldTech">—</dd></div>
+            </dl>
+          </section>
           <button type="button" id="travelButton" class="button-secondary" disabled>Travel to selected system</button>
           <p id="travelHint" class="fine-print">Select a character and a reachable destination to travel.</p>
         </section>

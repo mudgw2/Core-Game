@@ -14,7 +14,7 @@
   const apiRoot = document.body.dataset.apiRoot || '';
   const api = path => `${apiRoot}/api/${path}`;
   const boot = window.CORE_BOOT || {};
-  const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, dragStart: null, dragged: false };
+  const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, selectedWorld: null, dragStart: null, dragged: false };
   const notice = (message, type='') => { const el=$('notice'); if(el){el.textContent=message;el.className=`notice ${type}`.trim();} };
   async function request(url, options={}) {
     const method = String(options.method || 'GET').toUpperCase();
@@ -56,14 +56,44 @@
       if(!worlds.length){const empty=document.createElement('li');empty.textContent='No worlds generated in this system.';worldList.append(empty);}
       worlds.forEach(world=>{
         const item=document.createElement('li');
+        const button=document.createElement('button');button.type='button';button.className='world-select-button';
+        button.setAttribute('aria-pressed','false');
         const title=document.createElement('strong');title.textContent=world.name||world.id||'Unnamed world';
         const detail=document.createElement('span');detail.textContent=`${String(world.type||'unknown').replaceAll('_',' ')} · UWP ${world.uwp||'—'} · TL ${world.tech_level??'—'}`;
-        item.append(title,detail);worldList.append(item);
+        button.append(title,detail);button.addEventListener('click',()=>selectWorld(world));item.append(button);worldList.append(item);
       });
     }
+    state.selectedWorld=null;
+    $('worldDetailPanel').classList.add('hidden');
     state.nodes.forEach((mesh,key)=>{if(mesh.material){mesh.material.emissiveColor=key===id?new BABYLON.Color3(.35,.22,.03):new BABYLON.Color3(.04,.18,.24);}});
     const button=$('travelButton'); const canTravel=Boolean(state.character && id!==currentSystemId()); button.disabled=!canTravel;
     $('travelHint').textContent=!state.character?'No character is loaded.':id===currentSystemId()?'This is your current system.':`Destination: ${system.name||id}. Travel uses the saved navigation graph.`;
+  }
+  function selectWorld(world) {
+    if(!world)return;
+    state.selectedWorld=world.id;
+    const panel=$('worldDetailPanel');panel.classList.remove('hidden');
+    $('selectedWorldName').textContent=world.name||world.id||'Unnamed world';
+    $('selectedWorldUwp').textContent=world.uwp||'—';
+    const type=String(world.type||'unknown').replaceAll('_',' ');
+    $('worldType').textContent=type;
+    $('worldOrbit').textContent=String(world.orbital_slot??'—');
+    const starports={A:'Excellent facilities',B:'Good facilities',C:'Routine facilities',D:'Poor facilities',E:'Outpost facilities',X:'No starport'};
+    $('worldStarport').textContent=`${world.starport||'—'} · ${starports[world.starport]||'Unknown'}`;
+    const sizeNames=['Asteroid / negligible','Tiny','Very small','Small','Small terrestrial','Medium-small','Medium','Large','Very large','Huge','Gas giant'];
+    $('worldSize').textContent=`${world.size??'—'} · ${sizeNames[Number(world.size)]||'Unclassified'}`;
+    const atmosphereNames={0:'None',1:'Trace',2:'Very thin',3:'Thin',4:'Thin tainted',5:'Standard',6:'Standard tainted',7:'Dense',8:'Dense tainted',9:'Exotic',10:'Corrosive',11:'Insidious',12:'Dense high-pressure',13:'Thin low-pressure',14:'Unusual',15:'Exotic'};
+    $('worldAtmosphere').textContent=`${world.atmosphere??'—'} · ${atmosphereNames[Number(world.atmosphere)]||'Unclassified'}`;
+    $('worldHydrographics').textContent=`${world.hydrographics??'—'} · ${Math.min(100,Number(world.hydrographics||0)*10)}% surface coverage`;
+    const population=Number(world.population??0);
+    const populationNames=['None','Tens','Hundreds','Thousands','Tens of thousands','Hundreds of thousands','Millions','Tens of millions','Hundreds of millions','Billions','Tens of billions'];
+    $('worldPopulation').textContent=`${population} · ${populationNames[population]||'Unclassified'}`;
+    $('worldGovernment').textContent=String(world.government??'—');
+    const law=Number(world.law_level??0);
+    $('worldLaw').textContent=`${law} · ${law===0?'No law code':law<=3?'Low restrictions':law<=6?'Moderate restrictions':law<=9?'Strict restrictions':'Severe restrictions'}`;
+    $('worldTech').textContent=String(world.tech_level??'—');
+    $('selectedWorldSummary').textContent=`${type.charAt(0).toUpperCase()+type.slice(1)} world · Generated from this universe seed. Profile data is deterministic and currently descriptive; landing and surface gameplay are not yet part of this release.`;
+    document.querySelectorAll('.world-select-button').forEach(button=>button.setAttribute('aria-pressed',String(button.querySelector('strong')?.textContent===(world.name||world.id))));
   }
   function renderMap() {
     const list=systems(); if(!list.length){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent='The assigned universe contains no generated systems.';setStatus('Universe data has no systems.');return;}

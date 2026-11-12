@@ -143,6 +143,27 @@ $run('Gameplay derives worlds at runtime without changing saved universe data', 
     return 'World profiles are derived for the player view and rendered without a storage migration.';
 });
 
+$run('World selection renders accessible controls and a complete profile panel', static function () use ($assert): string {
+    $html = (string)file_get_contents(dirname(__DIR__) . '/player/game.php');
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/player.js');
+    $css = (string)file_get_contents(dirname(__DIR__) . '/player/player.css');
+    foreach (['worldDetailPanel','selectedWorldName','selectedWorldUwp','worldType','worldOrbit','worldStarport','worldSize','worldAtmosphere','worldHydrographics','worldPopulation','worldGovernment','worldLaw','worldTech'] as $id) {
+        $assert(str_contains($html, 'id="' . $id . '"'), 'Missing world profile element: ' . $id);
+    }
+    $assert(str_contains($js, 'function selectWorld(world)'), 'World selection function is missing.');
+    $assert(str_contains($js, "button.setAttribute('aria-pressed','false')"), 'World selection buttons are not accessible.');
+    $assert(str_contains($js, 'selectWorld(world)'), 'World buttons are not wired to inspection.');
+    $assert(str_contains($css, '.world-select-button[aria-pressed="true"]'), 'Selected world styling is missing.');
+    return 'Worlds can be selected and expose their generated profile in an accessible detail panel.';
+});
+$run('World profile view displays every generated UWP component', static function () use ($assert): string {
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/player.js');
+    foreach (['world.starport','world.size','world.atmosphere','world.hydrographics','world.population','world.government','world.law_level','world.tech_level','world.orbital_slot','world.uwp'] as $field) {
+        $assert(str_contains($js, $field), 'World detail view omits ' . $field . '.');
+    }
+    return 'Starport, physical profile, population, government, law, technology, orbit, and UWP are rendered.';
+});
+
 $run('Create and reload preserve identity and baseline', static function () use ($equal, $assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {

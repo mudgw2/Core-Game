@@ -78,14 +78,18 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
           <dl class="stats"><div><dt>Classification</dt><dd id="selectedClassification">—</dd></div><div><dt>Coordinates</dt><dd id="selectedCoordinates">—</dd></div><div><dt>Worlds</dt><dd id="selectedWorlds">—</dd></div></dl>
           <code id="selectedId" class="entity-id">—</code>
           <div class="world-list-panel"><div class="eyebrow">SYSTEM WORLDS</div><ul id="selectedWorldList" class="world-list"><li>Select a system to inspect its worlds.</li></ul></div>
-          <button type="button" id="travelButton" class="button-secondary" disabled>Travel to selected system</button>
-          <p id="travelHint" class="fine-print">Select a character and a reachable destination to travel.</p>
+          <button type="button" id="viewSystemButton" class="button-secondary" disabled>View selected system</button>
         </section>
       </aside>
 
       <section class="map-panel panel">
-        <div class="map-toolbar"><div><div class="eyebrow">TACTICAL OVERVIEW</div><h2>Universe map</h2></div><div class="map-toolbar-actions"><span class="map-legend"><i></i> Star systems</span></div></div>
-        <div class="canvas-wrap"><canvas id="renderCanvas" aria-label="Interactive 3D universe map"></canvas><div id="canvasFallback" class="canvas-fallback hidden">Babylon.js could not initialize. Check network access to the Babylon.js CDN.</div></div>
+        <div class="map-toolbar"><div><div class="eyebrow">SECTOR OVERVIEW</div><h2>Sector map</h2></div><div class="map-toolbar-actions"><span class="map-legend"><i></i> Star systems</span></div></div>
+        <div class="canvas-wrap"><canvas id="renderCanvas" aria-label="Interactive 3D sector map"></canvas><div id="canvasFallback" class="canvas-fallback hidden">Babylon.js could not initialize. Check network access to the Babylon.js CDN.</div></div>
+        <section id="systemViewPanel" class="system-view-panel hidden" aria-label="Selected star system visualization">
+          <div class="map-toolbar"><div><div class="eyebrow">SYSTEM OVERVIEW</div><h2 id="systemViewTitle">Star system</h2></div><button type="button" id="backToSectorButton" class="button-secondary">← Back to sector</button></div>
+          <canvas id="systemViewCanvas" aria-label="Orbital diagram of the selected star system"></canvas>
+          <p id="systemViewLegend" class="fine-print">Orbital arrangement generated from the selected system's world data.</p>
+        </section>
         <div class="map-footer"><span id="mapStatus">Waiting for universe data</span><span>Drag to pan · Scroll to zoom · Select a star system</span></div>
       </section>
     </section>

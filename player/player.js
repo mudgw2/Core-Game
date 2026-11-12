@@ -14,7 +14,7 @@
   const apiRoot = document.body.dataset.apiRoot || '';
   const api = path => `${apiRoot}/api/${path}`;
   const boot = window.CORE_BOOT || {};
-  const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, dragStart: null, dragged: false };
+  const state = { universe: boot.universe || null, character: boot.character || null, engine: null, scene: null, nodes: new Map(), navigation: null, selectedSystem: null, resizeObserver: null, lastCanvasSize: null, dragStart: null, dragged: false };
   const notice = (message, type='') => { const el=$('notice'); if(el){el.textContent=message;el.className=`notice ${type}`.trim();} };
   async function request(url, options={}) {
     const method = String(options.method || 'GET').toUpperCase();
@@ -62,8 +62,7 @@
       });
     }
     state.nodes.forEach((mesh,key)=>{if(mesh.material){mesh.material.emissiveColor=key===id?new BABYLON.Color3(.35,.22,.03):new BABYLON.Color3(.04,.18,.24);}});
-    const button=$('travelButton'); const canTravel=Boolean(state.character && id!==currentSystemId()); button.disabled=!canTravel;
-    $('travelHint').textContent=!state.character?'No character is loaded.':id===currentSystemId()?'This is your current system.':`Destination: ${system.name||id}. Travel uses the saved navigation graph.`;
+    const viewButton=$('viewSystemButton'); if(viewButton)viewButton.disabled=false;
   }
   function renderMap() {
     const list=systems(); if(!list.length){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent='The assigned universe contains no generated systems.';setStatus('Universe data has no systems.');return;}
@@ -78,7 +77,17 @@
         new BABYLON.HemisphericLight('ambient',new BABYLON.Vector3(0,1,0),state.scene).intensity=1;
         state.engine.runRenderLoop(()=>{if(state.scene&&!state.scene.isDisposed)state.scene.render();});
         window.addEventListener('resize',()=>state.engine?.resize());
-        if('ResizeObserver'in window)new ResizeObserver(()=>state.engine?.resize()).observe(canvas.parentElement);
+        if('ResizeObserver'in window){
+          state.resizeObserver=new ResizeObserver(entries=>{
+            const rect=entries[0]?.contentRect;if(!rect||!state.engine)return;
+            const width=Math.round(rect.width),height=Math.round(rect.height);
+            if(width<1||height<1)return;
+            if(state.lastCanvasSize?.width===width&&state.lastCanvasSize?.height===height)return;
+            state.lastCanvasSize={width,height};
+            requestAnimationFrame(()=>{if(state.engine&&!state.scene?.isDisposed)state.engine.resize();});
+          });
+          state.resizeObserver.observe(canvas.parentElement);
+        }
         // Prevent a drag gesture from selecting a star on pointer-up; ordinary clicks still select.
         canvas.addEventListener('pointerdown',e=>{state.dragStart={x:e.clientX,y:e.clientY};state.dragged=false;},{passive:true});
         canvas.addEventListener('pointermove',e=>{if(state.dragStart&&Math.hypot(e.clientX-state.dragStart.x,e.clientY-state.dragStart.y)>6)state.dragged=true;},{passive:true});
@@ -93,25 +102,44 @@
       const finite=v=>Number.isFinite(Number(v))?Number(v):0;
       const xs=list.map(s=>finite(s.x)),ys=list.map(s=>finite(s.y));const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const span=Math.max(maxX-minX,maxY-minY,1),scale=24/span;
       const coords=new Map(list.map(s=>[s.id,new BABYLON.Vector3((finite(s.x)-(minX+maxX)/2)*scale,0,(finite(s.y)-(minY+maxY)/2)*scale)]));
-      const grid=BABYLON.MeshBuilder.CreateGround('map-grid',{width:32,height:32,subdivisions:16},state.scene);const gm=new BABYLON.StandardMaterial('map-grid-material',state.scene);gm.wireframe=true;gm.emissiveColor=new BABYLON.Color3(.06,.12,.17);gm.alpha=.35;grid.material=gm;grid.isPickable=false;grid.position.y=-.18;
+      const grid=BABYLON.MeshBuilder.CreateGround('map-grid',{width:32,height:32,subdivisions:16},state.scene);const gm=new BABYLON.StandardMaterial('map-grid-material',state.scene);gm.wireframe=true;gm.emissiveColor=new BABYLON.Color3(.06,.12,.17);gm.alpha=.10;grid.material=gm;grid.isPickable=false;grid.position.y=-.18;
       const routes=state.navigation?.routes||state.navigation?.edges||[];routes.forEach((r,i)=>{const a=coords.get(r.from),b=coords.get(r.to);if(!a||!b)return;const line=BABYLON.MeshBuilder.CreateLines(`route-${i}`,{points:[a,b]},state.scene);line.color=new BABYLON.Color3(.18,.38,.49);line.isPickable=false;});
       list.forEach((system,i)=>{const mesh=BABYLON.MeshBuilder.CreateSphere(`system-${i}`,{diameter:.8,segments:12},state.scene);mesh.position.copyFrom(coords.get(system.id));mesh.metadata={entityId:system.id};const mat=new BABYLON.StandardMaterial(`system-material-${i}`,state.scene);mat.diffuseColor=new BABYLON.Color3(.18,.68,.82);mat.emissiveColor=new BABYLON.Color3(.04,.18,.24);mesh.material=mat;state.nodes.set(system.id,mesh);});
       const camera=state.scene.activeCamera;camera.setTarget(coords.get(currentSystemId())||BABYLON.Vector3.Zero());camera.radius=Math.max(18,Math.min(70,span*1.35));camera.alpha=-Math.PI/2;camera.beta=Math.PI/3;state.engine.resize();
-      setStatus(`${list.length} systems rendered · ${routes.length} navigation links · drag to pan · wheel to zoom`);selectSystem(currentSystemId()||list[0].id);
+      setStatus(`${list.length} systems rendered in this sector · ${routes.length} navigation links · drag to pan · wheel to zoom`);selectSystem(currentSystemId()||list[0].id);
     } catch(error){$('canvasFallback').classList.remove('hidden');$('canvasFallback').textContent=`3D map initialization failed: ${error.message||error}`;setStatus('Map initialization failed.');}
   }
-  const travelButton = $('travelButton');
-  if (!travelButton) { notice('Gameplay page is incomplete: travelButton is missing. Check that game.php and player.js are from the same CORE release.', 'error'); return; }
-  travelButton.addEventListener('click',async()=>{
-    if(!state.character||!state.selectedSystem||!state.universe)return;
-    const button=$('travelButton');button.disabled=true;
-    try{
-      const route=await request(api(`navigation-route.php?universe_id=${encodeURIComponent(state.universe.id)}&from_system_id=${encodeURIComponent(currentSystemId())}&to_system_id=${encodeURIComponent(state.selectedSystem)}`));
-      let character=state.character;const started=await request(api('character-travel.php'),{method:'POST',body:JSON.stringify({action:'start',universe_id:state.universe.id,character_id:character.id,destination_system_id:state.selectedSystem,expected_revision:Number(character.revision??0)})});character=started.character||character;
-      for(let i=0;i<Number(route.hops||0);i++){notice(`Travel in progress · jump ${i+1} of ${route.hops}…`);const advanced=await request(api('character-travel.php'),{method:'POST',body:JSON.stringify({action:'advance',universe_id:state.universe.id,character_id:character.id,expected_revision:Number(character.revision??0)})});character=advanced.character||character;}
-      const fresh=await request(api(`character-record.php?character_id=${encodeURIComponent(character.id)}`));state.character=fresh.character||character;updateCharacterPanel();renderMap();notice(`Arrived at ${systemName(currentSystemId())}. ${route.hops||0} jump(s) completed.`,'success');
-    }catch(error){notice(`Travel failed: ${error.message}`,'error');}finally{if(state.selectedSystem)selectSystem(state.selectedSystem);}
-  });
+  function drawSystemView(systemId) {
+    const system=systems().find(item=>item.id===systemId);if(!system)return;
+    const panel=$('systemViewPanel'),canvas=$('systemViewCanvas'),ctx=canvas.getContext('2d');
+    const worlds=Array.isArray(system.worlds)?system.worlds:[];
+    const width=Math.max(320,canvas.clientWidth||760),height=360,dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,width,height);ctx.fillStyle='#07111d';ctx.fillRect(0,0,width,height);
+    const cx=width/2,cy=height/2,usable=Math.min(width*.43,145);
+    ctx.strokeStyle='rgba(112,160,190,.28)';ctx.lineWidth=1;
+    const count=Math.max(worlds.length,1);
+    worlds.forEach((world,index)=>{
+      const orbit=usable*(.24+.76*((index+1)/count));
+      ctx.beginPath();ctx.ellipse(cx,cy,orbit,orbit*.48,0,0,Math.PI*2);ctx.stroke();
+      const angle=-Math.PI/2+index*2.399963229728653;
+      const x=cx+Math.cos(angle)*orbit,y=cy+Math.sin(angle)*orbit*.48;
+      const radius=Math.max(4,Math.min(10,Number(world.size||4)+2));
+      ctx.fillStyle=world.classification==='gas_giant'?'#d6a86b':'#75c7d8';
+      ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#e7f1fb';ctx.font='12px system-ui';ctx.textAlign=x>cx?'left':'right';
+      ctx.fillText(world.name||world.id||'World',x+(x>cx?radius+7:-radius-7),y+4);
+      ctx.fillStyle='#9fb5c9';ctx.font='10px system-ui';
+      ctx.fillText(String(world.classification||world.type||'world').replaceAll('_',' '),x+(x>cx?radius+7:-radius-7),y+17);
+    });
+    ctx.fillStyle='#f3c77a';ctx.shadowColor='#e5a64c';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(cx,cy,13,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#f4e4c8';ctx.textAlign='center';ctx.font='12px system-ui';ctx.fillText(system.star_type||system.classification||'Primary star',cx,cy+31);
+    $('systemViewTitle').textContent=system.name||system.id;
+    $('systemViewLegend').textContent=worlds.length? `${worlds.length} generated worlds · orbital spacing is schematic, not a scale representation.`:'No generated worlds are recorded for this system.';
+    panel.classList.remove('hidden');$('renderCanvas').parentElement.classList.add('hidden');
+  }
+  $('viewSystemButton')?.addEventListener('click',()=>{if(state.selectedSystem)drawSystemView(state.selectedSystem);});
+  $('backToSectorButton')?.addEventListener('click',()=>{$('systemViewPanel').classList.add('hidden');$('renderCanvas').parentElement.classList.remove('hidden');});
   async function start() {
     if(!state.universe||!state.character){throw new Error('The selected character or assigned universe was not embedded in the gameplay page. Return to Character Selection and choose Play again.');}
     if(!state.universe.id||!Array.isArray(state.universe.baseline?.systems))throw new Error('The assigned universe record is missing its ID or generated system data.');

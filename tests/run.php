@@ -1070,7 +1070,11 @@ $test('Workbench styles and behavior are loaded from dedicated assets', static f
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
 <<<<<<< HEAD
+<<<<<<< HEAD
     $assert(is_string($version) && preg_match('/^0\.1\.86$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+=======
+    $assert(is_string($version) && preg_match('/^0\.1\.83$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+>>>>>>> 360247e653a3396b94ed2df85d5d5eef63d8fc81
 =======
     $assert(is_string($version) && preg_match('/^0\.1\.83$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 >>>>>>> 360247e653a3396b94ed2df85d5d5eef63d8fc81

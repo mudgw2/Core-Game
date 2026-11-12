@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Core\\Modules\\Accounts;
+namespace Core\Modules\Accounts;
 
 use InvalidArgumentException;
 

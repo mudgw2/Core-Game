@@ -48,7 +48,19 @@
     $('selectedId').textContent=id;
     $('selectedClassification').textContent=system.classification||'Unclassified';
     $('selectedCoordinates').textContent=`${system.x}, ${system.y}`;
-    $('selectedWorlds').textContent=Array.isArray(system.worlds)?String(system.worlds.length):'Not generated yet';
+    const worlds=Array.isArray(system.worlds)?system.worlds:[];
+    $('selectedWorlds').textContent=String(worlds.length);
+    const worldList=$('selectedWorldList');
+    if(worldList){
+      worldList.replaceChildren();
+      if(!worlds.length){const empty=document.createElement('li');empty.textContent='No worlds generated in this system.';worldList.append(empty);}
+      worlds.forEach(world=>{
+        const item=document.createElement('li');
+        const title=document.createElement('strong');title.textContent=world.name||world.id||'Unnamed world';
+        const detail=document.createElement('span');detail.textContent=`${String(world.type||'unknown').replaceAll('_',' ')} · UWP ${world.uwp||'—'} · TL ${world.tech_level??'—'}`;
+        item.append(title,detail);worldList.append(item);
+      });
+    }
     state.nodes.forEach((mesh,key)=>{if(mesh.material){mesh.material.emissiveColor=key===id?new BABYLON.Color3(.35,.22,.03):new BABYLON.Color3(.04,.18,.24);}});
     const button=$('travelButton'); const canTravel=Boolean(state.character && id!==currentSystemId()); button.disabled=!canTravel;
     $('travelHint').textContent=!state.character?'No character is loaded.':id===currentSystemId()?'This is your current system.':`Destination: ${system.name||id}. Travel uses the saved navigation graph.`;

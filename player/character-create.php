@@ -74,6 +74,6 @@ $rulesJson = json_encode($options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
   </section>
 </main>
 <script type="application/json" id="characterCreationRules"><?=$rulesJson ?: '{}'?></script>
-<script src="<?=$base?>/character-creation.js?v=0.1.86" defer></script>
-<script src="<?=$base?>/character-preview.js?v=0.1.86" defer></script>
+<script src="<?=$base?>/character-creation.js?v=<?=rawurlencode($releaseVersion)?>" defer></script>
+<script src="<?=$base?>/character-preview.js?v=<?=rawurlencode($releaseVersion)?>" defer></script>
 </body></html>

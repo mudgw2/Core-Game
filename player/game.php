@@ -13,6 +13,14 @@ if (empty($selectedCharacter['universe_id'])) { header('Location: ' . $base . '/
 $assignedUniverse = $portalStorage->read('universes', (string)$selectedCharacter['universe_id']);
 if (!$assignedUniverse || !is_array($assignedUniverse['baseline']['systems'] ?? null)) { http_response_code(409); exit('The assigned universe could not be loaded. Return to Character Selection and verify the universe association.'); }
 $assignedSeed = (string)($assignedUniverse['seed'] ?? $assignedUniverse['baseline']['seed'] ?? '');
+// Derive world profiles at runtime from the seed and stable system IDs. This keeps
+// existing persisted universe records compatible and avoids a storage migration.
+$worldGenerator = new \Core\Modules\Universe\WorldGenerator();
+$playerUniverse = $assignedUniverse;
+foreach ($playerUniverse['baseline']['systems'] as &$systemRecord) {
+    if (is_array($systemRecord)) $systemRecord['worlds'] = $worldGenerator->generateForSystem($assignedSeed, $systemRecord);
+}
+unset($systemRecord);
 $releaseVersion = require dirname(__DIR__) . '/config/version.php';
 ?>
 <!doctype html>
@@ -23,7 +31,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   <title>CORE — Player Portal</title>
   <link rel="stylesheet" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/player.css">
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script>window.CORE_BOOT = <?= json_encode(['universe' => $assignedUniverse, 'character' => $selectedCharacter, 'characterId' => $selectedCharacterId], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>;</script>
+  <script>window.CORE_BOOT = <?= json_encode(['universe' => $playerUniverse, 'character' => $selectedCharacter, 'characterId' => $selectedCharacterId], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>;</script>
   <script>
     // Fail visibly if the external gameplay script is blocked, stale, or fails before startup.
     window.CORE_PLAYER_SCRIPT_LOADED = false;
@@ -55,21 +63,7 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
   <main id="top">
     <div id="notice" class="notice" role="status" aria-live="polite">Loading your selected character and assigned universe…</div>
 
-    <section id="characterCreationScreen" class="panel creation-screen hidden" aria-labelledby="creationTitle">
-      <div class="eyebrow">NEW CHARACTER · INITIAL PROFILE</div>
-      <h2 id="creationTitle">Create your character</h2>
-      <p class="creation-intro">This first profile uses six Starfinder 1E-inspired abilities. Values and choices are validated by the server and defined in editable JSON data.</p>
-      <form id="characterForm" class="creation-form">
-        <div class="creation-grid">
-          <div class="creation-field"><label for="characterName">Character name</label><input id="characterName" maxlength="40" minlength="2" required placeholder="Enter a character name" autocomplete="off"></div>
-          <div class="creation-field"><label for="characterRole">Starting role</label><select id="characterRole" required></select></div>
-          <div class="creation-field"><label for="characterSpecies">Species</label><select id="characterSpecies" required></select></div>
-        </div>
-        <h3>Abilities</h3><p class="fine-print">Starting defaults are 10. Current permitted range: 1–30. Full point-buy and species adjustments are not implemented yet.</p>
-        <div id="attributeFields" class="attribute-grid"></div>
-        <div class="creation-actions"><button type="button" id="cancelCharacterCreation" class="button-secondary">Back to selection</button><button type="submit" id="createCharacterButton" disabled>Create character</button></div>
-      </form>
-    </section>
+    
 
     <section id="gameLayout" class="game-layout hidden">
       <aside class="sidebar">
@@ -81,8 +75,9 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
         <section class="panel section-panel selected-panel">
           <div class="eyebrow">SELECTED OBJECT</div><h2 id="selectedName">Nothing selected</h2>
           <p id="selectedDescription">Select a system marker in the 3D map to inspect its backend-defined details.</p>
-          <dl class="stats"><div><dt>Classification</dt><dd id="selectedClassification">—</dd></div><div><dt>Coordinates</dt><dd id="selectedCoordinates">—</dd></div><div><dt>Worlds</dt><dd id="selectedWorlds">Not generated yet</dd></div></dl>
+          <dl class="stats"><div><dt>Classification</dt><dd id="selectedClassification">—</dd></div><div><dt>Coordinates</dt><dd id="selectedCoordinates">—</dd></div><div><dt>Worlds</dt><dd id="selectedWorlds">—</dd></div></dl>
           <code id="selectedId" class="entity-id">—</code>
+          <div class="world-list-panel"><div class="eyebrow">SYSTEM WORLDS</div><ul id="selectedWorldList" class="world-list"><li>Select a system to inspect its worlds.</li></ul></div>
           <button type="button" id="travelButton" class="button-secondary" disabled>Travel to selected system</button>
           <p id="travelHint" class="fine-print">Select a character and a reachable destination to travel.</p>
         </section>

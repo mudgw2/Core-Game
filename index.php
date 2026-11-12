@@ -13,7 +13,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CORE — Universe Workbench</title>
-    <link rel="stylesheet" href="assets/admin.css?v=0.1.86">
+    <link rel="stylesheet" href="assets/admin.css?v=<?= htmlspecialchars($coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body>
 <main>
@@ -372,6 +372,6 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     </section>
     <footer>CORE · Local development workbench · Do not expose publicly until authentication and access controls are implemented.</footer>
 </main>
-<script src="assets/admin.js?v=0.1.86"></script>
+<script src="assets/admin.js?v=<?= htmlspecialchars($coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?>"></script>
 </body>
 </html>

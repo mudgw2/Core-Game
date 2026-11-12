@@ -1,25 +1,24 @@
-CORE 0.1.86 PATCH MANIFEST
+CORE 0.1.90 PATCH MANIFEST
 
-Changed application files:
-- api/qa.php
-- app/Modules/Characters/CharacterCreationRules.php (new)
-- app/Modules/Characters/CharacterService.php
+Complete replacement files:
 - config/version.php
-- data/character-creation-rules.json (new)
+- app/Modules/Universe/WorldGenerator.php (new)
 - index.php
-- player/character-create.php
-- player/character-creation.js (new)
-- player/player-action.php
+- player/game.php
+- player/player.js
 - player/player.css
 - tests/run.php
+- api/qa.php
+- PROJECT_STATE.md
+- README.txt
 
 Documentation:
-- PROJECT_STATE.md
+- INSTALL-0.1.90.txt
+- RELEASE-NOTES-0.1.90.md
 - QA-RESULTS.txt
-- README.txt
-- RELEASE-NOTES-0.1.86.md
 - UPDATE-MANIFEST.txt
 
-Excluded deliberately: .git, storage/data, storage/logs, storage/backups, account files, generated character/universe records, temporary files, and server-specific configuration.
-
-The existing editable storage/data/content/character-options.json file is not modified or included. Ability point-buy and species rules are defined separately in data/character-creation-rules.json.
+Data safety:
+- No storage/ directory is included.
+- No account, character, universe, log, backup, secret, or Git metadata is included.
+- Existing universe records are not migrated or modified.

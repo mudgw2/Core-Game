@@ -67,3 +67,12 @@
 {"time":"2026-11-10T01:23:55+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
 {"time":"2026-11-10T01:23:56+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
 {"time":"2026-11-10T01:23:59+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_efa48d807f0e25491bafe9c2","record_count":3,"cleanup_complete":true}}
+{"time":"2026-11-11T02:33:57+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-11-11T02:33:57+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-11-11T02:33:59+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_55995b946507a7f517178c97","record_count":3,"cleanup_complete":true}}
+{"time":"2026-11-12T20:52:47+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-11-12T20:52:48+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-11-12T20:52:50+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_23b026890630e24d559e38db","record_count":3,"cleanup_complete":true}}
+{"time":"2026-11-12T21:00:59+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-11-12T21:01:00+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-11-12T21:01:02+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_6d6cc1d4262b57b6549ba6da","record_count":3,"cleanup_complete":true}}

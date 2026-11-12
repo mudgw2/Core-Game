@@ -32,6 +32,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 use Core\Modules\Universe\UniverseGenerator;
+use Core\Modules\Universe\WorldGenerator;
 use Core\Modules\Characters\CharacterService;
 use Core\Modules\Characters\CharacterTravelService;
 use Core\Modules\Characters\CharacterScanService;
@@ -117,6 +118,31 @@ $run('Generated system structure and coordinates are valid', static function () 
     }
     return count($ids) . ' systems checked.';
 });
+$run('World profiles are deterministic, uniquely identified, and UWP-shaped', static function () use ($assert, $equal): string {
+    $generator = new WorldGenerator();
+    $system = ['id' => 'sys_browser_world_qa', 'name' => 'Browser QA'];
+    $worlds = $generator->generateForSystem('core-ui-world-seed', $system);
+    $equal($worlds, $generator->generateForSystem('core-ui-world-seed', $system), 'Repeated world generation changed output.');
+    $assert(count($worlds) >= 1 && count($worlds) <= 9, 'Generated world count is outside bounds.');
+    $ids = [];
+    foreach ($worlds as $world) {
+        $assert(strlen((string)($world['uwp'] ?? '')) === 8, 'World UWP is not eight characters.');
+        $assert(!in_array($world['id'] ?? null, $ids, true), 'World IDs are not unique.');
+        $ids[] = $world['id'];
+        $assert(($world['size'] ?? -1) >= 0 && ($world['size'] ?? 99) <= 10, 'World size is out of range.');
+        $assert(($world['population'] ?? -1) >= 0 && ($world['population'] ?? 99) <= 10, 'World population is out of range.');
+    }
+    return count($worlds) . ' stable world profiles generated with unique IDs and valid UWP values.';
+});
+$run('Gameplay derives worlds at runtime without changing saved universe data', static function () use ($assert): string {
+    $game = (string)file_get_contents(dirname(__DIR__) . '/player/game.php');
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/player.js');
+    $assert(str_contains($game, 'new \\Core\\Modules\\Universe\\WorldGenerator()'), 'Gameplay does not initialize the deterministic world generator.');
+    $assert(str_contains($game, "'universe' => \$playerUniverse"), 'Gameplay does not inject the derived player universe view.');
+    $assert(str_contains($js, 'selectedWorldList') && str_contains($js, 'world.uwp'), 'Gameplay does not render selected system world profiles.');
+    return 'World profiles are derived for the player view and rendered without a storage migration.';
+});
+
 $run('Create and reload preserve identity and baseline', static function () use ($equal, $assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
@@ -416,7 +442,9 @@ $run('Character creation page exposes live point-buy and species adjustment cont
     $page = (string)file_get_contents(dirname(__DIR__) . '/player/character-create.php');
     $script = (string)file_get_contents(dirname(__DIR__) . '/player/character-creation.js');
     $assert(str_contains($page, 'abilityPointsRemaining') && str_contains($page, 'human_bonus_attribute'), 'Point-buy or human bonus controls are missing from the form.');
-    $assert(str_contains($page, 'character-creation.js?v=0.1.86'), 'Character creation behavior is not cache-versioned.');
+    $assert(str_contains($page, 'character-creation.js?v=<?=rawurlencode($releaseVersion)?>'), 'Character creation behavior is not cache-versioned from the central release version.');
+    $assert(str_contains($page, 'character-preview.js?v=<?=rawurlencode($releaseVersion)?>'), 'Character preview behavior is not cache-versioned from the central release version.');
+    $assert(str_contains($page, '$releaseVersion = require $root . \'/config/version.php\';'), 'Character creation page does not load the central release version.');
     $assert(str_contains($script, 'ability_points_spent') || str_contains($script, 'abilityPointsSpent'), 'Live point-buy display is missing.');
     $assert(str_contains($script, 'humanBonusSelect.disabled = !flexible'), 'Hidden human-only choice is not disabled for other species.');
     return 'Character creation exposes point budget, final-score previews, and the flexible human ability choice.';
@@ -1983,10 +2011,21 @@ $run('Player website, account access, and interactive map controls are present',
 $run('Player prototype is separate from the developer Workbench', static function () use ($assert): string {
     $html = file_get_contents(dirname(__DIR__) . '/player/index.php');
     $assert(is_string($html), 'Player prototype HTML could not be read.');
-    foreach (['CORE · Unbound Frontiers', 'global-nav', 'Universes', 'account.php', 'Create account'] as $needle) {
+    foreach (['CORE · Procedural Sci-Fi Sandbox', 'global-nav', 'Universes', 'account.php', 'Create account'] as $needle) {
         $assert(str_contains($html, $needle), 'Player prototype is missing marker: ' . $needle);
     }
     return 'Public landing page contains global game navigation, account access, and standard website content.';
+});
+$run('Player-facing terminology and account security notices match current behavior', static function () use ($assert): string {
+    foreach (['index.php', 'account.php', 'character-create.php', 'universe-create.php', 'selection.php', 'game.php'] as $file) {
+        $source = file_get_contents(CORE_ROOT . '/player/' . $file);
+        $assert(is_string($source) && !preg_match('/frontier/i', $source), 'Prohibited frontier wording remains in player/' . $file);
+    }
+    $account = file_get_contents(CORE_ROOT . '/player/account.php');
+    $assert(is_string($account) && str_contains($account, 'authenticated API writes are protected by session CSRF validation'), 'Account security notice is stale.');
+    $game = file_get_contents(CORE_ROOT . '/player/game.php');
+    $assert(is_string($game) && !str_contains($game, 'characterCreationScreen'), 'Gameplay still contains duplicate character creation UI.');
+    return 'Player-facing wording is consistent, the account security notice reflects implemented controls, and character creation remains a separate workflow.';
 });
 $run('Player prototype uses Babylon.js and backend entity IDs', static function () use ($assert): string {
     $js = file_get_contents(dirname(__DIR__) . '/player/player.js');
@@ -1996,7 +2035,7 @@ $run('Player prototype uses Babylon.js and backend entity IDs', static function 
     foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed', 'const boot = window.CORE_BOOT || {}'] as $needle) {
         $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
     }
-    $assert(str_contains($game, "'universe' => \$assignedUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the account-owned character and assigned universe.');
+    $assert(str_contains($game, "'universe' => \$playerUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the account-owned character and assigned universe.');
     return 'Babylon.js renders primitive system markers mapped to stable backend IDs; gameplay receives the assigned universe and selected character from the authenticated portal and uses navigation/travel APIs.';
 });
 $run('Release version comes from one central version file', static function () use ($assert): string {
@@ -2044,6 +2083,26 @@ $run('Player gameplay APIs enforce account ownership and CSRF protection', stati
         $cleanup($dir);
     }
 });
+$run('Account archival preserves account identity and is idempotent', static function () use ($assert, $equal): string {
+    $accounts = ['usr-archive-qa' => ['id' => 'usr-archive-qa', 'email' => 'archive@example.test', 'password_hash' => 'qa-hash', 'status' => 'active']];
+    $archived = Core\Modules\Accounts\PlayerAccountArchiveService::archive($accounts, 'usr-archive-qa', '2026-11-10T12:00:00+00:00');
+    $equal('disabled', $archived['usr-archive-qa']['status'], 'Archived account must not remain active.');
+    $equal('archive@example.test', $archived['usr-archive-qa']['email'], 'Account identity was not preserved.');
+    $equal('qa-hash', $archived['usr-archive-qa']['password_hash'], 'Account credential hash was not preserved.');
+    $equal('2026-11-10T12:00:00+00:00', $archived['usr-archive-qa']['archived_at'], 'Archive timestamp was not saved.');
+    $again = Core\Modules\Accounts\PlayerAccountArchiveService::archive($archived, 'usr-archive-qa', '2026-11-11T12:00:00+00:00');
+    $equal('2026-11-10T12:00:00+00:00', $again['usr-archive-qa']['archived_at'], 'Repeated archive changed the original timestamp.');
+    return 'Account record and credential remain intact, sign-in is disabled, and repeated archival is idempotent.';
+});
+$run('Account administration exposes archive rather than permanent deletion', static function () use ($assert): string {
+    $api = file_get_contents(dirname(__DIR__) . '/api/player-accounts-admin.php');
+    $ui = file_get_contents(dirname(__DIR__) . '/admin/player-account.php');
+    $assert(is_string($api) && str_contains($api, 'PlayerAccountArchiveService::archive'), 'Account API does not call the archive service.');
+    $assert(is_string($ui) && str_contains($ui, "request('archive')") && str_contains($ui, 'Archive account'), 'Account UI does not expose archive action.');
+    $assert(!str_contains((string)$ui, 'Permanently delete this account'), 'Account UI still offers permanent deletion.');
+    return 'The administration UI archives accounts and preserves ownership references.';
+});
+
 $run('Gameplay client sends session CSRF token with write requests', static function () use ($assert): string {
     $game = file_get_contents(dirname(__DIR__) . '/player/game.php');
     $js = file_get_contents(dirname(__DIR__) . '/player/player.js');
@@ -2054,7 +2113,7 @@ $run('Gameplay client sends session CSRF token with write requests', static func
 $run('Player character collection is account-scoped outside the trusted Workbench', static function () use ($assert): string {
     $application = file_get_contents(dirname(__DIR__) . '/app/Application.php');
     $security = file_get_contents(dirname(__DIR__) . '/app/Http/PlayerApiSecurity.php');
-    $assert(is_string($application) && str_contains($application, "owner_account_id'] ?? '') === $accountId"), 'Character listing does not filter records by the signed-in account.');
+    $assert(is_string($application) && str_contains($application, "owner_account_id'] ?? '') === \$accountId"), 'Character listing does not filter records by the signed-in account.');
     $assert(is_string($security) && str_contains($security, 'ownsCharacter') && str_contains($security, 'ownsUniverse'), 'Central ownership checks are missing.');
     return 'Character collection responses are filtered to the signed-in account; universe navigation and lifecycle operations require an owned character.';
 });

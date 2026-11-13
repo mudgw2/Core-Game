@@ -78,32 +78,18 @@ $releaseVersion = require dirname(__DIR__) . '/config/version.php';
           <dl class="stats"><div><dt>Classification</dt><dd id="selectedClassification">—</dd></div><div><dt>Coordinates</dt><dd id="selectedCoordinates">—</dd></div><div><dt>Worlds</dt><dd id="selectedWorlds">—</dd></div></dl>
           <code id="selectedId" class="entity-id">—</code>
           <div class="world-list-panel"><div class="eyebrow">SYSTEM WORLDS</div><ul id="selectedWorldList" class="world-list"><li>Select a system to inspect its worlds.</li></ul></div>
-          <section id="worldDetailPanel" class="world-detail-panel hidden" aria-live="polite">
-            <div class="eyebrow">WORLD PROFILE</div>
-            <h3 id="selectedWorldName">Select a world</h3>
-            <p id="selectedWorldSummary" class="world-summary">Choose a world above to inspect its generated profile.</p>
-            <div class="world-uwp"><span>UNIVERSAL WORLD PROFILE</span><strong id="selectedWorldUwp">—</strong></div>
-            <dl class="world-stats">
-              <div><dt>World type</dt><dd id="worldType">—</dd></div>
-              <div><dt>Orbital slot</dt><dd id="worldOrbit">—</dd></div>
-              <div><dt>Starport</dt><dd id="worldStarport">—</dd></div>
-              <div><dt>Size</dt><dd id="worldSize">—</dd></div>
-              <div><dt>Atmosphere</dt><dd id="worldAtmosphere">—</dd></div>
-              <div><dt>Hydrographics</dt><dd id="worldHydrographics">—</dd></div>
-              <div><dt>Population</dt><dd id="worldPopulation">—</dd></div>
-              <div><dt>Government</dt><dd id="worldGovernment">—</dd></div>
-              <div><dt>Law level</dt><dd id="worldLaw">—</dd></div>
-              <div><dt>Technology level</dt><dd id="worldTech">—</dd></div>
-            </dl>
-          </section>
-          <button type="button" id="travelButton" class="button-secondary" disabled>Travel to selected system</button>
-          <p id="travelHint" class="fine-print">Select a character and a reachable destination to travel.</p>
+          <button type="button" id="viewSystemButton" class="button-secondary" disabled>View selected system</button>
         </section>
       </aside>
 
       <section class="map-panel panel">
-        <div class="map-toolbar"><div><div class="eyebrow">TACTICAL OVERVIEW</div><h2>Universe map</h2></div><div class="map-toolbar-actions"><span class="map-legend"><i></i> Star systems</span></div></div>
-        <div class="canvas-wrap"><canvas id="renderCanvas" aria-label="Interactive 3D universe map"></canvas><div id="canvasFallback" class="canvas-fallback hidden">Babylon.js could not initialize. Check network access to the Babylon.js CDN.</div></div>
+        <div class="map-toolbar"><div><div class="eyebrow">SECTOR OVERVIEW</div><h2>Sector map</h2></div><div class="map-toolbar-actions"><span class="map-legend"><i></i> Star systems</span></div></div>
+        <div class="canvas-wrap"><canvas id="renderCanvas" aria-label="Interactive 3D sector map"></canvas><div id="canvasFallback" class="canvas-fallback hidden">Babylon.js could not initialize. Check network access to the Babylon.js CDN.</div></div>
+        <section id="systemViewPanel" class="system-view-panel hidden" aria-label="Selected star system visualization">
+          <div class="map-toolbar"><div><div class="eyebrow">SYSTEM OVERVIEW</div><h2 id="systemViewTitle">Star system</h2></div><button type="button" id="backToSectorButton" class="button-secondary">← Back to sector</button></div>
+          <canvas id="systemViewCanvas" aria-label="Orbital diagram of the selected star system"></canvas>
+          <p id="systemViewLegend" class="fine-print">Orbital arrangement generated from the selected system's world data.</p>
+        </section>
         <div class="map-footer"><span id="mapStatus">Waiting for universe data</span><span>Drag to pan · Scroll to zoom · Select a star system</span></div>
       </section>
     </section>

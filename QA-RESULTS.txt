@@ -1,13 +1,13 @@
-CORE 0.1.91 QA RESULTS
+CORE 0.1.90 QA RESULTS
 
-Source: user-verified CORE 0.1.90 baseline with the 0.1.91 patch applied.
+Source: admin.zip supplied by the user on 2026-11-12, with the 0.1.90 patch applied.
 
-CLI suite: 86 passed, 0 failed.
-Browser QA endpoint: 145 passed, 0 failed (HTTP 200).
-PHP syntax: 88 project PHP files passed.
-JavaScript syntax: 5 project JavaScript files passed.
+CLI suite: 84 passed, 0 failed.
+Browser QA endpoint: 143 passed, 0 failed (HTTP 200).
+PHP syntax: all project PHP files passed.
+JavaScript syntax: all project JavaScript files passed.
 Player-facing prohibited-term scan: clean.
 
-Regression coverage includes accessible world selection, complete UWP field display, and selected-world visual state.
+The QA suites include deterministic world-generation checks, UWP field/range validation, and a check that runtime world generation does not alter saved universe records.
 
-These checks were run against the exact source included in this patch. User installation QA is pending.
+All checks above were run against the exact source included in this patch. User installation QA is pending.

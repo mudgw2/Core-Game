@@ -1,0 +1,27 @@
+CORE 0.1.93 — Animated Humanoid Preview
+
+Changed files
+- assets/models/characters/core-humanoid.glb
+- player/character-preview.js
+- player/character-roster-preview.js
+- player/character-create.php
+- player/selection.php
+- config/version.php
+
+Installation
+1. Extract this ZIP into the CORE application root, preserving its folder structure.
+2. Allow the files to overwrite the existing versions.
+3. Reload Character Creation and Character Selection with a hard refresh (Ctrl+F5).
+
+What changed
+- Adds the supplied animated Mixamo-rigged GLB as the shared humanoid preview asset.
+- Character Creation now loads the GLB through Babylon.js glTF loader and plays its Walking animation when available.
+- Character roster portraits load the same model and play Walking when available.
+- Character Creation's color control now tints the loaded model.
+- The assigned-system Babylon.js location visualization is preserved.
+- Release version is 0.1.93.
+
+Notes
+- This is preview integration only. It does not yet add a moving character to the game world.
+- The model is a shared visual base; character species, abilities, and saved gameplay data remain independent.
+- Babylon.js and its glTF loader are loaded from the Babylon.js CDN, as in the existing application setup.

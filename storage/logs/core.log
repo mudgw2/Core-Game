@@ -657,7 +657,30 @@
 {"time":"2026-11-12T21:01:02+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"items","revision":2,"entry_count":9,"backup_path":"/tmp/core-web-item-characteristics-roundtrip-b572c0091800aad1/backups/content/items_r1_20261112_210102_8b90a2.json"}}
 {"time":"2026-11-12T21:08:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
 {"time":"2026-11-12T21:08:29+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
-{"time":"2026-11-12T21:09:19+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
-{"time":"2026-11-12T21:09:19+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
-{"time":"2026-11-12T21:09:58+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
-{"time":"2026-11-12T21:09:58+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:21+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:22+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-12T21:37:29+00:00","level":"WARNING","message":"Unsafe storage path segment rejected","context":{"segment_type":"collection"}}
+{"time":"2026-11-12T21:37:29+00:00","level":"ERROR","message":"Stored JSON record is invalid","context":{"collection":"records","record_id":"broken","error":"Syntax error"}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_backup_test","backup_id":"bkp_20261112213731_c1b0f48c8d","characters":1}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_restore_test","backup_id":"bkp_20261112213731_3aa9c84c0b","characters":1}}
+{"time":"2026-11-12T21:37:31+00:00","level":"WARNING","message":"Universe backup restored","context":{"backup_id":"bkp_20261112213731_3aa9c84c0b","universe_id":"universe_restore_test","characters":1}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Universe backup created","context":{"universe_id":"universe_conflict_test","backup_id":"bkp_20261112213731_537a0ae54d","characters":0}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Atomic storage deletion committed","context":{"transaction_id":"ud_0642e0d6c6df22b1d53320bc","record_count":3,"cleanup_complete":true}}
+{"time":"2026-11-12T21:37:31+00:00","level":"WARNING","message":"Atomic universe deletion aborted before any live record was moved","context":{"transaction_id":"ud_ba14d5a955d1cc3a8c8cfeac","failure":"Injected final-guard rejection."}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-save-qa-30200eed5df1b3c8/backups/content/recipes_r1_20261112_213731_5a696c.json"}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"recipes","revision":2,"entry_count":3,"backup_path":"/tmp/core-content-stale-qa-cbf5ab2511efbf7a/backups/content/recipes_r1_20261112_213731_61e7a7.json"}}
+{"time":"2026-11-12T21:37:31+00:00","level":"WARNING","message":"Game content catalog change rejected or failed","context":{"catalog":"recipes","expected_revision":1,"message":"Content revision conflict: expected 1, current revision is 2. Reload the catalog before saving."}}
+{"time":"2026-11-12T21:37:31+00:00","level":"INFO","message":"Game content catalog saved","context":{"catalog":"items","revision":2,"entry_count":9,"backup_path":"/tmp/core-web-item-characteristics-roundtrip-26e47682b41a9870/backups/content/items_r1_20261112_213731_0b9f77.json"}}
+{"time":"2026-11-12T21:37:56+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-11-12T21:38:28+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}
+{"time":"2026-11-13T15:17:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-13T15:17:24+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-13T15:17:30+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-13T15:17:30+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/content"}}
+{"time":"2026-11-13T15:18:46+00:00","level":"INFO","message":"Request handled","context":{"method":"GET","path":"/api/navigation"}}

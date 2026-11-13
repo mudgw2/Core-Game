@@ -2,8 +2,8 @@
 
 **Document purpose:** Authoritative continuity record for CORE Game 1.0.
 **Last updated:** 2026-11-12
-**Latest patch prepared:** `0.1.91` (world profile inspection)
-**Last user-confirmed baseline:** `0.1.90`
+**Latest patch prepared:** `0.1.90` (deterministic system-world generation)
+**Last user-confirmed baseline:** `0.1.89`
 **Repository:** `mudgw2/Core-Game` (private GitHub repository)
 **Persistent project location:** Personal Library `/Core Game/`
 **Current source archive:** `admin.zip` supplied by the user on 2026-11-12
@@ -27,14 +27,14 @@ Core goals:
 
 ## 2. Current release and verified QA
 
-### Last user-confirmed baseline: 0.1.90
+### Last user-confirmed baseline: 0.1.89
 
-The user confirmed 0.1.89 with 141 tests passed and subsequently confirmed 0.1.90 with 143 tests passed. Treat 0.1.90 as the accepted baseline. Version 0.1.91 adds selectable world profiles and a detailed UWP inspection panel; installation QA is pending.
+The user supplied the latest source archive and confirmed the 0.1.89 consistency patch with 141 tests passed. Treat 0.1.89 as the accepted baseline. Version 0.1.90 adds deterministic Traveller-inspired world profiles as a runtime-derived view; installation QA is pending.
 
 The user confirmed:
-> PASS — 143 tests passed.
+> PASS — 141 tests passed.
 
-This is the accepted user-verified QA result for CORE 0.1.90. Do not downgrade the baseline to 0.1.89 or earlier.
+This is the accepted user-verified QA result for CORE 0.1.89. Do not downgrade the baseline to 0.1.86 or earlier.
 
 Release history:
 
@@ -45,8 +45,7 @@ Release history:
 | 0.1.86 | Character creation ability generation | PASS — 138 tests |
 | 0.1.88 | Account archival and player workflow baseline | User browser QA: 138 passed / 3 failed |
 | 0.1.89 | Cache versioning, public player identity/copy, and gameplay workflow cleanup | PASS — 141 tests passed (user-confirmed) |
-| 0.1.90 | Deterministic Traveller-inspired world profiles, exposed in gameplay system inspection | PASS — 143 tests passed (user-confirmed) |
-| 0.1.91 | Selectable worlds and detailed UWP/world profile inspection | Assistant QA: CLI 86/0; browser 145/0; PHP 88 files; JavaScript 5 files; user installation QA pending |
+| 0.1.90 | Deterministic Traveller-inspired world profiles, exposed in gameplay system inspection | Assistant QA: CLI 84/0; browser 143/0; user installation QA pending |
 
 The 0.1.86 delivery described:
 - 10-point ability score allocation.
@@ -228,11 +227,11 @@ Verify current server configuration before giving environment-specific commands.
 
 ## 11. Current development milestone
 
-The current source identifies world-level exploration as an expanding layer. Version 0.1.90 added deterministic system worlds; the user verified it with 143 passing tests. Version 0.1.91 builds on that foundation with selectable world entries and detailed UWP inspection. No separate roadmap file was present in the supplied source archive.
+The current source explicitly identifies world-level exploration as a missing layer: star systems exist, but their worlds are not generated. The long-term project goals also call for Traveller/UWP-like world data. Version 0.1.90 implements this next foundation step. No separate roadmap file was present in the supplied source archive.
 
 0.1.90 world generation is deliberately derived at runtime from the universe seed and stable system ID. It does not rewrite existing universe records or require a storage migration. Each system receives 1–9 deterministic world profiles with stable IDs, orbital slots, world classifications, and eight-character UWP profiles. The gameplay inspection panel displays the worlds for the selected system. Assistant validation against this exact patch: CLI 84 passed / 0 failed; browser QA 143 passed / 0 failed; PHP and JavaScript syntax sweeps passed; player-facing prohibited-term scan clean.
 
-0.1.90 is user-verified. Version 0.1.91 makes each generated world selectable and displays its full generated profile: UWP, world type, orbital slot, starport, size, atmosphere, hydrographics, population, government, law, and technology level. The detail panel explicitly identifies this data as deterministic descriptive profile data; landing and surface gameplay are not implied. After user QA confirms 0.1.91, select the next milestone by reviewing the then-current source and tests; do not assume a feature sequence beyond the stated project goals.
+After user QA confirms 0.1.90, select the next milestone by reviewing the then-current source and tests; do not assume a feature sequence beyond the stated project goals.
 
 ## 12. Baseline summary
 
@@ -240,8 +239,8 @@ The current source identifies world-level exploration as an expanding layer. Ver
 |---|---|
 | Project | CORE Game 1.0 |
 | Repository | `mudgw2/Core-Game` |
-| Last user-confirmed baseline | `0.1.90` (0.1.91 pending user QA) |
-| User-confirmed QA | 0.1.90: 143 passed; 0.1.89: 141 passed |
+| Last user-confirmed baseline | `0.1.89` (0.1.90 pending user QA) |
+| User-confirmed QA | 0.1.89: 141 passed |
 | 0.1.85 browser QA | 136 passed |
 | 0.1.84 browser QA | 130 passed |
 | Character creation without universe | Supported |
@@ -252,5 +251,5 @@ The current source identifies world-level exploration as an expanding layer. Ver
 | Database | No MySQL dependency in this code line |
 | 3D direction | Babylon.js; low-poly primitives first |
 | Patch format | Downloadable ZIP with complete files |
-| Latest source archive | `admin.zip` supplied 2026-11-12; updated through user-verified 0.1.90 |
+| Latest source archive | `admin.zip` supplied 2026-11-12; 0.1.89 verified by user |
 | GitHub `main` | Previously observed at 0.1.83; recheck before use |

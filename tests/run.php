@@ -1140,30 +1140,9 @@ $test('Player-facing copy uses universe terminology and current account security
     $assert(!str_contains($game, 'characterCreationScreen') && !str_contains($game, 'Full point-buy and species adjustments are not implemented yet'), 'Gameplay still contains the obsolete duplicate character-creation screen.');
 });
 
-$test('World list supports accessible selection and detailed UWP inspection', static function () use ($assert): void {
-    $html = (string)file_get_contents(CORE_ROOT . '/player/game.php');
-    $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
-    $css = (string)file_get_contents(CORE_ROOT . '/player/player.css');
-    foreach (['worldDetailPanel','selectedWorldUwp','worldAtmosphere','worldHydrographics','worldPopulation','worldGovernment','worldLaw','worldTech'] as $id) {
-        $assert(str_contains($html, 'id="' . $id . '"'), 'World inspection is missing element: ' . $id);
-    }
-    $assert(str_contains($js, 'function selectWorld(world)'), 'World selection handler is missing.');
-    $assert(str_contains($js, "button.setAttribute('aria-pressed','false')"), 'World choices do not expose accessible selection state.');
-    $assert(str_contains($js, 'selectWorld(world)'), 'World list buttons are not connected to profile inspection.');
-    $assert(str_contains($css, '.world-select-button[aria-pressed="true"]'), 'Selected world state has no visual styling.');
-});
-
-$test('World profile inspection covers all generated UWP fields', static function () use ($assert): void {
-    $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
-    foreach (['world.starport','world.size','world.atmosphere','world.hydrographics','world.population','world.government','world.law_level','world.tech_level','world.orbital_slot','world.uwp'] as $field) {
-        $assert(str_contains($js, $field), 'World inspection does not display generated field: ' . $field);
-    }
-    $assert(str_contains($js, 'Generated from this universe seed'), 'World inspection does not explain deterministic profile origin.');
-});
-
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert(is_string($version) && preg_match('/^0\.1\.91$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\.1\.90$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";

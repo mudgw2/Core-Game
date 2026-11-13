@@ -23,6 +23,7 @@ $rulesJson = json_encode($options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Create Character · CORE</title><link rel="stylesheet" href="<?=$base?>/player.css">
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 </head>
 <body>
 <header class="topbar"><a class="brand" href="<?=$base?>/selection.php"><span class="brand-mark">C</span><span>CORE <small>CHARACTER CREATION</small></span></a><span class="build-tag"><?=h($releaseVersion)?></span></header>
@@ -33,10 +34,10 @@ $rulesJson = json_encode($options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
     <p>This character is saved independently. You can create and assign a universe in the next step.</p>
     <div class="character-creation-layout">
       <aside class="character-preview-panel">
-        <div class="eyebrow">LIVE 3D PREVIEW</div><h2>Character silhouette</h2>
-        <p class="creation-intro">A procedural Babylon.js primitive preview. Character abilities and species are saved independently of the visual model.</p>
-        <div class="character-preview-canvas-wrap"><canvas id="characterPreviewCanvas" aria-label="Interactive 3D character preview"></canvas><div id="characterPreviewStatus" class="preview-status" role="status">Initializing 3D preview…</div></div>
-        <div class="preview-controls"><label for="previewColor">Preview color</label><input id="previewColor" type="color" value="#61d8e8"><small>Drag to orbit · scroll to zoom</small></div>
+        <div class="eyebrow">LIVE 3D PREVIEW</div><h2>Character model</h2>
+        <p class="creation-intro">An animated humanoid model preview. Character abilities and species are saved independently of the visual model.</p>
+        <div class="character-preview-canvas-wrap"><canvas id="characterPreviewCanvas" aria-label="Interactive 3D character preview"></canvas><div id="characterPreviewStatus" class="preview-status" role="status">Loading animated humanoid…</div></div>
+        <div class="preview-controls"><label for="previewColor">Model tint</label><input id="previewColor" type="color" value="#61d8e8"><small>Drag to orbit · scroll to zoom</small></div>
       </aside>
       <div class="character-form-column">
         <form method="post" action="<?=$base?>/player-action.php" class="creation-form" id="characterCreationForm">

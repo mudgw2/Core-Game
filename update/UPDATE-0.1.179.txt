@@ -1,0 +1,3 @@
+CORE 0.1.179 UPDATED FILES
+
+Extract over the existing CORE installation after backing it up. This update is based on the supplied admin(1).zip CORE 0.1.177 source and retains the 0.1.178 persistent diagnostics files. See install/INSTALL-0.1.179.txt.

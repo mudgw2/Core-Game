@@ -1,0 +1,32 @@
+{
+    "romance": [
+        {
+            "title": "Serial Dater",
+            "description": "The year is marked with relationships. You date several people throughout the year, each for about d12 weeks"
+        },
+        {
+            "title": "A Special Someone",
+            "description": "You find a certain someone whom you date for d12 months"
+        },
+        {
+            "title": "Ongoing Commitment",
+            "description": "A serious relationship has lasted into this year. Roll d12 - On a 1-5 it ends, on a 6-11 it continues through the year, on a 12 you marry"
+        },
+        {
+            "title": "Secret Affair",
+            "description": "You find someone else, while dating someone seriously. Roll d12 - odd they find out and dump you, even they never find out"
+        },
+        {
+            "title": "Betrayal",
+            "description": "Someone whom you'd been dating cheats on you. Roll d12. Even, you find out, odd they dump you and you don't know why"
+        },
+        {
+            "title": "Tragic Loss",
+            "description": "Someone whom you'd been dating for over a year dies"
+        },
+        {
+            "title": "Unexpected Pregnancy",
+            "description": "Pregnancy. Roll d12; 1-3 You leave, 4-6 He/she Leaves You, 7-8 You Marry, 9-12 Crossbow Point Wedding"
+        }
+    ]
+}

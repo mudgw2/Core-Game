@@ -1,0 +1,21 @@
+CORE 0.1.140 — INSTALLATION
+
+1. Back up your current CORE code before applying the patch.
+2. Extract this ZIP into the CORE project root, preserving its directory structure.
+3. Allow the included files to replace their matching project files.
+4. Hard-refresh the browser so the 0.1.140 cache-busted assets load.
+
+This is a code-only patch. It does not include or replace storage/, accounts,
+universes, characters, backups, logs, secrets, or generated world data.
+
+Changed files:
+- config/version.php
+- player/world.php
+- player/world.js
+- player/astronomical-environment.js (new)
+- tests/run.php
+- qa/QA-RESULTS-0.1.140.txt
+- changelog/CHANGELOG-0.1.140.txt
+- release/RELEASE-NOTES-0.1.140.md
+
+The patch does not modify the live installation or GitHub repository.

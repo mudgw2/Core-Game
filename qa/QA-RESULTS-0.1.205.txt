@@ -1,0 +1,10 @@
+CORE 0.1.205 automated QA
+
+PHP regression suite: 184 passed, 0 failed
+PHP syntax: PASS (all project PHP files, via tests/run.php)
+JavaScript syntax: PASS (player/astronomical-environment.js, node --check)
+ZIP integrity: PENDING PACKAGE CREATION
+Browser visual/performance verification: NOT PERFORMED
+User runtime verification: PENDING
+
+The new regression checks verify that atmospheric rendering consumes the existing UWP atmosphere code, uses a reusable optical profile, preserves the explicit A-F composition-data limitation, and keeps celestial materials fog-independent. Existing regression assertions for the former fixed star-layer alpha were updated to validate the new atmosphere-aware behavior.

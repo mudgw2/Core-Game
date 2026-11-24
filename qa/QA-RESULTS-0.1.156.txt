@@ -1,0 +1,13 @@
+CORE 0.1.156 QA RESULTS
+
+Automated PHP regression suite: 151 passed, 0 failed.
+JavaScript syntax: PASS (player/world.js, player/astronomical-environment.js, player/planetary-environment.js).
+PHP syntax: PASS (config/version.php).
+GLB asset inspection: PASS; core-humanoid.glb contains Jump_Start, Jump_air, and Jump_Land clips.
+ZIP integrity: pending final package verification.
+Browser visual/runtime QA: NOT PERFORMED in the build environment.
+
+User verification required:
+- Confirm Jump_Start -> Jump_air -> Jump_Land plays visibly while spherical jump physics remains correct.
+- Confirm stars are visible at night across different camera angles.
+- Confirm increased terrain relief and color variation are visible and movement remains stable.

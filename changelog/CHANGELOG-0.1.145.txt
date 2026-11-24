@@ -1,0 +1,7 @@
+CORE 0.1.145
+- Corrected avatar orientation matrix basis ordering, addressing the transposed local axes.
+- Added restrained self-illumination to the player material.
+- Increased ambient planetary illumination and lifted the night sky from near-black.
+- Removed redundant test-world header text from the 3D viewport.
+- Removed map title chrome and consolidated map plus current coordinates.
+- Positioned the compact map HUD relative to the 3D viewport and removed excess map canvas height.

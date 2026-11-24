@@ -1,0 +1,10 @@
+CORE 0.1.169 INSTALLATION
+
+1. Back up the current CORE installation.
+2. Extract this ZIP over the existing installation, preserving relative paths.
+3. Do not delete or replace storage, accounts, universes, player data, or configuration secrets.
+4. Hard-refresh the browser after deployment.
+5. Open the world and check whether the moons are visibly drawn above the planetary horizon.
+6. If still invisible, copy the complete Moon Renderer Diagnostics JSON. 0.1.169 adds material depth state and geometry diagnostics.
+
+This is an incremental updated-files-only package.

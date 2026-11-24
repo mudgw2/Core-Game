@@ -1,0 +1,13 @@
+CORE 0.1.142
+
+Planetary interface corrections:
+- C toggles Character Information open/closed. Pressing I while Character Information is open switches to Inventory.
+- I toggles Inventory open/closed. Pressing C while Inventory is open switches to Character Information.
+- Repeated keydown events are ignored for interface shortcuts to prevent key-repeat flicker.
+- M toggles the planetary map HUD independently of character/inventory panels.
+- The map HUD is frameless and transparent rather than a window/card. Its visual surface does not intercept pointer input; the close control remains clickable.
+- Movement input is no longer blocked while the map HUD is visible.
+- The global equirectangular projection explicitly places 0° latitude / 0° longitude at the center of the map, matching the planetary spawn location.
+- Version bumped to 0.1.142 for browser cache invalidation.
+
+No universe generation, generation fingerprints, saved universe records, player records, characters, or persistent geography were changed.

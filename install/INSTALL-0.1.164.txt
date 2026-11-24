@@ -1,0 +1,11 @@
+CORE 0.1.164 — Keyboard Shortcut Compatibility
+
+Apply this patch over CORE 0.1.163.
+
+Extract the included project-relative files into the CORE installation, allowing them to overwrite existing files.
+
+This update prevents gameplay keybindings from intercepting Ctrl+C, Ctrl+V, Cmd+C, Cmd+V, Alt-modified shortcuts, and other modifier-key combinations. Unmodified gameplay keys continue to work. Editable controls remain excluded from gameplay shortcuts.
+
+No player data, accounts, universes, storage, secrets, or backups are included.
+
+After installation, open World Information and try Ctrl+C while the diagnostic text is selected. The C character shortcut should no longer activate when Ctrl is held.

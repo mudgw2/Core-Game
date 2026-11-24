@@ -1,0 +1,10 @@
+CORE 0.1.104 PATCH INSTALLATION
+
+1. Back up the current CORE source before applying the patch.
+2. Extract this ZIP into the CORE project root.
+3. Preserve the directory structure and allow the included files to replace their matching files.
+4. Do not copy or replace storage data from another installation; this patch contains no player data.
+5. Open CORE and run the browser QA suite from the Workbench.
+6. Report the exact PASS/FAIL count and any failure details.
+
+This patch is based on the user-verified CORE 0.1.103 baseline. Do not install it over an earlier release without first applying the intervening patches.

@@ -1,0 +1,9 @@
+CORE 0.1.195 QA
+
+Automated test suite: PASS — 181 passed, 0 failed.
+PHP syntax checks: PASS — 108/108 PHP files parsed successfully.
+JavaScript syntax check: PASS — player/planetary-environment.js passed node --check.
+ZIP integrity: pending final archive verification.
+Browser visual/runtime verification: NOT PERFORMED in this build environment; requires user verification after installation.
+
+Scope: geometric terrain tessellation, relief exaggeration, refreshed displaced-mesh bounds, and regression coverage. Existing terrain JSON files are not rewritten.

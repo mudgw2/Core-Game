@@ -1,0 +1,17 @@
+CORE 0.1.196 QA RESULTS
+
+Automated test suite: PASS
+Passed: 182
+Failed: 0
+
+PHP syntax checks: PASS
+Files checked: 105
+
+JavaScript syntax checks (Node.js --check): PASS
+- player/planetary-environment.js
+- player/world.js
+
+ZIP integrity: PASS
+Browser/runtime visual verification: NOT PERFORMED
+
+The automated suite includes a new source-contract test for the local spherical terrain patch, player-following patch updates, and altitude display. Browser verification is still required to confirm visible relief, patch continuity, and altitude behavior in the installed environment.

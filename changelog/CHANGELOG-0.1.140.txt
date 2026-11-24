@@ -1,0 +1,7 @@
+CORE 0.1.140
+- Added system-driven astronomical sky rendering for the planetary test world.
+- Passed the complete active system record to the client.
+- Added support for multiple stars, optional non-stellar central bodies, and
+  legacy binary companion presentation without rewriting saved universe data.
+- Added deterministic planetary rotation timing and local solar illumination.
+- Added a deterministic background starfield and smooth sky/ambient transitions.

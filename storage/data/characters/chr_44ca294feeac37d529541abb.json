@@ -23,12 +23,14 @@
         "last_action": "universe_assigned"
     },
     "location": {
-        "system_id": "sys_1e99a4a0c38148d0",
-        "updated_at": "2026-10-27T06:18:14+00:00"
+        "constellation_id": "con_a6a6cc5189b909c6",
+        "system_id": "sys_7c6a9d2f7d9b50a9",
+        "universe_id": "uni_61825461bd7155d0c191d01e",
+        "updated_at": "2026-11-17T18:02:30+00:00"
     },
-    "current_system_id": "sys_1e99a4a0c38148d0",
+    "current_system_id": "sys_7c6a9d2f7d9b50a9",
     "created_at": "2026-10-27T06:18:08+00:00",
-    "revision": 0,
+    "revision": 3,
     "exploration": {
         "explored_systems": [
             {
@@ -36,7 +38,15 @@
                 "name": "System 01",
                 "first_visited_at": "2026-10-27T06:18:14+00:00",
                 "first_visited_revision": 0
+            },
+            {
+                "system_id": "sys_7cfdea8671a1e4ad",
+                "name": "System 12",
+                "first_visited_at": "2026-11-16T03:35:27+00:00",
+                "first_visited_revision": 2
             }
         ]
-    }
+    },
+    "route_progress": null,
+    "current_constellation_id": "con_a6a6cc5189b909c6"
 }

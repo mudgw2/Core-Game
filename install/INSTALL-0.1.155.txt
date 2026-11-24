@@ -1,0 +1,12 @@
+CORE 0.1.155 INSTALLATION
+
+1. Back up the current CORE installation.
+2. Extract this patch into the CORE project root, preserving relative paths.
+3. Do not replace or delete the existing storage directory or player data.
+4. Refresh the game page (a hard refresh may be needed to reload JavaScript assets).
+
+Controls:
+- Spacebar: jump (local visual arc)
+- V: open World Environment briefing
+
+Please verify: jump and landing on the spherical surface; star visibility after planetary sunset; V briefing contents. In shared-world mode, jumping is not yet synchronized to other players.

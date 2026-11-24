@@ -1,0 +1,6 @@
+CORE 0.1.155
+- Added spacebar jumping with a local spherical-normal gravity arc.
+- Added player-facing World Environment briefing on V.
+- Strengthened night-sky star visibility and alpha blending.
+- Updated project state, design principles, and roadmap documents.
+- Added regression tests for jump controls, world briefing, and starfield presentation.

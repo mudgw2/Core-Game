@@ -1,0 +1,2 @@
+{"time":"2026-11-18T17:14:25+00:00","level":"ERROR","message":"Character list failed","context":{"universe_id":"","exception":"Error","message":"Call to a member function all() on null"}}
+{"time":"2026-11-21T22:14:33+00:00","level":"ERROR","message":"Planetary terrain assets could not be loaded","context":{"core_version":"0.1.193","request_id":"c639f55884f277d8","request_method":"GET","request_path":"/api/world/terrain","session_fingerprint":"4e626b0152a22c97","world_id":"wld_abe8ab9524af32656e1b","message":"A valid planetary radius is required for terrain generation."}}

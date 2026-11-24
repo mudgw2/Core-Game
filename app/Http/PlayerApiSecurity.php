@@ -53,6 +53,18 @@ final class PlayerApiSecurity
         return false;
     }
 
+    public static function canAccessUniverse(JsonStorage $storage, string $universeId, string $accountId): bool
+    {
+        if (self::ownsUniverse($storage, $universeId, $accountId)) return true;
+        if ($universeId === '' || $accountId === '') return false;
+        foreach ($storage->all('characters') as $character) {
+            if (is_array($character) && (string)($character['owner_account_id'] ?? '') === $accountId
+                && (string)($character['active_universe_id'] ?? '') === $universeId
+                && (string)($character['universe_id'] ?? '') !== $universeId) return true;
+        }
+        return false;
+    }
+
     /** Returns a denial response, or null when the request is authorized. */
     public static function guard(Request $request, JsonStorage $storage, array $config): ?Response
     {
@@ -98,7 +110,7 @@ final class PlayerApiSecurity
         $recordId = trim($recordId);
         $allowed = $policy === 'character'
             ? self::ownsCharacter($storage, $recordId, $accountId)
-            : self::ownsUniverse($storage, $recordId, $accountId);
+            : ($policy === 'universe_owner' ? self::ownsUniverse($storage, $recordId, $accountId) : self::canAccessUniverse($storage, $recordId, $accountId));
         if (!$allowed) {
             // Do not disclose whether another account's record exists.
             return Response::json(['ok' => false, 'error' => ['code' => 'record_not_found', 'message' => 'The requested record was not found for this account.']], 404);
@@ -108,6 +120,9 @@ final class PlayerApiSecurity
 
     private static function policyFor(string $method, string $path): ?string
     {
+        if ($method === 'POST' && $path === '/api/multiplayer/token') return 'character';
+        if ($method === 'POST' && $path === '/api/universe/share') return 'universe_owner';
+        if ($method === 'POST' && in_array($path, ['/api/universe/visit', '/api/universe/leave'], true)) return 'character';
         if ($method === 'POST' && $path === '/api/characters') return 'create';
         if ($method === 'POST' && $path === '/api/universe') return 'create';
         if ($method === 'GET' && $path === '/api/characters') return 'list';
@@ -120,8 +135,9 @@ final class PlayerApiSecurity
         ];
         if (in_array($path, $characterRoutes, true)) return 'character';
 
-        $universeRoutes = ['/api/navigation', '/api/navigation/route', '/api/universe/lifecycle'];
-        if (in_array($path, $universeRoutes, true)) return 'universe';
+        if ($method === 'POST' && $path === '/api/universe/lifecycle') return 'universe_owner';
+        $universeRoutes = ['/api/navigation', '/api/navigation/route', '/api/world/clock'];
+        if (in_array($path, $universeRoutes, true)) return 'universe_access';
         return null;
     }
 }

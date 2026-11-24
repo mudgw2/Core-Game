@@ -1,0 +1,17 @@
+CORE 0.1.134 — First-Pass Appearance Customization
+
+INSTALLATION
+1. Back up the current CORE source.
+2. Extract this archive into the CORE project root, preserving directory paths.
+3. Do not replace or merge storage/, player data, account records, credentials, backups, logs, or .git/.
+4. Confirm config/version.php reports 0.1.134.
+5. Run php tests/run.php from the project root.
+6. If using the multiplayer service, deploy the included multiplayer/src and multiplayer/dist changes together.
+7. Test the Appearance tab in a browser: color picker, preset swatches, saturation, brightness, reset, character save, roster preview, and test-world appearance.
+
+CHANGES
+- Adds overall model tint selection, quick color presets, saturation, and brightness controls.
+- Persists a versioned appearance configuration with the character.
+- Reuses saved appearance settings in roster, local gameplay, and multiplayer avatar rendering.
+- Current GLB inspection found one mesh primitive and one material; current controls therefore affect the whole avatar rather than independent body regions.
+- Clothing, independent skin/hair/eye colors, and physical/body-shape adjustments remain out of scope for this first draft and can be added when the model assets support them.

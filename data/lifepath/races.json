@@ -1,0 +1,335 @@
+{
+  "android": {
+    "name": "Android",
+    "starting_age": 1,
+    "graduation_age": 18,
+    "max_allowable_age": 100,
+    "no_siblings": true
+  },
+  "human": {
+    "name": "Human",
+    "starting_age": 13,
+    "graduation_age": 18,
+    "max_allowable_age": 85,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "vesk": {
+    "name": "Vesk",
+    "starting_age": 8,
+    "graduation_age": 16,
+    "max_allowable_age": 70,
+    "max_siblings": 6,
+    "only_child_chance": 8
+  },
+  "ysoki": {
+    "name": "Ysoki",
+    "starting_age": 6,
+    "graduation_age": 14,
+    "max_allowable_age": 60,
+    "max_siblings": 8,
+    "only_child_chance": 10
+  },
+  "kasatha": {
+    "name": "Kasatha",
+    "starting_age": 25,
+    "graduation_age": 35,
+    "max_allowable_age": 110,
+    "max_siblings": 3,
+    "only_child_chance": 5
+  },
+  "lashunta": {
+    "name": "Lashunta",
+    "starting_age": 20,
+    "graduation_age": 25,
+    "max_allowable_age": 95,
+    "max_siblings": 5,
+    "only_child_chance": 7
+  },
+  "shirren": {
+    "name": "Shirren",
+    "starting_age": 5,
+    "graduation_age": 12,
+    "max_allowable_age": 50,
+    "max_siblings": 10,
+    "only_child_chance": 4
+  },
+  "dwarf": {
+    "name": "Dwarf",
+    "starting_age": 40,
+    "graduation_age": 50,
+    "max_allowable_age": 300,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "elf": {
+    "name": "Elf",
+    "starting_age": 100,
+    "graduation_age": 120,
+    "max_allowable_age": 450,
+    "max_siblings": 2,
+    "only_child_chance": 8
+  },
+  "gnome": {
+    "name": "Gnome",
+    "starting_age": 40,
+    "graduation_age": 50,
+    "max_allowable_age": 250,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "halfling": {
+    "name": "Halfling",
+    "starting_age": 20,
+    "graduation_age": 25,
+    "max_allowable_age": 120,
+    "max_siblings": 5,
+    "only_child_chance": 5
+  },
+  "half_elf": {
+    "name": "Half-Elf",
+    "starting_age": 20,
+    "graduation_age": 25,
+    "max_allowable_age": 140,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "half_orc": {
+    "name": "Half-Orc",
+    "starting_age": 14,
+    "graduation_age": 18,
+    "max_allowable_age": 80,
+    "max_siblings": 5,
+    "only_child_chance": 6
+  },
+  "skittermander": {
+    "name": "Skittermander",
+    "starting_age": 6,
+    "graduation_age": 12,
+    "max_allowable_age": 45,
+    "max_siblings": 12,
+    "only_child_chance": 3
+  },
+  "aasimar": {
+    "name": "Aasimar",
+    "starting_age": 18,
+    "graduation_age": 24,
+    "max_allowable_age": 120,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "andra": {
+    "name": "Andra",
+    "starting_age": 15,
+    "graduation_age": 22,
+    "max_allowable_age": 90,
+    "max_siblings": 4,
+    "only_child_chance": 5
+  },
+  "anacite": {
+    "name": "Anacite",
+    "starting_age": 1,
+    "graduation_age": 10,
+    "max_allowable_age": 300,
+    "no_siblings": true
+  },
+  "barathu": {
+    "name": "Barathu",
+    "starting_age": 30,
+    "graduation_age": 40,
+    "max_allowable_age": 500,
+    "max_siblings": 6,
+    "only_child_chance": 4
+  },
+  "breni": {
+    "name": "Breni",
+    "starting_age": 10,
+    "graduation_age": 16,
+    "max_allowable_age": 75,
+    "max_siblings": 5,
+    "only_child_chance": 5
+  },
+  "contemplative": {
+    "name": "Contemplative",
+    "starting_age": 50,
+    "graduation_age": 70,
+    "max_allowable_age": 400,
+    "max_siblings": 2,
+    "only_child_chance": 7
+  },
+  "dragonkin": {
+    "name": "Dragonkin",
+    "starting_age": 25,
+    "graduation_age": 35,
+    "max_allowable_age": 200,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "drow": {
+    "name": "Drow",
+    "starting_age": 100,
+    "graduation_age": 120,
+    "max_allowable_age": 450,
+    "max_siblings": 2,
+    "only_child_chance": 8
+  },
+  "formian": {
+    "name": "Formian",
+    "starting_age": 1,
+    "graduation_age": 5,
+    "max_allowable_age": 25,
+    "max_siblings": 15,
+    "only_child_chance": 2
+  },
+  "ghoran": {
+    "name": "Ghoran",
+    "starting_age": 2,
+    "graduation_age": 6,
+    "max_allowable_age": 250,
+    "max_siblings": 4,
+    "only_child_chance": 5
+  },
+  "goblin": {
+    "name": "Goblin",
+    "starting_age": 7,
+    "graduation_age": 12,
+    "max_allowable_age": 50,
+    "max_siblings": 8,
+    "only_child_chance": 4
+  },
+  "hylaxian": {
+    "name": "Hylaxian",
+    "starting_age": 10,
+    "graduation_age": 18,
+    "max_allowable_age": 100,
+    "max_siblings": 5,
+    "only_child_chance": 5
+  },
+  "kalo": {
+    "name": "Kalo",
+    "starting_age": 18,
+    "graduation_age": 24,
+    "max_allowable_age": 130,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "kanabo": {
+    "name": "Kanabo",
+    "starting_age": 14,
+    "graduation_age": 20,
+    "max_allowable_age": 85,
+    "max_siblings": 5,
+    "only_child_chance": 5
+  },
+  "ksarik": {
+    "name": "Ksarik",
+    "starting_age": 1,
+    "graduation_age": 5,
+    "max_allowable_age": 30,
+    "max_siblings": 6,
+    "only_child_chance": 4
+  },
+  "maraquoi": {
+    "name": "Maraquoi",
+    "starting_age": 12,
+    "graduation_age": 18,
+    "max_allowable_age": 75,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "natacchi": {
+    "name": "Natacchi",
+    "starting_age": 15,
+    "graduation_age": 20,
+    "max_allowable_age": 90,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "nuar": {
+    "name": "Nuar",
+    "starting_age": 13,
+    "graduation_age": 19,
+    "max_allowable_age": 100,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "pahtra": {
+    "name": "Pahtra",
+    "starting_age": 14,
+    "graduation_age": 20,
+    "max_allowable_age": 85,
+    "max_siblings": 5,
+    "only_child_chance": 5
+  },
+  "osharu": {
+    "name": "Osharu",
+    "starting_age": 20,
+    "graduation_age": 30,
+    "max_allowable_age": 150,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "qeall": {
+    "name": "Qeall",
+    "starting_age": 15,
+    "graduation_age": 22,
+    "max_allowable_age": 100,
+    "max_siblings": 4,
+    "only_child_chance": 5
+  },
+  "spaceling": {
+    "name": "Spaceling",
+    "starting_age": 20,
+    "graduation_age": 30,
+    "max_allowable_age": 150,
+    "max_siblings": 4,
+    "only_child_chance": 5
+  },
+  "triaxian": {
+    "name": "Triaxian",
+    "starting_age": 15,
+    "graduation_age": 21,
+    "max_allowable_age": 90,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "trox": {
+    "name": "Trox",
+    "starting_age": 12,
+    "graduation_age": 16,
+    "max_allowable_age": 60,
+    "max_siblings": 6,
+    "only_child_chance": 5
+  },
+  "verthani": {
+    "name": "Verthani",
+    "starting_age": 18,
+    "graduation_age": 25,
+    "max_allowable_age": 110,
+    "max_siblings": 3,
+    "only_child_chance": 6
+  },
+  "vlaka": {
+    "name": "Vlaka",
+    "starting_age": 16,
+    "graduation_age": 22,
+    "max_allowable_age": 95,
+    "max_siblings": 3,
+    "only_child_chance": 7
+  },
+  "welwala": {
+    "name": "Welwala",
+    "starting_age": 12,
+    "graduation_age": 18,
+    "max_allowable_age": 75,
+    "max_siblings": 4,
+    "only_child_chance": 6
+  },
+  "ysoki_variant": {
+    "name": "SRO",
+    "starting_age": 1,
+    "graduation_age": 18,
+    "max_allowable_age": 150,
+    "no_siblings": true
+  }
+}

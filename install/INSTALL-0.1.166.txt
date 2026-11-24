@@ -1,0 +1,10 @@
+CORE 0.1.166 — Incremental Patch Installation
+
+1. Back up the current CORE installation.
+2. Extract this ZIP into the CORE project root, preserving folder paths.
+3. Allow included changed files to overwrite their counterparts.
+4. Do not delete or replace player storage, accounts, universes, secrets, or runtime data.
+5. Confirm the displayed release version is 0.1.166.
+6. Enter a world with one or more moons and check visibility using the normal gameplay camera.
+
+This is an incremental patch, not a complete project archive.

@@ -1,0 +1,49 @@
+CORE 0.1.110 — COLYSEUS DEPENDENCY SECURITY AND TRANSPORT CONFIGURATION
+
+Source baseline: CORE 0.1.109 — user-confirmed PASS, 157 tests passed.
+
+1. Back up the current CORE application source.
+2. Extract this patch into the CORE application root, preserving relative paths.
+3. Allow source files to overwrite their existing counterparts.
+4. Do not overwrite storage/, player records, account records, universe records,
+   backups, credentials, or logs. This patch contains none of those files.
+5. No PHP/Apache configuration or player-data migration is required.
+
+MULTIPLAYER DEPENDENCY UPDATE
+
+6. Stop the currently running Colyseus test process with Ctrl+C if it is still
+   running in the terminal.
+7. Open a terminal in CORE/multiplayer/ and run:
+       npm install
+       npm run build
+       npm test
+8. Inspect the resolved dependency tree:
+       npm ls @colyseus/core @colyseus/ws-transport nanoid elliptic uuid grant request-oauth
+9. Run the security audit:
+       npm audit
+10. Start the service only after build/tests complete:
+       npm start
+11. Verify locally:
+       curl http://127.0.0.1:2567/health
+
+EXPECTED DEPENDENCY CHANGES
+
+- CORE now imports Colyseus core and WebSocket transport directly.
+- The unused umbrella `colyseus` package and its unused auth/OAuth dependency
+  chain are removed from the manifest.
+- NanoID under @colyseus/core is constrained to the patched 3.3.18+ line.
+- WebSocket ping options are now configured on WebSocketTransport.
+
+IMPORTANT
+
+- Do not run `npm audit fix --force`. This patch deliberately does not upgrade
+  to Colyseus 0.18.
+- A clean npm audit is not assumed. The resolved package tree on your host is
+  the source of truth. If elliptic, grant, request-oauth, or uuid remain, save
+  the `npm ls` and `npm audit` output before making further dependency changes.
+- Production room joins remain disabled until the PHP-issued grant work.
+- Keep the service bound to 127.0.0.1. Do not expose it through Apache or a
+  public reverse proxy in this release.
+
+No data migration is required. No GitHub push or live-server modification was
+performed while preparing this patch.

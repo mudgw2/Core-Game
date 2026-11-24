@@ -1,0 +1,12 @@
+CORE 0.1.179 — Universe Navigation and Celestial Visibility
+
+- Replaced the ambiguous mixed Universe/Constellation header state with a real hierarchy: Universe View displays all constellations; selecting a constellation opens its system map; Back to Universe View is shown only inside Constellation View.
+- Universe overview now frames all constellation nodes, displays readable labels and system counts, and draws inter-constellation navigation links where route data supports them.
+- Constellation selection works from both the 3D markers and the sidebar list. The primary action changes contextually from View Selected Constellation to View Selected System.
+- Enlarged planetary moon meshes and increased segment detail; separated moon sky lanes so moons do not stack on the same screen position.
+- Increased moon-orbit tube thickness and emissive contrast so orbital paths are intended to be plainly visible.
+- Kept a faint screen-space star presence outside full night visibility; added star-layer and moon scale/orbit details to diagnostics. Terrain continues to occlude the sky below the horizon.
+- Moved the planetary diagnostics panel to a collapsible bottom-left control, away from the existing bottom-right connection/status display.
+- Retained persistent server/browser diagnostics from 0.1.178.
+
+Browser visual verification is still required for moon visibility, orbit appearance, and starfield behavior.

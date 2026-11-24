@@ -1,0 +1,32 @@
+[{
+			"environment": "Raised unsupervised",
+			"weight":1
+			},{
+			"environment": "History of mental and physical abuse",
+			"weight":1
+			},{
+			"environment": "Sheltered, confined to safe areas",
+			"weight":1
+			},{
+			"environment": "Provided guidance and care and allowed room to grow and explore",
+			"weight":3
+			},{
+			"environment": "Raised by a gang, band or other group",
+			"weight":1
+			},{
+			"environment": "Raised in a Monestary",
+			"weight":1
+			},{
+			"environment": "Raised in a Military School",
+			"weight":1
+			},{
+			"environment": "Raised in a Corporate owned School",
+			"weight":1
+			},{
+			"environment": "Put to work from early or outright owned, very little care given",
+			"weight":1
+			},{
+			"environment": "Apprenticed from an early age",
+			"weight":2
+			}
+]

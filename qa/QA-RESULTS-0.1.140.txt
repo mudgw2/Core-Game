@@ -1,0 +1,24 @@
+CORE 0.1.140 QA RESULTS
+Scope: System-driven planetary sky and celestial illumination.
+
+Executed checks:
+- PHP CLI suite: PASS — 135 passed / 0 failed.
+- PHP syntax: player/world.php, tests/run.php, config/version.php — PASS.
+- JavaScript syntax: player/world.js, player/astronomical-environment.js — PASS.
+- Browser visual/runtime QA: not performed.
+
+Behavior covered by regression tests:
+- World boot payload carries the complete active system record.
+- Sky renderer supports current primary-star records, explicit multi-star arrays,
+  optional central_body records, and explicit celestial_bodies records.
+- Legacy binary flags produce a deterministic presentation-only companion.
+- Planetary day length uses world rotation data when present, otherwise a
+  deterministic world-seed-derived value.
+- Solar altitude is evaluated against the player's local planetary surface normal.
+- Distant background stars are deterministic and become visible at night.
+- Existing universe generator and persistent records are not modified.
+
+Known data limitation:
+- Current UniverseGenerator still emits a primary star and an is_binary flag;
+  it does not yet generate full multiple-star or non-stellar central-body records.
+  The renderer accepts those richer records when available.

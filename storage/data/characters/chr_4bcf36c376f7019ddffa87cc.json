@@ -1,0 +1,107 @@
+{
+    "id": "chr_4bcf36c376f7019ddffa87cc",
+    "schema_version": 1,
+    "universe_id": "uni_4823a02c264e7612d16b3118",
+    "owner_account_id": "usr_93fbb5f448571e59d696f9b5",
+    "name": "Zooki",
+    "role": "Explorer",
+    "role_id": "explorer",
+    "species_id": "human",
+    "species": "Human",
+    "attributes": {
+        "strength": 9,
+        "dexterity": 7,
+        "constitution": 7,
+        "intelligence": 7,
+        "wisdom": 7,
+        "charisma": 7
+    },
+    "base_attributes": {
+        "strength": 7,
+        "dexterity": 7,
+        "constitution": 7,
+        "intelligence": 7,
+        "wisdom": 7,
+        "charisma": 7
+    },
+    "species_adjustments": {
+        "strength": 2
+    },
+    "ability_points_spent": -24,
+    "ability_point_budget": 10,
+    "human_bonus_attribute": "strength",
+    "appearance": {
+        "version": 1,
+        "tint": "#d47777",
+        "saturation": 200,
+        "brightness": 90
+    },
+    "age": 13,
+    "background": {
+        "schema_version": 1,
+        "locked": true,
+        "locked_at": "2026-11-18T16:23:45+00:00",
+        "generator": "CORE Lifepath",
+        "generator_version": "1",
+        "species_key": "human",
+        "race": {
+            "key": "human",
+            "name": "Human"
+        },
+        "seed": "f011a4f5:13:human",
+        "age": 13,
+        "maturation_age": 13,
+        "graduation_age": 18,
+        "max_allowable_age": 85,
+        "career_path": null,
+        "siblings": [
+            {
+                "name": "Alain",
+                "gender": "Male",
+                "relation": "Twin / Same Age",
+                "disposition": "Platonic Ex"
+            }
+        ],
+        "history": [
+            {
+                "age": 13,
+                "type": "upbringing",
+                "title": "Background & Upbringing",
+                "description": "Born into a human background at Adopted by Aliens.<br>Raised by Natural Parents (Status: Father is Alive).<br><p class=\"mb-1 text-white\"><strong>Siblings:</strong></p><ul class=\"mb-1 text-white ps-3\"><li>Alain (Male, Twin / Same Age) \u2014 Disposition: Platonic Ex</li></ul>Social Class & Style: High Nobility background with preferred clothing: Clothing suitable to the region of origin.<br>Environment: Provided guidance and care and allowed room to grow and explore.<br>Distinguishing Mark: No distinguishing marks.",
+                "is_graduation": false
+            },
+            {
+                "age": 13,
+                "type": "friend",
+                "title": "Friend",
+                "description": "Gang or Tribe - Somehow you earn the friendship of a gang or tribe of people",
+                "is_graduation": false
+            }
+        ]
+    },
+    "lifecycle": {
+        "enabled": true,
+        "locked": false,
+        "updated_at": "2026-11-18T17:12:43+00:00",
+        "last_action": "universe_assigned"
+    },
+    "location": {
+        "constellation_id": "con_b5bf388ef31b940e",
+        "system_id": "sys_1570cf07b799d349",
+        "updated_at": "2026-11-18T17:12:43+00:00"
+    },
+    "current_system_id": "sys_1570cf07b799d349",
+    "current_constellation_id": "con_b5bf388ef31b940e",
+    "created_at": "2026-11-18T16:23:45+00:00",
+    "revision": 1,
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_1570cf07b799d349",
+                "name": "System 01",
+                "first_visited_at": "2026-11-18T17:12:43+00:00",
+                "first_visited_revision": 1
+            }
+        ]
+    }
+}

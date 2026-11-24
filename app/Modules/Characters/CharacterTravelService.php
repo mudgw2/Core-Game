@@ -45,7 +45,7 @@ final class CharacterTravelService
         // checks both revision and origin again to reject races between planning and commit.
         $before = $this->storage->read('characters', $characterId);
         if ($before === null) throw new RuntimeException('The selected character does not exist.');
-        if (($before['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+        if (CharacterUniverseContext::activeUniverseId($before) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
         if ((int)($before['revision'] ?? 0) !== $expectedRevision) {
             throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . (int)($before['revision'] ?? 0) . '.');
         }
@@ -57,7 +57,7 @@ final class CharacterTravelService
         }
 
         $result = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $fromSystemId, $destinationSystemId, $path, $systemNames): array {
-            if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
@@ -101,7 +101,7 @@ final class CharacterTravelService
         $travelStatus = 'jump_completed';
 
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $systemsById, $graph, &$travelStatus): array {
-            if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');
@@ -121,7 +121,9 @@ final class CharacterTravelService
 
             $now = gmdate('c');
             $character['current_system_id'] = $nextId;
-            $character['location'] = ['system_id' => $nextId, 'updated_at' => $now];
+            $nextSystem = $systemsById[$nextId] ?? [];
+            $character['current_constellation_id'] = (string)($nextSystem['constellation_id'] ?? '');
+            $character['location'] = ['constellation_id' => (string)($nextSystem['constellation_id'] ?? ''), 'system_id' => $nextId, 'updated_at' => $now];
             $character['revision'] = $actualRevision + 1;
             $exploration = $character['exploration'] ?? [];
             if (!is_array($exploration)) $exploration = [];

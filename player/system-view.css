@@ -1,0 +1,33 @@
+/* CORE 0.1.96: Babylon.js system overview */
+.system-view-panel{margin-top:12px;padding:14px;background:#081321}
+.system-view-layout{display:block}
+.system-canvas-wrap{position:relative;min-width:0;height:470px;overflow:hidden;border-radius:9px;background:radial-gradient(ellipse at center,#14263a,#050a12 74%)}
+#systemViewCanvas{display:block;width:100%;height:100%;min-height:470px;touch-action:none;outline:none}
+.system-world-inspector{min-width:0;padding:14px 15px;background:#0b1725;border-radius:8px}
+.system-world-inspector h3{margin:8px 0;color:var(--text,#e9f0f8);font-size:17px}
+.system-world-inspector>p{color:var(--muted,#9bacc0);font-size:12px;line-height:1.55;min-height:54px}
+.system-world-inspector .stats{margin-top:12px}
+.system-world-inspector .stats div{padding:8px 0}
+.system-world-inspector .stats dt,.system-world-inspector .stats dd{font-size:11px}
+.system-view-panel>.fine-print{margin:10px 4px 2px}
+#backToUniverseButton{width:auto;margin:0;padding:10px 14px}
+@media(max-width:1050px){.system-view-layout{display:block}.system-world-inspector{grid-column:1/-1}.system-canvas-wrap,#systemViewCanvas{height:390px;min-height:390px}.system-world-inspector{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}.system-world-inspector>.eyebrow,.system-world-inspector h3,.system-world-inspector>p{grid-column:1/-1}.system-world-inspector .stats{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;column-gap:20px}}
+@media(max-width:560px){.system-view-layout{display:block}.system-view-panel{padding:8px}.system-canvas-wrap,#systemViewCanvas{height:320px;min-height:320px}.system-world-inspector{display:block}.system-world-inspector .stats{display:block}.system-view-panel .map-toolbar{align-items:flex-start;gap:10px}.system-view-panel .map-toolbar h2{font-size:16px}}
+
+/* CORE 0.1.96 development travel controls */
+.travel-controls{margin-top:18px;padding-top:14px;display:grid;gap:9px}
+.travel-controls label{font-size:12px;color:#c8d4e2}
+.travel-controls button{width:100%;margin:0;padding:11px}
+.travel-status{margin:0;color:var(--muted);font-size:11px;line-height:1.5;min-height:32px}
+
+
+
+/* CORE 0.1.112 multiplayer presence controls */
+.multiplayer-controls { margin-top: 1.1rem; padding-top: .85rem; }
+.multiplayer-controls h3 { margin: .35rem 0; font-size: 1rem; }
+.multiplayer-controls .travel-status { overflow-wrap: anywhere; }
+.multiplayer-controls button { margin-top: .35rem; }
+
+/* CORE 0.1.179: contextual world/moon identification on hover. */
+.system-view-hover-label{position:absolute;z-index:8;max-width:min(260px,calc(100% - 16px));padding:7px 10px;box-shadow:0 0 0 1px #6bb6c7,0 4px 18px #0009;background:rgba(4,13,23,.94);color:#eefaff;font-size:11px;line-height:1.35;pointer-events:none;border-radius:5px}
+.system-view-hover-label.hidden{display:none}

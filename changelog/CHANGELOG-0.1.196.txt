@@ -1,0 +1,8 @@
+CORE 0.1.196
+- Added a 48 km x 48 km high-resolution spherical terrain patch around the player.
+- Added deterministic kilometer-scale local relief for plains, hills, and mountains.
+- Updated the local patch as the character travels, using the same surface sampler as movement and spawn.
+- Faded local detail at the patch boundary to blend into the existing planetary surface.
+- Added current surface altitude to the location HUD and planetary map location readout.
+- Added QA coverage for local relief patch wiring and altitude display.
+- Preserved existing celestial rendering code.

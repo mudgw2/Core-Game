@@ -1,0 +1,35 @@
+CORE 0.1.201 — Assistant QA Results
+
+Source assembly:
+- Complete source: admin(6).zip
+- Sequential overlays: CORE 0.1.197, 0.1.198, 0.1.199, and 0.1.200 updated-files ZIPs
+
+Automated CLI suite:
+- php tests/run.php — PASS, 183 passed, 0 failed
+
+Development browser-QA endpoint suite:
+- api/qa.php executed in a local development request context — PASS, 165 passed, 0 failed
+
+Syntax:
+- PHP syntax — PASS, 108 PHP files parsed
+- JavaScript syntax — PASS, all JavaScript files under player/ and assets/
+
+Release/package:
+- Central version — 0.1.201
+- ZIP integrity — pending final package check
+
+Changes covered by regression assertions:
+- Full-string deterministic hashing for WLD-/SYS-prefixed terrain seeds.
+- Broad, smooth local landform fields and class-based relief amplitudes.
+- Positive local-patch datum fading to zero at the edge, preventing negative relief from being hidden behind the coarse sphere.
+- 320-subdivision player-centered terrain patch and lightweight 128-segment distant sphere.
+- Terrain patch recentering throttled to 6 km of player travel.
+- Static moon orbit guide geometry initialized once instead of rebuilt every render frame.
+- Corrected QA source assertions for backend entity metadata, finite-safe character visual-root grounding, and the existing planet-fixed lunar orbital frame.
+
+Not verified:
+- Browser visual terrain appearance.
+- Actual player foot contact while walking over generated slopes.
+- Real-device frame rate and animation smoothness.
+
+Those require runtime testing in the user's installed Apache environment. Automated source tests do not establish visual acceptance or measured FPS improvement.

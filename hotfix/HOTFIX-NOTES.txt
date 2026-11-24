@@ -1,0 +1,20 @@
+CORE 0.1.139 — Planetary Camera Up-Vector Hotfix
+
+Install:
+1. Extract this ZIP into the CORE project root.
+2. Preserve the included player/world.js path and overwrite the existing file.
+3. Hard-refresh the planetary test world (Ctrl+F5).
+
+Fix:
+ArcRotateCamera's upVector was being mutated with copyFrom(). Babylon.js requires
+assignment of a new Vector3 so its internal up-to-Y rotation matrices are rebuilt.
+Without that, the first movement that changes the surface normal can call
+setTarget(), which attempts to use an undefined matrix and throws the reported
+"Cannot read properties of undefined (reading 'm')" error.
+
+Verification:
+- node --check player/world.js: PASS
+- Browser runtime / visual movement test: NOT PERFORMED
+
+Only player/world.js is included. No player, universe, character, account, or
+persistent world data is changed.

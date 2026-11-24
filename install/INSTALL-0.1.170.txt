@@ -1,0 +1,9 @@
+CORE 0.1.170 installation
+
+1. Back up the current CORE installation.
+2. Extract this incremental ZIP over the existing installation, preserving paths.
+3. Do not delete or replace storage, accounts, characters, universes, or other player data.
+4. Hard-refresh the browser to ensure the updated astronomical-environment.js is loaded.
+5. Enter a world that has generated moons. Diagnostic moon markers and apparent orbital paths are enabled by default.
+
+This is a diagnostic build, not a confirmed moon-visibility fix.

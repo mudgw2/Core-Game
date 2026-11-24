@@ -1,0 +1,10 @@
+CORE 0.1.194 QA RESULTS
+
+Automated regression suite: 180 PASS / 0 FAIL.
+PHP syntax: PASS for modified PHP files.
+
+New regression:
+- Legacy schema-version-1 geography without planet.radius_km can initialize terrain and climate using the world's stable size code.
+- Saved legacy geography input remains unchanged.
+
+Runtime browser verification: NOT PERFORMED. Must be confirmed in the installed environment.

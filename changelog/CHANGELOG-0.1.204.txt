@@ -1,0 +1,10 @@
+CORE 0.1.204 — Planetary Streaming & Surface Rendering
+
+- Reworked local terrain patch regeneration into bounded batches spread across animation frames. The existing patch remains visible until the replacement buffers are ready, reducing long synchronous sampling stalls during fast movement and developer flight.
+- Added deterministic world-space ground color breakup at multiple spatial frequencies without increasing mesh density or requiring external texture assets.
+- Improved ocean specular response and wave displacement while reducing animation update frequency and removing unnecessary per-wave bounding-info recalculation.
+- Preserved the existing planetary radius, terrain generator, authored terrain modifications, spawn validation, movement controls, fly controls, and celestial rendering.
+
+NOTES
+- This release is a rendering-performance step, not the completed persistent geographic chunk system. Existing procedural terrain definitions remain the authoritative persistent world data. Server-backed explored-chunk persistence, predictive streaming, and distance-based chunk LOD require a separate architecture/API milestone and are not represented as completed here.
+- Visual performance must be confirmed in the installed browser, particularly at high flight speeds. Automated tests cannot measure real frame-time behavior.

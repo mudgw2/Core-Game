@@ -1,0 +1,13 @@
+CORE 0.1.165 — Active-Camera Moon Presentation Frame
+
+Apply this patch over CORE 0.1.164.
+
+Extract the included project-relative files into the CORE installation, allowing them to overwrite existing files.
+
+This update rebuilds the moon presentation tangent frame from the active camera direction during each astronomical-environment update. It addresses the diagnosed case where a frozen initial camera heading left the moon behind the active camera after the camera was reoriented.
+
+Generated moon records, deterministic orbital parameters, orbital timing, simulation-clock authority, and moon mesh/material settings are unchanged.
+
+No player data, accounts, universes, storage, secrets, or backups are included.
+
+After installation, enter the same test world and check whether the moon is visible. If it remains invisible, collect the updated Moon renderer diagnostics; do not infer success from automated tests alone.

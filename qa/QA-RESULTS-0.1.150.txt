@@ -1,0 +1,9 @@
+CORE 0.1.150 QA
+
+PASS: PHP regression suite — 140 passed, 0 failed.
+PASS: PHP syntax — player/world.php and config/version.php.
+PASS: JavaScript syntax — player/world.js and player/astronomical-environment.js.
+PASS: ZIP integrity — verified after packaging.
+NOT PERFORMED: Browser visual/runtime QA.
+
+Note: Regression tests verify the initial eastward tangent heading and physical bracket-key handling. Actual in-browser traversal and visual star visibility still require user testing.

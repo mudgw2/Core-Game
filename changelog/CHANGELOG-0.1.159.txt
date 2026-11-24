@@ -1,0 +1,8 @@
+CORE 0.1.159 — Moon Visibility and 1337 System 01 Test Coverage
+
+- Corrected moon sky positioning to use a stable local sky frame derived from the initial camera heading and local surface normal, avoiding the previous global-axis placement that could leave moons behind terrain or outside the default view.
+- Increased the maximum rendered moon diameter, improved low-level emissive visibility, and widened the planetary camera field of view to make the near-horizon moon arc discoverable.
+- Added deterministic test moons to the previously moonless World 01-3 and World 01-6 in Universe 1337 → Constellation 01 → System 01. Existing moon records on the other four worlds remain unchanged.
+- Scoped the test override strictly to Universe seed 1337 and System ID sys_7c6a9d2f7d9b50a9; other universes and systems retain normal generation.
+- Added regression coverage and updated project continuity documentation.
+- Browser visual/runtime verification remains pending.

@@ -1,0 +1,16 @@
+CORE 0.1.131 PATCH INSTALLATION
+
+1. Back up the current CORE application files.
+2. Extract the ZIP contents into the CORE application root, preserving folders.
+3. Allow the existing files to be overwritten when prompted.
+4. Reload gameplay with a hard refresh to bypass cached assets.
+
+Changed application files:
+- config/version.php
+- player/game.php
+- player/player.js
+- tests/run.php
+
+Release documentation is included under release/.
+No saved universe, character, account, credential, backup, log, or generated player data files are included.
+No server service or live installation changes are performed by this patch.

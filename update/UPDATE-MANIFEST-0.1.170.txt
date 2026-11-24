@@ -1,0 +1,15 @@
+CORE 0.1.170 incremental update manifest
+
+Replace these files only:
+- player/astronomical-environment.js
+- tests/run.php
+- config/version.php
+- PROJECT_STATE.md
+- CORE-DESIGN-PRINCIPLES.md
+- CORE-ROADMAP.md
+- release/RELEASE-NOTES-0.1.170.md (new)
+- install/INSTALL-0.1.170.txt (new)
+- update/UPDATE-MANIFEST-0.1.170.txt (new)
+- qa/QA-RESULTS-0.1.170.txt (new)
+
+No storage, account, character, universe, or player records are included.

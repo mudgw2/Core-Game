@@ -1,0 +1,8 @@
+CORE 0.1.203 automated QA
+
+- CORE PHP regression suite: 183 PASS / 0 FAIL
+- Multiplayer TypeScript build: PASS
+- Multiplayer automated tests: 22 PASS / 0 FAIL
+- JavaScript syntax checks: PASS (world.js, planetary-environment.js)
+- PHP syntax checks: PASS (version.php, tests/run.php)
+- Browser visual/runtime verification: NOT PERFORMED

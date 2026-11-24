@@ -1,0 +1,24 @@
+CORE 0.1.178 — UPDATED FILES INSTALLATION
+
+1. Back up the current CORE directory before applying this update.
+2. Extract the ZIP into the existing CORE application root, preserving the archive's directory structure. Allow the listed files to overwrite their existing counterparts.
+3. Ensure the Apache/PHP runtime user can create and write files under:
+   - storage/logs/
+   - storage/diagnostics/
+   The application creates storage/diagnostics/ on the first submitted report. Do not expose storage/ over HTTP; retain the existing storage/.htaccess access-denial rule.
+4. Sign in, open gameplay and use the Diagnostics panel in the left sidebar, or enter the full-screen Planetary Test World and use its floating Diagnostics panel.
+5. Download Report saves a JSON snapshot locally. Submit to Server sends the report over the authenticated session using the existing CSRF token.
+6. After submission, record the displayed report ID. Server reports are stored as JSON under storage/diagnostics/ and are correlated with storage/logs/core.log using the report ID and request ID.
+
+SECURITY / RETENTION
+- Report submission requires a signed-in account and valid CSRF token.
+- The endpoint rejects reports larger than 256 KB and limits each session to one submission every 10 seconds.
+- The server retains at most 100 submitted diagnostic reports.
+- Each log file rotates at 5 MB and retains three prior generations.
+- Browser diagnostics are buffered locally. They are not submitted automatically; submission occurs only when the user clicks Submit to Server.
+
+RUNTIME VERIFICATION
+- PHP and JavaScript syntax checks and the automated source-regression suite passed during packaging.
+- Verify the browser can load diagnostics.js, Download Report produces a JSON file, and Submit to Server returns a report ID.
+- If server submission fails, use Download Report and preserve the JSON file for manual review.
+- Browser rendering behavior and Apache filesystem permissions cannot be verified by static tests.

@@ -1,0 +1,6 @@
+CORE 0.1.177 QA
+- PHP CLI regression suite: PASS — 162 passed, 0 failed.
+- JavaScript syntax checks (player.js, system-view.js, astronomical-environment.js): PASS.
+- PHP syntax checks (version.php, tests/run.php): PASS.
+- ZIP integrity: pending packaging.
+- Browser visual/runtime verification: NOT PERFORMED.

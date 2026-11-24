@@ -1,0 +1,6 @@
+CORE 0.1.128 local verification
+
+PHP syntax: PASS (player/game.php, config/version.php, tests/run.php)
+JavaScript syntax: PASS (player/player.js, player/system-view.js)
+Automated suite: 122 passed, 0 failed
+Browser visual/interaction QA: Not performed

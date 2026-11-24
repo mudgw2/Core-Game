@@ -1,0 +1,22 @@
+CORE 0.1.157 QA RESULTS
+
+Automated PHP regression suite: 152 passed, 0 failed.
+JavaScript syntax: PASS (player/world.js, player/astronomical-environment.js, player/planetary-environment.js).
+PHP syntax: PASS (config/version.php; the regression suite also linted project PHP files).
+Release version: PASS (0.1.157).
+Browser visual/runtime QA: NOT PERFORMED in the build environment.
+
+Implementation checks:
+- Night-sky stars now use a deterministic transparent DynamicTexture on a dedicated Babylon.js background Layer, avoiding world-space clipping, depth occlusion, and billboard positioning.
+- Star-layer opacity is driven by the existing night-visibility calculation.
+- Star layer and texture are disposed with the astronomical environment.
+- Imported locomotion and jump AnimationGroups enable Babylon.js animation blending.
+
+User runtime verification still required:
+- Confirm stars are visible during nighttime and fade appropriately through twilight/daylight.
+- Confirm the background layer remains visible across camera movement and different generated systems/worlds.
+- Confirm standing -> takeoff -> airborne -> landing -> standing transitions blend naturally.
+- Confirm walking/running transitions still behave correctly.
+- Confirm jump physics and multiplayer movement remain unchanged.
+
+Do not treat browser visuals or animation quality as user-confirmed until the user tests this release.

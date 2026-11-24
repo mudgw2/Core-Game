@@ -1,0 +1,5 @@
+CORE 0.1.173 — install
+
+Extract the ZIP into the existing CORE application root, preserving the included relative paths and allowing files to be overwritten.
+The package contains updated files only. Do not extract into a new empty directory.
+After installation, hard-refresh the Player Portal (Ctrl+F5) to bypass cached player.js and player.css.

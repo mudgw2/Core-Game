@@ -1,0 +1,8 @@
+CORE 0.1.160
+
+- Prevented multiplayer idle animation from overriding jump clips while airborne.
+- Transitioned takeoff to airborne at the physical jump apex.
+- Enabled full vertical planetary camera orbit and added F close-view/third-person toggle.
+- Improved moon sky-arc altitude for better visibility from the planetary surface.
+- Preserved deterministic 1337 System 01 test moons and the screen-space night sky.
+- Updated regression coverage and project documentation.

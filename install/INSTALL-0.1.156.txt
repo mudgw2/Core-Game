@@ -1,0 +1,6 @@
+CORE 0.1.156 installation
+1. Back up your CORE installation.
+2. Extract this patch into the CORE project root, preserving relative paths.
+3. Preserve your existing storage directory and all player/universe data.
+4. Hard-refresh the browser to reload JavaScript assets.
+5. Test jump takeoff/air/landing animation, stars at night, and terrain relief.

@@ -1,0 +1,8 @@
+CORE 0.1.154 INSTALLATION
+1. Back up the current CORE installation.
+2. Extract this patch into the CORE project root, preserving relative paths.
+3. Do not replace or delete the existing storage directory.
+4. No storage migration is required.
+5. Verify world entry, planetary clock, and moon visibility/orbital movement in the browser.
+
+This is an incremental source patch. It does not include player data, accounts, universes, secrets, logs, or backups.

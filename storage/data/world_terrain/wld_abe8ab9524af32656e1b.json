@@ -1,0 +1,54 @@
+{
+    "id": "wld_abe8ab9524af32656e1b",
+    "universe_id": "uni_4823a02c264e7612d16b3118",
+    "system_id": "sys_1570cf07b799d349",
+    "world_id": "wld_abe8ab9524af32656e1b",
+    "created_at": "2026-11-23T01:15:21+00:00",
+    "terrain": {
+        "schema_version": 1,
+        "world": {
+            "id": "wld_abe8ab9524af32656e1b",
+            "seed": "WLD-7289D48650358F10C4628BA0",
+            "terrain_seed": "d7a25a3c54c22f523eabe8976893c60525b57aceec57e80e9856cc5c12cf4d0a",
+            "radius_km": 7200
+        },
+        "generator": {
+            "name": "CORE Spherical Fractal Terrain",
+            "version": 1,
+            "model": "spherical_domain_warped_fractal_noise",
+            "parameters": {
+                "hydrographics_fraction": 0.3,
+                "elevation_scale_km": 48,
+                "ocean_depth_scale_km": 18,
+                "continental_frequency": 2.2,
+                "regional_frequency": 5.4,
+                "mountain_frequency": 11,
+                "detail_frequency": 24,
+                "domain_warp_strength": 0.22,
+                "mountain_threshold": 0.69,
+                "hill_threshold": 0.43
+            }
+        },
+        "modifications": [],
+        "feature_schema": {
+            "supported_types": [
+                "mountain",
+                "volcano",
+                "meteor_crater",
+                "elevation_stamp"
+            ],
+            "coordinates": "latitude_longitude_degrees",
+            "distance_unit": "kilometers",
+            "height_unit": "kilometers",
+            "fields": {
+                "id": "stable developer-assigned identifier",
+                "type": "one of supported_types",
+                "latitude": "center latitude from -90 to 90",
+                "longitude": "center longitude from -180 to 180",
+                "radius_km": "feature influence radius",
+                "height_km": "positive relief or crater rim height",
+                "depth_km": "optional crater depression depth"
+            }
+        }
+    }
+}

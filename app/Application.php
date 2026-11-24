@@ -7,34 +7,24 @@ use Core\Core\Logger;
 use Core\Http\Request;
 use Core\Http\Response;
 use Core\Http\Router;
-use Core\Modules\Universe\UniverseService;
-use Core\Modules\Universe\UniverseLifecycleService;
-use Core\Modules\Universe\UniverseLifecycleGuard;
-use Core\Modules\Characters\CharacterService;
 use Core\Modules\ContentCatalog;
-use Core\Modules\Characters\CharacterTravelService;
-use Core\Modules\Characters\CharacterScanService;
-use Core\Modules\Characters\CharacterDiscoveryService;
-use Core\Modules\Characters\CharacterCraftingService;
-use Core\Modules\Characters\CharacterFittingService;
-use Core\Modules\Characters\CharacterLifecycleService;
-use Core\Modules\DataManagementService;
-use Core\Modules\UniverseBackupService;
-use Core\Modules\UniverseDeletionService;
-use Core\Modules\Universe\NavigationRouteService;
-use Core\Storage\JsonStorage;
 use Core\Modules\ModuleContext;
 use Core\Modules\ModuleInterface;
 use Core\Modules\ModuleRegistry;
 use Core\Modules\ServiceContainer;
+use Core\Modules\Core\CoreRuntimeModule;
+use Core\Modules\Core\CoreContentModule;
+use Core\Modules\Core\CoreDataManagementModule;
+use Core\Modules\Characters\CharacterModule;
+use Core\Modules\Universe\UniverseModule;
 use Throwable;
-use RuntimeException;
 
 final class Application
 {
     private Router $router;
     private ServiceContainer $services;
     private ModuleRegistry $modules;
+    private bool $defaultModulesBooted = false;
 
     public function __construct()
     {
@@ -70,24 +60,166 @@ final class Application
         return $this->router;
     }
 
+    /** Boot the standard application modules without requiring HTTP route registration. */
+    public function bootDefaultModules(?array $config = null): array
+    {
+        if ($this->defaultModulesBooted) {
+            return $this->modules->bootAll();
+        }
+
+        $config ??= require CORE_ROOT . '/config/app.php';
+        $this->registerModule(new CoreRuntimeModule($config));
+        $this->registerModule(new UniverseModule());
+        $this->registerModule(new CharacterModule());
+        $this->registerModule(new CoreDataManagementModule());
+        $this->registerModule(new CoreContentModule());
+        $order = $this->bootModules();
+        $this->defaultModulesBooted = true;
+        return $order;
+    }
+
     public function registerDefaultRoutes(): void
     {
-        $config = require CORE_ROOT . '/config/app.php';
-        $storage = new JsonStorage((string)$config['storage']['path']);
+        $this->bootDefaultModules();
+        $config = $this->services->get('core.config');
+
+        $storage = $this->services->get('core.storage');
         $this->router->setBeforeDispatch(static fn(Request $request): ?Response => \Core\Http\PlayerApiSecurity::guard($request, $storage, $config));
-        $universeService = new UniverseService($storage);
-        $universeLifecycleService = new UniverseLifecycleService($storage);
-        $characterService = new CharacterService($storage);
-        $travelService = new CharacterTravelService($storage);
-        $scanService = new CharacterScanService($storage);
-        $discoveryService = new CharacterDiscoveryService($storage);
-        $craftingService = new CharacterCraftingService($storage);
-        $fittingService = new CharacterFittingService($storage);
-        $lifecycleService = new CharacterLifecycleService($storage);
-        $routeService = new NavigationRouteService($storage);
-        $dataManagementService = new DataManagementService($storage);
-        $backupService = new UniverseBackupService($storage, dirname((string)$config['storage']['path']) . '/backups');
-        $universeDeletionService = new UniverseDeletionService($storage, $backupService);
+        $universeService = $this->services->get('universe.service');
+        $universeLifecycleService = $this->services->get('universe.lifecycle');
+        $characterService = $this->services->get('character.service');
+        $travelService = $this->services->get('character.travel');
+        $scanService = $this->services->get('character.scan');
+        $discoveryService = $this->services->get('character.discovery');
+        $craftingService = $this->services->get('character.crafting');
+        $fittingService = $this->services->get('character.fitting');
+        $lifecycleService = $this->services->get('character.lifecycle');
+        $routeService = $this->services->get('navigation.routes');
+        $dataManagementService = $this->services->get('data.management');
+        $backupService = $this->services->get('universe.backups');
+        $universeDeletionService = $this->services->get('universe.deletion');
+
+        $sharedUniverseService = new \Core\Modules\Universe\SharedUniverseService($storage);
+        $this->router->post('/api/universe/share', static function (Request $request) use ($sharedUniverseService): Response {
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null) return Response::json(['ok' => false, 'error' => ['code' => 'authentication_required']], 401);
+            try {
+                $body = $request->jsonBody();
+                $universeId = is_string($body['universe_id'] ?? null) ? trim($body['universe_id']) : '';
+                return Response::json(['ok' => true] + $sharedUniverseService->createShareCode($universeId, $accountId));
+            } catch (Throwable $e) { return Response::json(['ok' => false, 'error' => ['code' => 'share_creation_failed', 'message' => $e->getMessage()]], 400); }
+        });
+        $this->router->post('/api/universe/visit', static function (Request $request) use ($sharedUniverseService): Response {
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null) return Response::json(['ok' => false, 'error' => ['code' => 'authentication_required']], 401);
+            try {
+                $body = $request->jsonBody();
+                $characterId = is_string($body['character_id'] ?? null) ? trim($body['character_id']) : '';
+                $shareCode = is_string($body['share_code'] ?? null) ? trim($body['share_code']) : '';
+                $character = $sharedUniverseService->visit($characterId, $accountId, $shareCode);
+                return Response::json(['ok' => true, 'character' => $character, 'active_universe_id' => (string)($character['active_universe_id'] ?? '')]);
+            } catch (Throwable $e) { return Response::json(['ok' => false, 'error' => ['code' => 'universe_visit_failed', 'message' => $e->getMessage()]], 400); }
+        });
+        $this->router->post('/api/universe/leave', static function (Request $request) use ($sharedUniverseService): Response {
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null) return Response::json(['ok' => false, 'error' => ['code' => 'authentication_required']], 401);
+            try {
+                $body = $request->jsonBody();
+                $characterId = is_string($body['character_id'] ?? null) ? trim($body['character_id']) : '';
+                $character = $sharedUniverseService->leave($characterId, $accountId);
+                return Response::json(['ok' => true, 'character' => $character, 'active_universe_id' => (string)($character['universe_id'] ?? '')]);
+            } catch (Throwable $e) { return Response::json(['ok' => false, 'error' => ['code' => 'universe_leave_failed', 'message' => $e->getMessage()]], 400); }
+        });
+
+        $this->router->post('/api/multiplayer/token', static function (Request $request) use ($storage): Response {
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null) return Response::json(['ok' => false, 'error' => ['code' => 'authentication_required']], 401);
+            $expectedCsrf = (string)($_SESSION['core_csrf'] ?? '');
+            $providedCsrf = (string)($request->header('X-CORE-CSRF') ?? '');
+            if ($expectedCsrf === '' || $providedCsrf === '' || !hash_equals($expectedCsrf, $providedCsrf)) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'csrf_validation_failed']], 403);
+            }
+            $body = $request->jsonBody();
+            $characterId = is_string($body['character_id'] ?? null) ? trim($body['character_id']) : '';
+            $requestedWorldId = is_string($body['world_id'] ?? null) ? trim($body['world_id']) : '';
+            if ($characterId === '' || !\Core\Http\PlayerApiSecurity::ownsCharacter($storage, $characterId, $accountId)) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'record_not_found']], 404);
+            }
+            $character = $storage->read('characters', $characterId);
+            $universeId = \Core\Modules\Characters\CharacterUniverseContext::activeUniverseId($character);
+            if ($universeId !== (string)($character['universe_id'] ?? '') && !\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $universeId, $accountId)) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'shared_universe_access_denied']], 403);
+            }
+            $systemId = (string)($character['current_system_id'] ?? $character['location']['system_id'] ?? '');
+            if ($universeId === '' || $systemId === '' || ($character['lifecycle']['enabled'] ?? true) !== true || ($character['lifecycle']['locked'] ?? false) === true) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'character_not_playable']], 409);
+            }
+            $universe = $storage->read('universes', $universeId);
+            if (!is_array($universe) || ($universe['id'] ?? null) !== $universeId
+                || ($universe['lifecycle']['enabled'] ?? true) !== true || ($universe['lifecycle']['locked'] ?? false) === true) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_playable']], 409);
+            }
+            $locationId = '';
+            if ($requestedWorldId !== '') {
+                $system = null;
+                foreach (($universe['baseline']['systems'] ?? []) as $candidateSystem) {
+                    if (is_array($candidateSystem) && (string)($candidateSystem['id'] ?? '') === $systemId) {
+                        $system = $candidateSystem;
+                        break;
+                    }
+                }
+                if (!is_array($system)) return Response::json(['ok' => false, 'error' => ['code' => 'world_not_found']], 404);
+                $generatedWorlds = (new \Core\Modules\Universe\WorldGenerator())->generateForSystem((string)($universe['seed'] ?? $universe['baseline']['seed'] ?? ''), $system);
+                foreach ($generatedWorlds as $generatedWorld) {
+                    if ((string)($generatedWorld['id'] ?? '') === $requestedWorldId) {
+                        $locationId = $requestedWorldId;
+                        break;
+                    }
+                }
+                if ($locationId === '') return Response::json(['ok' => false, 'error' => ['code' => 'world_not_found']], 404);
+            }
+            $secret = (string)(getenv('CORE_MULTIPLAYER_HMAC_SECRET') ?: '');
+            if (strlen($secret) < 32) return Response::json(['ok' => false, 'error' => ['code' => 'multiplayer_not_configured']], 503);
+            $currentConstellationId = trim((string)($character['current_constellation_id'] ?? $character['location']['constellation_id'] ?? ''));
+            if ($currentConstellationId === '') {
+                foreach (($universe['baseline']['systems'] ?? []) as $candidateSystem) {
+                    if (is_array($candidateSystem) && (string)($candidateSystem['id'] ?? '') === $systemId) {
+                        $currentConstellationId = (string)($candidateSystem['constellation_id'] ?? '');
+                        break;
+                    }
+                }
+            }
+            $characterAppearance = is_array($character['appearance'] ?? null) ? $character['appearance'] : [];
+            $appearanceTint = strtolower(trim((string)($characterAppearance['tint'] ?? '#61d8e8')));
+            if (!preg_match('/^#[0-9a-f]{6}$/', $appearanceTint)) $appearanceTint = '#61d8e8';
+            $appearanceSaturation = filter_var($characterAppearance['saturation'] ?? 100, FILTER_VALIDATE_INT);
+            if ($appearanceSaturation === false || $appearanceSaturation < 0 || $appearanceSaturation > 200) $appearanceSaturation = 100;
+            $appearanceBrightness = filter_var($characterAppearance['brightness'] ?? 100, FILTER_VALIDATE_INT);
+            if ($appearanceBrightness === false || $appearanceBrightness < 50 || $appearanceBrightness > 150) $appearanceBrightness = 100;
+            $now = time();
+            $claims = [
+                'issuer' => 'core-php', 'audience' => 'core-colyseus',
+                'subject' => $characterId, 'accountId' => $accountId,
+                'characterId' => $characterId, 'universeId' => $universeId,
+                'appearanceTint' => $appearanceTint,
+                'appearanceSaturation' => $appearanceSaturation,
+                'appearanceBrightness' => $appearanceBrightness,
+                'universeSeed' => (string)($universe['seed'] ?? ''),
+                'constellationId' => $currentConstellationId,
+                'systemId' => $systemId, 'locationId' => $locationId, 'issuedAt' => $now,
+                'expiresAt' => $now + 300, 'tokenId' => bin2hex(random_bytes(16)),
+            ];
+            $encode = static fn(string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+            $header = $encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
+            $payload = $encode(json_encode($claims, JSON_THROW_ON_ERROR));
+            $unsigned = $header . '.' . $payload;
+            $signature = $encode(hash_hmac('sha256', $unsigned, $secret, true));
+            return Response::json(['ok' => true, 'token' => $unsigned . '.' . $signature, 'expires_at' => $claims['expiresAt'], 'identity' => ['characterId' => $characterId, 'universeId' => $universeId, 'constellationId' => $currentConstellationId, 'systemId' => $systemId, 'locationId' => $locationId, 'appearanceTint' => $appearanceTint, 'appearanceSaturation' => $appearanceSaturation, 'appearanceBrightness' => $appearanceBrightness]]);
+        });
 
         $this->router->get('/api/data-management', static function () use ($dataManagementService, $config): Response {
             if (!self::developmentRequestAllowed($config)) {
@@ -202,10 +334,7 @@ final class Application
             catch (Throwable $e) { Logger::error('Item characteristic schema request failed', ['exception' => $e::class, 'message' => $e->getMessage()]); return Response::json(['ok' => false, 'error' => ['code' => 'content_characteristics_failed', 'message' => 'Item characteristic definitions could not be loaded. Check CORE logs.']], 500); }
         });
 
-        $characteristicManager = new \Core\Modules\ItemCharacteristicsManagementService(
-            CORE_ROOT . '/config/content',
-            dirname((string)$config['storage']['path']) . '/backups'
-        );
+        $characteristicManager = $this->services->get('content.characteristics');
         $this->router->post('/api/content/item-characteristics/validate', static function (Request $request) use ($characteristicManager, $config): Response {
             if (!self::developmentRequestAllowed($config)) return Response::json(['ok'=>false,'error'=>['code'=>'content_management_disabled','message'=>'Content editing is available only in development mode from a local/private network.']],403);
             $body=$request->jsonBody(); $document=$body['document']??null;
@@ -221,10 +350,7 @@ final class Application
             catch (Throwable $e) { $message=$e->getMessage(); if (str_contains($message,'revision conflict')) return Response::json(['ok'=>false,'error'=>['code'=>'content_revision_conflict','message'=>$message]],409); Logger::warning('Characteristic schema save failed',['expected_revision'=>$revision,'message'=>$message]); return Response::json(['ok'=>false,'error'=>['code'=>'content_save_rejected','message'=>$message]],400); }
         });
 
-        $contentManager = new \Core\Modules\ContentManagementService(
-            CORE_ROOT . '/config/content',
-            dirname((string)$config['storage']['path']) . '/backups'
-        );
+        $contentManager = $this->services->get('content.management');
         $this->router->post('/api/content/validate', static function (Request $request) use ($contentManager, $config): Response {
             if (!self::developmentRequestAllowed($config)) return Response::json(['ok' => false, 'error' => ['code' => 'content_management_disabled', 'message' => 'Content editing is available only in development mode from a local/private network.']], 403);
             $body = $request->jsonBody();
@@ -247,6 +373,165 @@ final class Application
                 if (str_contains($message, 'revision conflict')) return Response::json(['ok' => false, 'error' => ['code' => 'content_revision_conflict', 'message' => $message]], 409);
                 Logger::warning('Game content save failed', ['catalog' => $catalog, 'expected_revision' => $revision, 'message' => $message]);
                 return Response::json(['ok' => false, 'error' => ['code' => 'content_save_rejected', 'message' => $message]], 400);
+            }
+        });
+
+
+        $this->router->post('/api/world/clock', static function (Request $request) use ($config): Response {
+            $body = $request->jsonBody();
+            $universeId = trim((string)($body['universe_id'] ?? ''));
+            $worldId = trim((string)($body['world_id'] ?? ''));
+            $adjustHours = $body['adjust_hours'] ?? 0;
+            if ($universeId === '' || $worldId === '' || !is_numeric($adjustHours)
+                || !is_finite((float)$adjustHours) || abs((float)$adjustHours) > 24 * 365) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_clock_request']], 400);
+            }
+            try {
+                $clock = \Core\Simulation\SimulationClock::update(
+                    (string)$config['storage']['path'],
+                    $universeId,
+                    $worldId,
+                    (float)$adjustHours * 3600
+                );
+                return Response::json(['ok' => true, 'clock' => $clock]);
+            } catch (\Throwable $e) {
+                \Core\Core\Logger::error('Simulation clock update failed', ['message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'simulation_clock_unavailable', 'message' => 'The simulation clock could not be updated.']], 500);
+            }
+        });
+
+        $this->router->get('/api/world/terrain', static function (Request $request) use ($storage): Response {
+            $universeId = trim((string)$request->query('universe_id', ''));
+            $systemId = trim((string)$request->query('system_id', ''));
+            $worldId = trim((string)$request->query('world_id', ''));
+            if ($universeId === '' || $systemId === '' || $worldId === '') {
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_terrain_request', 'message' => 'Provide universe_id, system_id, and world_id.']], 400);
+            }
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null || !\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $universeId, $accountId)) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_access_denied']], 403);
+            }
+            $universe = $storage->read('universes', $universeId);
+            if (!is_array($universe) || (string)($universe['id'] ?? '') !== $universeId) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found']], 404);
+            }
+            $system = null;
+            foreach (($universe['baseline']['systems'] ?? []) as $candidate) {
+                if (is_array($candidate) && (string)($candidate['id'] ?? '') === $systemId) { $system = $candidate; break; }
+            }
+            if (!is_array($system)) return Response::json(['ok' => false, 'error' => ['code' => 'system_not_found']], 404);
+            $worlds = (new \Core\Modules\Universe\WorldGenerator())->generateForSystem((string)($universe['seed'] ?? ''), $system);
+            $world = null;
+            foreach ($worlds as $candidate) {
+                if ((string)($candidate['id'] ?? '') === $worldId) { $world = $candidate; break; }
+            }
+            if (!is_array($world)) return Response::json(['ok' => false, 'error' => ['code' => 'world_not_found']], 404);
+            try {
+                // Geography is the established physical reference; terrain and climate
+                // are independent persistent world assets and never rewrite it.
+                $geographyRecord = $storage->read('world_geography', $worldId);
+                if (!is_array($geographyRecord) || !is_array($geographyRecord['geography'] ?? null)) {
+                    $geography = (new \Core\Modules\Universe\PlanetaryGeographyGenerator())->generate($world);
+                    $geographyRecord = $storage->createIfAbsent('world_geography', $worldId, [
+                        'id' => $worldId, 'universe_id' => $universeId, 'system_id' => $systemId,
+                        'world_id' => $worldId, 'created_at' => gmdate('c'), 'geography' => $geography,
+                    ]);
+                }
+                if ((string)($geographyRecord['universe_id'] ?? '') !== $universeId
+                    || (string)($geographyRecord['system_id'] ?? '') !== $systemId
+                    || !is_array($geographyRecord['geography'] ?? null)) {
+                    return Response::json(['ok' => false, 'error' => ['code' => 'geography_record_conflict']], 409);
+                }
+                $terrain = $storage->read('world_terrain', $worldId);
+                if ($terrain === null) {
+                    $definition = (new \Core\Modules\Universe\PlanetaryTerrainGenerator())->generate($world, $geographyRecord['geography']);
+                    $terrain = $storage->createIfAbsent('world_terrain', $worldId, [
+                        'id' => $worldId, 'universe_id' => $universeId, 'system_id' => $systemId,
+                        'world_id' => $worldId, 'created_at' => gmdate('c'), 'terrain' => $definition,
+                    ]);
+                }
+                $climate = $storage->read('world_climate', $worldId);
+                if ($climate === null) {
+                    $definition = (new \Core\Modules\Universe\PlanetaryClimateGenerator())->generate($world, $geographyRecord['geography']);
+                    $climate = $storage->createIfAbsent('world_climate', $worldId, [
+                        'id' => $worldId, 'universe_id' => $universeId, 'system_id' => $systemId,
+                        'world_id' => $worldId, 'created_at' => gmdate('c'), 'climate' => $definition,
+                    ]);
+                }
+                foreach ([['record' => $terrain, 'key' => 'terrain'], ['record' => $climate, 'key' => 'climate']] as $entry) {
+                    if ((string)($entry['record']['universe_id'] ?? '') !== $universeId
+                        || (string)($entry['record']['system_id'] ?? '') !== $systemId
+                        || !is_array($entry['record'][$entry['key']] ?? null)) {
+                        return Response::json(['ok' => false, 'error' => ['code' => $entry['key'] . '_record_conflict']], 409);
+                    }
+                }
+                return Response::json([
+                    'ok' => true,
+                    'terrain' => $terrain['terrain'],
+                    'climate' => $climate['climate'],
+                    'terrain_asset' => 'storage/data/world_terrain/' . $worldId . '.json',
+                    'climate_asset' => 'storage/data/world_climate/' . $worldId . '.json',
+                ]);
+            } catch (\Throwable $e) {
+                \Core\Core\Logger::error('Planetary terrain assets could not be loaded', ['world_id' => $worldId, 'message' => $e->getMessage()]);
+                return Response::json(['ok' => false, 'error' => ['code' => 'terrain_generation_failed', 'message' => 'Planetary terrain data could not be generated or loaded.']], 500);
+            }
+        });
+
+        $this->router->get('/api/world/geography', static function (Request $request) use ($storage): Response {
+            $universeId = trim((string)$request->query('universe_id', ''));
+            $systemId = trim((string)$request->query('system_id', ''));
+            $worldId = trim((string)$request->query('world_id', ''));
+            if ($universeId === '' || $systemId === '' || $worldId === '') {
+                return Response::json(['ok' => false, 'error' => ['code' => 'invalid_geography_request', 'message' => 'Provide universe_id, system_id, and world_id.']], 400);
+            }
+            \Core\Http\PlayerApiSecurity::startSession();
+            $accountId = \Core\Http\PlayerApiSecurity::currentUserId();
+            if ($accountId === null || !\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $universeId, $accountId)) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_access_denied']], 403);
+            }
+            $universe = $storage->read('universes', $universeId);
+            if (!is_array($universe) || (string)($universe['id'] ?? '') !== $universeId) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'universe_not_found']], 404);
+            }
+            $system = null;
+            foreach (($universe['baseline']['systems'] ?? []) as $candidate) {
+                if (is_array($candidate) && (string)($candidate['id'] ?? '') === $systemId) { $system = $candidate; break; }
+            }
+            if (!is_array($system)) return Response::json(['ok' => false, 'error' => ['code' => 'system_not_found']], 404);
+            $worlds = (new \Core\Modules\Universe\WorldGenerator())->generateForSystem((string)($universe['seed'] ?? ''), $system);
+            $world = null;
+            foreach ($worlds as $candidate) {
+                if ((string)($candidate['id'] ?? '') === $worldId) { $world = $candidate; break; }
+            }
+            if (!is_array($world)) return Response::json(['ok' => false, 'error' => ['code' => 'world_not_found']], 404);
+            try {
+                // Return an established baseline before invoking the current generator.
+                // This keeps saved worlds stable even after future generator changes.
+                $record = $storage->read('world_geography', $worldId);
+                if ($record === null) {
+                    $generated = (new \Core\Modules\Universe\PlanetaryGeographyGenerator())->generate($world);
+                    $record = $storage->createIfAbsent('world_geography', $worldId, [
+                        'id' => $worldId,
+                        'universe_id' => $universeId,
+                        'system_id' => $systemId,
+                        'world_id' => $worldId,
+                        'created_at' => gmdate('c'),
+                        'geography' => $generated,
+                    ]);
+                }
+
+                if ((string)($record['universe_id'] ?? '') !== $universeId
+                    || (string)($record['system_id'] ?? '') !== $systemId
+                    || (string)($record['world_id'] ?? '') !== $worldId
+                    || !is_array($record['geography'] ?? null)) {
+                    return Response::json(['ok' => false, 'error' => ['code' => 'geography_record_conflict']], 409);
+                }
+
+                return Response::json(['ok' => true, 'geography' => $record['geography']]);
+            } catch (Throwable $e) {
+                return Response::json(['ok' => false, 'error' => ['code' => 'geography_generation_failed', 'message' => $e->getMessage()]], 400);
             }
         });
 
@@ -441,7 +726,7 @@ final class Application
             if (!is_string($universeId)) return Response::json(['ok' => false, 'error' => ['code' => 'invalid_universe_id', 'message' => 'universe_id must be a string.']], 400);
             try {
                 if (trim($universeId) === '') {
-                    $all = (new JsonStorage((string)$config['storage']['path']))->all('characters');
+                    $all = $storage->all('characters');
                 } else {
                     $all = $characterService->listForUniverse($universeId);
                 }

@@ -1,0 +1,6 @@
+CORE 0.1.154
+- Added deterministic estimated physical properties to generated world profiles.
+- Added deterministic multi-moon orbital records to generated worlds.
+- Updated astronomical presentation to render all generated moons and advance their positions using authoritative simulation time.
+- Updated project state, design principles, and roadmap.
+- No player-data migration; no storage contents included.

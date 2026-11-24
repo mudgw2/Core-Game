@@ -1,0 +1,9 @@
+CORE 0.1.202 local source QA
+
+PASS — PHP project test suite: 183 passed, 0 failed.
+PASS — node --check player/planetary-environment.js.
+PASS — node --check player/world.js.
+PASS — PHP syntax validation is included in the project test suite and passed.
+PASS — ZIP integrity check.
+
+Not yet verified: visual water appearance, perceived terrain relief, horizon appearance, and interactive F6 flight in the user's installed browser. These require runtime testing in the installed environment.

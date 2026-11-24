@@ -1,0 +1,9 @@
+CORE 0.1.178 — Persistent Diagnostics and Browser Report Capture
+- Added browser-side capture of uncaught JavaScript errors, unhandled promise rejections, console errors, WebGL context loss/restoration, connectivity changes, and visibility changes.
+- Added Babylon.js scene snapshots for Constellation/Universe, System, and Planetary views, including active camera, camera vectors/frustum, mesh visibility/positions/material depth state, rendering groups, layer masks, and active mesh names.
+- Added player-facing Download Report and Submit to Server actions in both gameplay navigation and the full-screen Planetary Test World. Reports include a unique report ID, CORE version, browser/runtime details, canvas dimensions, WebGL information, recent events, and current scene snapshots.
+- Added an authenticated, CSRF-protected report endpoint with a 256 KB request limit, a 10-second submission throttle, and bounded report retention (100 reports).
+- Extended persistent server logging with automatic rotation at 5 MB per log file, retaining three prior generations. Log entries include CORE version, request ID, method/path, and a non-reversible session fingerprint for correlation.
+- Existing server-side PHP warning, exception, fatal-error capture and focused log channels remain in place.
+- Diagnostics are opt-in for submission: browser events are buffered locally until the user downloads or submits a report.
+- Automated source-regression tests cover capture hooks, scene registration, endpoint protections, and retention controls. Browser/server integration still requires runtime verification in the installed environment.

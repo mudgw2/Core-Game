@@ -24,7 +24,7 @@ final class CharacterLifecycleService
 
         $changed = false;
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $action, $expectedRevision, &$changed): array {
-            if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             $revision = (int)($character['revision'] ?? 0);
             if ($revision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $revision . '.');
             $lifecycle = is_array($character['lifecycle'] ?? null) ? $character['lifecycle'] : [];

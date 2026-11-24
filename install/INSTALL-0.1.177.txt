@@ -1,0 +1,12 @@
+CORE 0.1.177 — Updated files only
+
+Replace the files in this archive at the matching paths in your CORE installation.
+
+Changes:
+- Constellation View no longer creates the wireframe grid.
+- System View renders generated moons and their orbit paths around each parent planet.
+- Planetary moon orbit diagnostic tubes initialize and update with matching 65-point path topology.
+
+After replacement, hard-refresh the player page so the versioned JavaScript assets reload. Confirm the Constellation View is grid-free and inspect a System View containing worlds with generated moons. Then enter a moon-bearing planetary world and verify the moons are visible above the horizon.
+
+Automated QA: 162 passed, 0 failed. JavaScript and PHP syntax checks passed. Browser visual/runtime verification was not performed.

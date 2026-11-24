@@ -1,0 +1,19 @@
+CORE 0.1.172 cumulative incremental update manifest
+
+This package includes the 0.1.171 runtime safeguards plus the 0.1.172 Constellation map rendering correction.
+
+Overwrite these files:
+- player/world.js
+- player/system-view.js
+- player/character-roster-preview.js
+- player/astronomical-environment.js
+- player/player.js
+- config/version.php
+- tests/run.php
+
+New documentation:
+- release/RELEASE-NOTES-0.1.171.md
+- release/RELEASE-NOTES-0.1.172.md
+- install/INSTALL-0.1.172.txt
+- qa/QA-RESULTS-0.1.172.txt
+- update/UPDATE-MANIFEST-0.1.172.txt

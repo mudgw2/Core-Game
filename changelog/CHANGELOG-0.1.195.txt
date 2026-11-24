@@ -1,0 +1,7 @@
+CORE 0.1.195 — Visible Planetary Terrain Relief
+
+- Increased spherical terrain mesh tessellation from 256 to 512 segments so the procedural elevation field is represented by geometry at the player viewing scale.
+- Added a persisted relief_exaggeration terrain parameter (default 2.0); legacy terrain definitions receive the same renderer fallback without being rewritten.
+- Applied the same relief scale to generated elevation and authored terrain features, keeping spawn and movement sampling consistent with the rendered surface.
+- Refresh Babylon mesh bounds after vertex displacement so frustum culling uses the elevated terrain envelope.
+- Preserved terrain coloration, deterministic generation, climate separation, and existing celestial rendering.

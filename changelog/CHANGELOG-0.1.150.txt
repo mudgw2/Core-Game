@@ -1,0 +1,5 @@
+CORE 0.1.150
+- Corrected initial planetary movement heading at the equatorial spawn. The player now starts facing along the local east/west tangent, so forward movement changes longitude instead of remaining aligned with the north/south axis.
+- Preserved surface-relative A/D turning and geodesic movement; turning continues to rotate the heading around the local surface normal.
+- Made simulated-time shortcuts recognize both the browser key value and physical BracketLeft/BracketRight key codes for improved keyboard-layout reliability.
+- Added regression coverage for the initial eastward tangent heading and bracket key handling.

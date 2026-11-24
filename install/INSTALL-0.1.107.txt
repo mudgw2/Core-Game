@@ -1,0 +1,14 @@
+CORE 0.1.107 PATCH INSTALLATION
+
+Baseline: user-confirmed CORE 0.1.106 (154 tests passed)
+
+1. Back up the current application source before installing.
+2. Extract this ZIP into the CORE application root, preserving the directory paths.
+3. Allow the files to overwrite their existing counterparts.
+4. Do not overwrite or replace storage/, player data, universe data, account records, backups, credentials, or logs. This patch contains none of those files.
+5. Open the workbench and player-facing pages normally. Stylesheet URLs now include the release version, so updated CSS is requested instead of relying on cached copies.
+6. Run the installation QA and verify the workbench, account portal, character selection/creation, universe creation, gameplay, and test-world UI.
+
+No database or JSON data migration is required.
+
+The patch is limited to source, stylesheets, QA checks, and release documentation. It does not push to GitHub or modify a live installation.

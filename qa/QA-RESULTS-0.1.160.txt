@@ -1,0 +1,20 @@
+CORE 0.1.160 — QA RESULTS
+
+Source: user-uploaded full project archive admin(20261119-193645).zip (version 0.1.159).
+Assistant-run PHP regression suite: 154 passed, 0 failed.
+JavaScript syntax:
+- node --check player/world.js: PASS
+- node --check player/astronomical-environment.js: PASS
+PHP syntax:
+- php -l config/version.php: PASS
+- php -l tests/run.php: PASS
+ZIP integrity: verified after packaging.
+Browser visual/runtime QA: NOT PERFORMED.
+
+Required user runtime checks:
+1. Idle, walk, run, takeoff, airborne, landing, and return to idle.
+2. Repeat jump while connected to multiplayer and while stationary.
+3. Drag camera vertically above the horizon and back down.
+4. Mouse-wheel zoom in/out; press F to toggle close/third-person.
+5. Check moon visibility on World 01-1, 01-3, and 01-6 in Universe 1337 / Constellation 01 / System 01.
+6. Recheck Constellation 3D view.

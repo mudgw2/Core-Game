@@ -1,0 +1,7 @@
+CORE 0.1.175 QA RESULTS
+
+PHP test suite: 163 passed, 0 failed.
+JavaScript syntax: player/player.js passed node --check.
+PHP syntax: changed PHP files passed; full-suite PHP syntax check passed.
+
+Runtime visual QA: NOT PERFORMED in this environment. Verify the three-level navigation in the browser after installation.

@@ -1,0 +1,11 @@
+CORE 0.1.90 PATCH INSTALLATION
+
+1. Back up the current CORE application files.
+2. Extract this patch ZIP into the CORE application root, preserving folder paths.
+3. Allow included files to overwrite matching application files.
+4. Do not replace or merge storage/, .git/, or any player data.
+5. Confirm config/version.php reports 0.1.90.
+6. Run php tests/run.php and POST api/qa.php from the trusted development/private network.
+7. Sign in, open a character's assigned universe, select several star systems, and verify the world list and UWP profiles load.
+
+World profiles are derived at runtime from the existing universe seed and stable system IDs. Existing universe records are not rewritten and no data migration is required.

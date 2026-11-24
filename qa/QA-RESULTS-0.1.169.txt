@@ -1,0 +1,10 @@
+CORE 0.1.169 QA RESULTS
+
+PHP automated suite: 158 passed, 0 failed.
+PHP syntax: PASS (covered by the automated suite).
+JavaScript syntax: PASS (node --check player/astronomical-environment.js).
+Incremental ZIP integrity: PASS (verified after packaging).
+Package scope: 10 changed/added files only; no player data, storage, accounts, secrets, logs, backups, or generated universe data included.
+Browser visual/runtime QA: NOT PERFORMED. The assistant cannot confirm visible pixels in the user's installed browser. User confirmation is required.
+
+0.1.169 specifically makes moon materials opaque, bypasses depth testing after the geometric-horizon placement constraint, and moves moon meshes to rendering group 2. Automated tests verify these source-level contracts; they do not prove browser rendering.

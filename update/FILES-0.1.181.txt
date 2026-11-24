@@ -1,0 +1,11 @@
+config/version.php
+player/astronomical-environment.js
+tests/run.php
+qa/QA-RESULTS-0.1.181.txt
+release/RELEASE-NOTES-0.1.181.md
+changelog/CHANGELOG-0.1.181.txt
+install/INSTALL-0.1.181.txt
+update/UPDATE-0.1.181.txt
+update/FILES-0.1.181.txt
+CORE-DESIGN-PRINCIPLES.md
+PROJECT_STATE.md

@@ -1,0 +1,10 @@
+[{
+	"caretakers_status": "Alive",
+	"weight":3
+	},{
+	"caretakers_status": "Unknown",
+	"weight":1
+	},{
+	"caretakers_status": "Father is Alive",
+	"weight":1
+	}]

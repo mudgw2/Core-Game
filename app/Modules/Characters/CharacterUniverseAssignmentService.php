@@ -65,7 +65,8 @@ final class CharacterUniverseAssignmentService
                 $systemId = (string)$first['id'];
                 $current['universe_id'] = $universeId;
                 $current['current_system_id'] = $systemId;
-                $current['location'] = ['system_id' => $systemId, 'updated_at' => $now];
+                $current['current_constellation_id'] = (string)($first['constellation_id'] ?? '');
+                $current['location'] = ['constellation_id' => (string)($first['constellation_id'] ?? ''), 'system_id' => $systemId, 'updated_at' => $now];
                 $current['exploration'] = ['explored_systems' => [[
                     'system_id' => $systemId,
                     'name' => (string)($first['name'] ?? $systemId),

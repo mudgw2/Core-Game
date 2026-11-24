@@ -1,0 +1,6 @@
+CORE 0.1.151
+- Server-authoritative persistent simulation clock per universe/world.
+- Periodic client synchronization and server-side bracket-key time adjustment.
+- Dedicated locked/atomic clock persistence.
+- Explicit eastward spherical tangent for initial travel heading.
+- Non-mutating forward/reverse movement vector construction.

@@ -1,0 +1,48 @@
+[
+	{
+	"birth": "Remote Outpost",
+	"image":"img/remote_outpost.webp",
+	"weight":3
+	},{
+	"birth": "Isolated Town",
+	"image":"img/isolated_town.webp",
+	"weight":3
+	},{
+	"birth": "Slave World",
+	"image":"img/",
+	"weight":1
+	},{
+	"birth": "Average Town",
+	"image":"img/town1.webp",
+	"weight":3
+	},{
+	"birth": "Monastery",
+	"image":"img/monastery.webp",
+	"weight":1
+	},{
+	"birth": "Military Compound",
+	"image":"img/military_compound.webp",
+	"weight":1
+	},{
+	"birth": "Large City",
+	"image":"img/",
+	"weight":1
+	},{
+	"birth": "Mega City",
+	"image":"img/",
+	"weight":3
+	},{
+	"birth": "Nomad Clan",
+	"image":"img/nomads.webp",
+	"weight":1
+	},{
+	"birth": "Shipborn",
+	"image":"img/",
+	"weight":1
+	},{
+	"birth": "Adopted by Aliens",
+	"image":"img/",
+	"weight":1
+	}
+	
+]

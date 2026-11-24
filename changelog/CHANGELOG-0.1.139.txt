@@ -1,0 +1,25 @@
+CORE 0.1.139 CHANGELOG
+
+- Replaced rectangular finite ground with a complete spherical planetary mesh.
+- Added seed-derived spherical terrain, ocean/land classification, and physical planetary dimensions.
+- Added latitude/longitude coordinate reporting and tangent-plane movement that follows the globe.
+- Expanded multiplayer movement bounds for traversal across spherical planetary surfaces.
+- Replaced the hex-only map presentation with a global map generated from the same spherical surface field.
+- Retained 20x16 hex data only as a legacy/demo compatibility reference.
+- Moved QA-RESULTS files to qa/, CHANGELOG files to changelog/, and RELEASE-NOTES files to release/.
+- Updated the geography schema and automated coverage for spherical planetary metadata.
+
+QA follow-up:
+- Corrected two obsolete browser-QA assertions: Universe View terminology/state was updated to the accepted Constellation View hierarchy, and the old test-world-ground expectation was replaced with checks for the spherical planetary terrain integration.
+- Browser-triggered API QA suite verified: 161 passed, 0 failed.
+
+Runtime hotfix:
+- Replaced unsupported BABYLON.Quaternion.FromUnitVectors calls with a local surface-alignment helper built from Babylon.js Quaternion.RotationAxis, including parallel and antiparallel normal handling. Applied to the local player and remote avatars.
+- Added automated source-contract checks to prevent reintroducing the unsupported API.
+
+Runtime stability follow-up:
+- Corrected initial camera placement after planetary spawn so the camera is placed above the surface instead of retaining its pre-spawn position near the planet origin.
+- Camera offset is transported between successive surface normals as the player moves, preserving orbit controls while following the spherical surface.
+- Removed the visible spawn-marker sphere that appeared as a bubble at the player spawn.
+- Removed redundant per-frame terrain resampling/reprojection; movement and authoritative transforms already return surface-conforming positions.
+- Added automated regression assertions for camera placement/transport, spawn-marker removal, and movement-loop resampling.

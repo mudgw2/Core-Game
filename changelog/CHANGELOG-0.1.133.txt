@@ -1,0 +1,7 @@
+CORE 0.1.133
+- Integrated the existing procedural Lifepath generator into Character Creation > Background.
+- Added species maturation age and maximum age handling.
+- Added year-by-year history advancement and whole-history regeneration.
+- Added the education, military, employment, and independent profession milestone.
+- Added explicit history locking and server-side snapshot validation.
+- Persisted locked background history and character age.

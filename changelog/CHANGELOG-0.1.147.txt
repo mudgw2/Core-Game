@@ -1,0 +1,6 @@
+CORE 0.1.147
+- Added a persistent planetary local-time indicator with day, twilight, and night icons driven by current stellar illumination.
+- Added simulated local clock and day count display.
+- Added developer-only World Information panel to the Esc menu on development installations accessed from a trusted local/private network.
+- World Information displays actual boot world data, planetary dimensions where derivable, geography payload, system context, and runtime renderer/astronomy status.
+- Removed the fabricated presentation-only moon; natural satellites are displayed only when explicitly present in world moon/satellite data.

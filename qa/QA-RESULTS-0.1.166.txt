@@ -1,0 +1,13 @@
+CORE 0.1.166 QA
+
+Assistant-run checks:
+- PHP regression suite: 156 passed, 0 failed.
+- JavaScript syntax check (player/astronomical-environment.js): PASS.
+- PHP syntax check (config/version.php): PASS.
+- ZIP integrity: PASS.
+- Browser visual/runtime QA: NOT PERFORMED.
+
+User-reported prior baseline:
+- CORE 0.1.165: PASS — 163 tests passed.
+
+Moon visibility remains pending user runtime confirmation.

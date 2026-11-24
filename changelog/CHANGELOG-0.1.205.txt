@@ -1,0 +1,8 @@
+CORE 0.1.205 — UWP-Driven Planetary Atmosphere
+
+- Added a reusable atmospheric rendering profile derived from each world's existing UWP atmosphere code (0-F).
+- Added atmosphere-scaled daylight scattering, local planetary haze/fog, and atmospheric star fading.
+- Vacuum worlds retain daytime star visibility; denser atmospheres progressively obscure stars in daylight.
+- Celestial meshes and materials remain explicitly independent of planetary scene fog, preserving the 0.1.190 isolation behavior.
+- Exotic, corrosive, insidious, and unusual UWP classes use restrained generic optical profiles; exact gas composition and sky color are not inferred without composition data.
+- No universe, character, geography, terrain, or saved world data is migrated or rewritten.

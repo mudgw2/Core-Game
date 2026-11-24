@@ -1,0 +1,7 @@
+CORE 0.1.173 QA
+
+PHP automated tests: 162 passed, 0 failed.
+JavaScript syntax (node --check): PASS for player.js, world.js, system-view.js, astronomical-environment.js, and character-roster-preview.js.
+PHP syntax: PASS for config/version.php and tests/run.php; project test runner also checks project PHP files.
+ZIP integrity: verified after packaging.
+Browser/WebGL visual verification: NOT PERFORMED in this environment.

@@ -1,0 +1,24 @@
+CORE 0.1.114 INSTALLATION
+
+1. Back up the current CORE source before applying. Preserve the existing player storage, accounts, characters, universes, backups, and configuration files; this patch does not replace them.
+2. Extract this patch into the existing CORE application root, preserving the directory paths in UPDATE-MANIFEST.txt. Do not copy any files into multiplayer/node_modules.
+3. No environment changes are required. Keep the existing CORE_MULTIPLAYER_HMAC_SECRET and CORE_MULTIPLAYER_PUBLIC_URL settings unchanged. Do not rotate or expose the secret.
+4. From the multiplayer directory, run:
+   npm run build
+   npm test
+   The package dependencies are unchanged; npm install is not required for this release.
+5. From the CORE application root, run:
+   php tests/run.php
+   php -l app/Application.php
+   php -l api/qa.php
+   node --check player/world.js
+   node --check player/player.js
+6. Restart the multiplayer service and reload Apache so both the Node and PHP changes are active:
+   systemctl restart core-multiplayer
+   systemctl reload apache2
+7. Sign in using two separate authenticated browser sessions. Enter the same generated world with characters assigned to the same universe/system/world.
+8. Confirm each client displays the other character's humanoid and nameplate. Move one character with WASD/arrow keys, then walk and run with Shift. Confirm the other client sees smooth position/rotation updates and the correct character tint. Confirm the avatar disappears after its session leaves.
+9. On the system overview, connect the multiplayer session and confirm the room status displays a real room ID rather than "undefined".
+10. Confirm the test-world HUD reports the number of other players present. Player positions remain transient and are not saved to character records.
+
+No new ports, listeners, firewall rules, or environment variables are introduced. The reverse proxy and existing PHP/Node HMAC secret configuration remain unchanged.

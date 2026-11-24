@@ -1,0 +1,12 @@
+CORE 0.1.127 INSTALLATION
+
+1. Extract this patch over the CORE 0.1.126 project root, preserving paths.
+2. Hard-refresh the browser to reload player assets.
+3. Test Character Selection -> Play, select a System, select a World, and return to Constellation View.
+4. Test Copy Key / Create or rotate share code.
+
+This patch does not modify account records, character records, credentials, generated universe data, backups, logs, or multiplayer service configuration.
+
+Changed files are limited to source, tests, version metadata, and release notes. No server restart is required.
+
+The share-code action now uses /api/universe-share.php, which dispatches through the same authenticated application router as the existing canonical share route.

@@ -1,0 +1,17 @@
+CORE 0.1.163 — Moon Renderer Diagnostics
+
+INSTALLATION
+1. Back up your current CORE source.
+2. Extract this patch into the CORE project root, preserving relative paths.
+3. Do not replace storage/, player data, universes, accounts, secrets, backups, logs, or .git/.
+4. Confirm config/version.php reports 0.1.163.
+5. Run php tests/run.php from the project root.
+6. Hard-refresh the browser so the versioned JavaScript assets reload.
+
+MOON DIAGNOSTIC CHECK
+1. Enter Universe 1337 → Constellation 01 → System 01 → World 01-1.
+2. Open Game Menu → World Information.
+3. Expand “Moon renderer diagnostics”.
+4. Copy the complete JSON shown in that section and send it back.
+
+This release adds read-only diagnostics only. It deliberately does not alter moon size, brightness, orbital data, or placement. The diagnostic output distinguishes missing moon data, missing mesh creation, disabled/invisible meshes, and camera/screen projection problems so the next correction can target the actual failure.

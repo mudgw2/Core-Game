@@ -1,0 +1,4212 @@
+{
+    "id": "wld_f93cb906d3dd9279b0ce",
+    "universe_id": "uni_4823a02c264e7612d16b3118",
+    "system_id": "sys_1570cf07b799d349",
+    "world_id": "wld_f93cb906d3dd9279b0ce",
+    "created_at": "2026-11-18T19:43:44+00:00",
+    "geography": {
+        "schema_version": 2,
+        "planet": {
+            "body_type": "temperate",
+            "radius_km": 1600,
+            "diameter_km": 3200,
+            "circumference_km": 10053.1,
+            "render_scale": "compressed_visual_scale",
+            "coordinate_system": "spherical_latitude_longitude"
+        },
+        "global_surface": {
+            "model": "seeded_spherical_field",
+            "generator_version": 2,
+            "hydrographics_fraction": 0.6,
+            "legacy_hex_grid": true
+        },
+        "generator": {
+            "name": "CORE Planetary Geography",
+            "version": 2
+        },
+        "world": {
+            "id": "wld_f93cb906d3dd9279b0ce",
+            "seed": "WLD-F71ECF0ED183617465583D17",
+            "uwp": "X2360006",
+            "size": 2,
+            "hydrographics": 6,
+            "population": 0,
+            "starport": "X"
+        },
+        "map": {
+            "coordinate_system": "axial_hex_grid",
+            "columns": 20,
+            "rows": 16,
+            "hex_scale_km": 50,
+            "hex_count": 320,
+            "water_hex_count": 192,
+            "hexes": [
+                {
+                    "id": "hex_0101",
+                    "coordinates": "0101",
+                    "q": 0,
+                    "r": 0,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "572ed837cb95"
+                },
+                {
+                    "id": "hex_0201",
+                    "coordinates": "0201",
+                    "q": 1,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ccb04c292c3f"
+                },
+                {
+                    "id": "hex_0301",
+                    "coordinates": "0301",
+                    "q": 2,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "158311f7784a"
+                },
+                {
+                    "id": "hex_0401",
+                    "coordinates": "0401",
+                    "q": 3,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e49b027fd043"
+                },
+                {
+                    "id": "hex_0501",
+                    "coordinates": "0501",
+                    "q": 4,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "31fc122fc92e"
+                },
+                {
+                    "id": "hex_0601",
+                    "coordinates": "0601",
+                    "q": 5,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "51a11bdb91ba"
+                },
+                {
+                    "id": "hex_0701",
+                    "coordinates": "0701",
+                    "q": 6,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5ecd982a28aa"
+                },
+                {
+                    "id": "hex_0801",
+                    "coordinates": "0801",
+                    "q": 7,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0b6e6276c0d4"
+                },
+                {
+                    "id": "hex_0901",
+                    "coordinates": "0901",
+                    "q": 8,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3ffd56917667"
+                },
+                {
+                    "id": "hex_1001",
+                    "coordinates": "1001",
+                    "q": 9,
+                    "r": 0,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.871,
+                    "seed_fingerprint": "53ab3b7735df"
+                },
+                {
+                    "id": "hex_1101",
+                    "coordinates": "1101",
+                    "q": 10,
+                    "r": 0,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.325,
+                    "seed_fingerprint": "fbea2945ebaa"
+                },
+                {
+                    "id": "hex_1201",
+                    "coordinates": "1201",
+                    "q": 11,
+                    "r": 0,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.86,
+                    "seed_fingerprint": "71af0b743d29"
+                },
+                {
+                    "id": "hex_1301",
+                    "coordinates": "1301",
+                    "q": 12,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8120478f1def"
+                },
+                {
+                    "id": "hex_1401",
+                    "coordinates": "1401",
+                    "q": 13,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "72cc210f9c24"
+                },
+                {
+                    "id": "hex_1501",
+                    "coordinates": "1501",
+                    "q": 14,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ff520bb185cf"
+                },
+                {
+                    "id": "hex_1601",
+                    "coordinates": "1601",
+                    "q": 15,
+                    "r": 0,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.899,
+                    "seed_fingerprint": "25160a9f9671"
+                },
+                {
+                    "id": "hex_1701",
+                    "coordinates": "1701",
+                    "q": 16,
+                    "r": 0,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.353,
+                    "seed_fingerprint": "0c9a73f3082d"
+                },
+                {
+                    "id": "hex_1801",
+                    "coordinates": "1801",
+                    "q": 17,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "090f31418d6e"
+                },
+                {
+                    "id": "hex_1901",
+                    "coordinates": "1901",
+                    "q": 18,
+                    "r": 0,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "29acf7e6becd"
+                },
+                {
+                    "id": "hex_2001",
+                    "coordinates": "2001",
+                    "q": 19,
+                    "r": 0,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.881,
+                    "seed_fingerprint": "062f55a93b55"
+                },
+                {
+                    "id": "hex_0102",
+                    "coordinates": "0102",
+                    "q": 0,
+                    "r": 1,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "61f07ce36969"
+                },
+                {
+                    "id": "hex_0202",
+                    "coordinates": "0202",
+                    "q": 1,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "9cecc3a4f20f"
+                },
+                {
+                    "id": "hex_0302",
+                    "coordinates": "0302",
+                    "q": 2,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e40c578d2fa7"
+                },
+                {
+                    "id": "hex_0402",
+                    "coordinates": "0402",
+                    "q": 3,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "aa1570c5e1b8"
+                },
+                {
+                    "id": "hex_0502",
+                    "coordinates": "0502",
+                    "q": 4,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "58bb34c36b70"
+                },
+                {
+                    "id": "hex_0602",
+                    "coordinates": "0602",
+                    "q": 5,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "dafb89267918"
+                },
+                {
+                    "id": "hex_0702",
+                    "coordinates": "0702",
+                    "q": 6,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c9537c5c4427"
+                },
+                {
+                    "id": "hex_0802",
+                    "coordinates": "0802",
+                    "q": 7,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "045fe592323c"
+                },
+                {
+                    "id": "hex_0902",
+                    "coordinates": "0902",
+                    "q": 8,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e59c517899e1"
+                },
+                {
+                    "id": "hex_1002",
+                    "coordinates": "1002",
+                    "q": 9,
+                    "r": 1,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.333,
+                    "seed_fingerprint": "ca70af0a0225"
+                },
+                {
+                    "id": "hex_1102",
+                    "coordinates": "1102",
+                    "q": 10,
+                    "r": 1,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.084,
+                    "seed_fingerprint": "55dbfedf8a42"
+                },
+                {
+                    "id": "hex_1202",
+                    "coordinates": "1202",
+                    "q": 11,
+                    "r": 1,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.084,
+                    "seed_fingerprint": "043dc9c6f046"
+                },
+                {
+                    "id": "hex_1302",
+                    "coordinates": "1302",
+                    "q": 12,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5427ff48d942"
+                },
+                {
+                    "id": "hex_1402",
+                    "coordinates": "1402",
+                    "q": 13,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b2c87559978a"
+                },
+                {
+                    "id": "hex_1502",
+                    "coordinates": "1502",
+                    "q": 14,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "afe2f6c21422"
+                },
+                {
+                    "id": "hex_1602",
+                    "coordinates": "1602",
+                    "q": 15,
+                    "r": 1,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.871,
+                    "seed_fingerprint": "065ee2de3957"
+                },
+                {
+                    "id": "hex_1702",
+                    "coordinates": "1702",
+                    "q": 16,
+                    "r": 1,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.867,
+                    "seed_fingerprint": "34f3aa0b1aa9"
+                },
+                {
+                    "id": "hex_1802",
+                    "coordinates": "1802",
+                    "q": 17,
+                    "r": 1,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.902,
+                    "seed_fingerprint": "ada9f63e91ee"
+                },
+                {
+                    "id": "hex_1902",
+                    "coordinates": "1902",
+                    "q": 18,
+                    "r": 1,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5f402a726c0a"
+                },
+                {
+                    "id": "hex_2002",
+                    "coordinates": "2002",
+                    "q": 19,
+                    "r": 1,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "e3756ccec47e"
+                },
+                {
+                    "id": "hex_0103",
+                    "coordinates": "0103",
+                    "q": 0,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "40c96cc71f5b"
+                },
+                {
+                    "id": "hex_0203",
+                    "coordinates": "0203",
+                    "q": 1,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "2ef22168912e"
+                },
+                {
+                    "id": "hex_0303",
+                    "coordinates": "0303",
+                    "q": 2,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "4dd18252093c"
+                },
+                {
+                    "id": "hex_0403",
+                    "coordinates": "0403",
+                    "q": 3,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "40b0ceeb85e5"
+                },
+                {
+                    "id": "hex_0503",
+                    "coordinates": "0503",
+                    "q": 4,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c0da00835abf"
+                },
+                {
+                    "id": "hex_0603",
+                    "coordinates": "0603",
+                    "q": 5,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "001c8625e26e"
+                },
+                {
+                    "id": "hex_0703",
+                    "coordinates": "0703",
+                    "q": 6,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "402197161093"
+                },
+                {
+                    "id": "hex_0803",
+                    "coordinates": "0803",
+                    "q": 7,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8ca433a12099"
+                },
+                {
+                    "id": "hex_0903",
+                    "coordinates": "0903",
+                    "q": 8,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "34fb3cbf3ca0"
+                },
+                {
+                    "id": "hex_1003",
+                    "coordinates": "1003",
+                    "q": 9,
+                    "r": 2,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.333,
+                    "seed_fingerprint": "78684647e063"
+                },
+                {
+                    "id": "hex_1103",
+                    "coordinates": "1103",
+                    "q": 10,
+                    "r": 2,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "f6645afb864c"
+                },
+                {
+                    "id": "hex_1203",
+                    "coordinates": "1203",
+                    "q": 11,
+                    "r": 2,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.34,
+                    "seed_fingerprint": "ff496c9d4c0f"
+                },
+                {
+                    "id": "hex_1303",
+                    "coordinates": "1303",
+                    "q": 12,
+                    "r": 2,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.328,
+                    "seed_fingerprint": "4e1ff7ece64c"
+                },
+                {
+                    "id": "hex_1403",
+                    "coordinates": "1403",
+                    "q": 13,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ceeba2ca50a4"
+                },
+                {
+                    "id": "hex_1503",
+                    "coordinates": "1503",
+                    "q": 14,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "42a8c737ca3f"
+                },
+                {
+                    "id": "hex_1603",
+                    "coordinates": "1603",
+                    "q": 15,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "47110621b355"
+                },
+                {
+                    "id": "hex_1703",
+                    "coordinates": "1703",
+                    "q": 16,
+                    "r": 2,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "0b5852e7cfb1"
+                },
+                {
+                    "id": "hex_1803",
+                    "coordinates": "1803",
+                    "q": 17,
+                    "r": 2,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.073,
+                    "seed_fingerprint": "8e1ef040c8b5"
+                },
+                {
+                    "id": "hex_1903",
+                    "coordinates": "1903",
+                    "q": 18,
+                    "r": 2,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a6260af0614d"
+                },
+                {
+                    "id": "hex_2003",
+                    "coordinates": "2003",
+                    "q": 19,
+                    "r": 2,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.075,
+                    "seed_fingerprint": "4f5869b03e8c"
+                },
+                {
+                    "id": "hex_0104",
+                    "coordinates": "0104",
+                    "q": 0,
+                    "r": 3,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.363,
+                    "seed_fingerprint": "d6645f258596"
+                },
+                {
+                    "id": "hex_0204",
+                    "coordinates": "0204",
+                    "q": 1,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ce71de15f13b"
+                },
+                {
+                    "id": "hex_0304",
+                    "coordinates": "0304",
+                    "q": 2,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "69de8f251705"
+                },
+                {
+                    "id": "hex_0404",
+                    "coordinates": "0404",
+                    "q": 3,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "beddd109b866"
+                },
+                {
+                    "id": "hex_0504",
+                    "coordinates": "0504",
+                    "q": 4,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c069947936b4"
+                },
+                {
+                    "id": "hex_0604",
+                    "coordinates": "0604",
+                    "q": 5,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "21457a485a3e"
+                },
+                {
+                    "id": "hex_0704",
+                    "coordinates": "0704",
+                    "q": 6,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "03ffe02ad927"
+                },
+                {
+                    "id": "hex_0804",
+                    "coordinates": "0804",
+                    "q": 7,
+                    "r": 3,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "1915f41823fb"
+                },
+                {
+                    "id": "hex_0904",
+                    "coordinates": "0904",
+                    "q": 8,
+                    "r": 3,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.375,
+                    "seed_fingerprint": "5cd11e987c31"
+                },
+                {
+                    "id": "hex_1004",
+                    "coordinates": "1004",
+                    "q": 9,
+                    "r": 3,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.368,
+                    "seed_fingerprint": "041aadf76e2a"
+                },
+                {
+                    "id": "hex_1104",
+                    "coordinates": "1104",
+                    "q": 10,
+                    "r": 3,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "2e913607ee8b"
+                },
+                {
+                    "id": "hex_1204",
+                    "coordinates": "1204",
+                    "q": 11,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8a78176ba7e2"
+                },
+                {
+                    "id": "hex_1304",
+                    "coordinates": "1304",
+                    "q": 12,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "439722c57c2b"
+                },
+                {
+                    "id": "hex_1404",
+                    "coordinates": "1404",
+                    "q": 13,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c686f87a6ca4"
+                },
+                {
+                    "id": "hex_1504",
+                    "coordinates": "1504",
+                    "q": 14,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "443374a3a5cd"
+                },
+                {
+                    "id": "hex_1604",
+                    "coordinates": "1604",
+                    "q": 15,
+                    "r": 3,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "af0d40937948"
+                },
+                {
+                    "id": "hex_1704",
+                    "coordinates": "1704",
+                    "q": 16,
+                    "r": 3,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.079,
+                    "seed_fingerprint": "5942a940cfa9"
+                },
+                {
+                    "id": "hex_1804",
+                    "coordinates": "1804",
+                    "q": 17,
+                    "r": 3,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.86,
+                    "seed_fingerprint": "6a29b1a47614"
+                },
+                {
+                    "id": "hex_1904",
+                    "coordinates": "1904",
+                    "q": 18,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b267e50aa054"
+                },
+                {
+                    "id": "hex_2004",
+                    "coordinates": "2004",
+                    "q": 19,
+                    "r": 3,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f3d78a8c8d0b"
+                },
+                {
+                    "id": "hex_0105",
+                    "coordinates": "0105",
+                    "q": 0,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "bbffb8d97bca"
+                },
+                {
+                    "id": "hex_0205",
+                    "coordinates": "0205",
+                    "q": 1,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "dff686f88b4e"
+                },
+                {
+                    "id": "hex_0305",
+                    "coordinates": "0305",
+                    "q": 2,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "410735c78687"
+                },
+                {
+                    "id": "hex_0405",
+                    "coordinates": "0405",
+                    "q": 3,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e3556cc4388b"
+                },
+                {
+                    "id": "hex_0505",
+                    "coordinates": "0505",
+                    "q": 4,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "de3108ad5d07"
+                },
+                {
+                    "id": "hex_0605",
+                    "coordinates": "0605",
+                    "q": 5,
+                    "r": 4,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.088,
+                    "seed_fingerprint": "c860f0685585"
+                },
+                {
+                    "id": "hex_0705",
+                    "coordinates": "0705",
+                    "q": 6,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.333,
+                    "seed_fingerprint": "970847e87fea"
+                },
+                {
+                    "id": "hex_0805",
+                    "coordinates": "0805",
+                    "q": 7,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.368,
+                    "seed_fingerprint": "30b765c3fdf9"
+                },
+                {
+                    "id": "hex_0905",
+                    "coordinates": "0905",
+                    "q": 8,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.37,
+                    "seed_fingerprint": "f310ed44e247"
+                },
+                {
+                    "id": "hex_1005",
+                    "coordinates": "1005",
+                    "q": 9,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.373,
+                    "seed_fingerprint": "ff5e804f06c2"
+                },
+                {
+                    "id": "hex_1105",
+                    "coordinates": "1105",
+                    "q": 10,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6352b254ddb4"
+                },
+                {
+                    "id": "hex_1205",
+                    "coordinates": "1205",
+                    "q": 11,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0c83799d700c"
+                },
+                {
+                    "id": "hex_1305",
+                    "coordinates": "1305",
+                    "q": 12,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e56a3402658e"
+                },
+                {
+                    "id": "hex_1405",
+                    "coordinates": "1405",
+                    "q": 13,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.355,
+                    "seed_fingerprint": "9e723ecbfa96"
+                },
+                {
+                    "id": "hex_1505",
+                    "coordinates": "1505",
+                    "q": 14,
+                    "r": 4,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.36,
+                    "seed_fingerprint": "358963ae7919"
+                },
+                {
+                    "id": "hex_1605",
+                    "coordinates": "1605",
+                    "q": 15,
+                    "r": 4,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.08,
+                    "seed_fingerprint": "9cb98fd04793"
+                },
+                {
+                    "id": "hex_1705",
+                    "coordinates": "1705",
+                    "q": 16,
+                    "r": 4,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.08,
+                    "seed_fingerprint": "0b3efce1ae1e"
+                },
+                {
+                    "id": "hex_1805",
+                    "coordinates": "1805",
+                    "q": 17,
+                    "r": 4,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.867,
+                    "seed_fingerprint": "57b97d0d75ce"
+                },
+                {
+                    "id": "hex_1905",
+                    "coordinates": "1905",
+                    "q": 18,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b50bb3b32d77"
+                },
+                {
+                    "id": "hex_2005",
+                    "coordinates": "2005",
+                    "q": 19,
+                    "r": 4,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c36534fbab9b"
+                },
+                {
+                    "id": "hex_0106",
+                    "coordinates": "0106",
+                    "q": 0,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "951d036c722e"
+                },
+                {
+                    "id": "hex_0206",
+                    "coordinates": "0206",
+                    "q": 1,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d253c83eb294"
+                },
+                {
+                    "id": "hex_0306",
+                    "coordinates": "0306",
+                    "q": 2,
+                    "r": 5,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.368,
+                    "seed_fingerprint": "ee465680c1ef"
+                },
+                {
+                    "id": "hex_0406",
+                    "coordinates": "0406",
+                    "q": 3,
+                    "r": 5,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.383,
+                    "seed_fingerprint": "3f85f77d969a"
+                },
+                {
+                    "id": "hex_0506",
+                    "coordinates": "0506",
+                    "q": 4,
+                    "r": 5,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "6d37ebbeedfb"
+                },
+                {
+                    "id": "hex_0606",
+                    "coordinates": "0606",
+                    "q": 5,
+                    "r": 5,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.871,
+                    "seed_fingerprint": "5fa70aa4a508"
+                },
+                {
+                    "id": "hex_0706",
+                    "coordinates": "0706",
+                    "q": 6,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "98330b3aa130"
+                },
+                {
+                    "id": "hex_0806",
+                    "coordinates": "0806",
+                    "q": 7,
+                    "r": 5,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.078,
+                    "seed_fingerprint": "62a72a9bcb10"
+                },
+                {
+                    "id": "hex_0906",
+                    "coordinates": "0906",
+                    "q": 8,
+                    "r": 5,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.08,
+                    "seed_fingerprint": "936dd53a87ad"
+                },
+                {
+                    "id": "hex_1006",
+                    "coordinates": "1006",
+                    "q": 9,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "757105cee09d"
+                },
+                {
+                    "id": "hex_1106",
+                    "coordinates": "1106",
+                    "q": 10,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "7826afd711e9"
+                },
+                {
+                    "id": "hex_1206",
+                    "coordinates": "1206",
+                    "q": 11,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8b0dbd664054"
+                },
+                {
+                    "id": "hex_1306",
+                    "coordinates": "1306",
+                    "q": 12,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d3cbfde77132"
+                },
+                {
+                    "id": "hex_1406",
+                    "coordinates": "1406",
+                    "q": 13,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "227784ffd233"
+                },
+                {
+                    "id": "hex_1506",
+                    "coordinates": "1506",
+                    "q": 14,
+                    "r": 5,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.36,
+                    "seed_fingerprint": "071bac739e19"
+                },
+                {
+                    "id": "hex_1606",
+                    "coordinates": "1606",
+                    "q": 15,
+                    "r": 5,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.867,
+                    "seed_fingerprint": "bfa726589bd3"
+                },
+                {
+                    "id": "hex_1706",
+                    "coordinates": "1706",
+                    "q": 16,
+                    "r": 5,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.871,
+                    "seed_fingerprint": "e879f4f954ce"
+                },
+                {
+                    "id": "hex_1806",
+                    "coordinates": "1806",
+                    "q": 17,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b19e96f172c7"
+                },
+                {
+                    "id": "hex_1906",
+                    "coordinates": "1906",
+                    "q": 18,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f2544e8d326b"
+                },
+                {
+                    "id": "hex_2006",
+                    "coordinates": "2006",
+                    "q": 19,
+                    "r": 5,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "02685576efeb"
+                },
+                {
+                    "id": "hex_0107",
+                    "coordinates": "0107",
+                    "q": 0,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "10a27ca93fc4"
+                },
+                {
+                    "id": "hex_0207",
+                    "coordinates": "0207",
+                    "q": 1,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "74bf2be72c10"
+                },
+                {
+                    "id": "hex_0307",
+                    "coordinates": "0307",
+                    "q": 2,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8a0ae54a78a4"
+                },
+                {
+                    "id": "hex_0407",
+                    "coordinates": "0407",
+                    "q": 3,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d19e561359f2"
+                },
+                {
+                    "id": "hex_0507",
+                    "coordinates": "0507",
+                    "q": 4,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "95cb214f1c74"
+                },
+                {
+                    "id": "hex_0607",
+                    "coordinates": "0607",
+                    "q": 5,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c31dec3a3e14"
+                },
+                {
+                    "id": "hex_0707",
+                    "coordinates": "0707",
+                    "q": 6,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "34d436493770"
+                },
+                {
+                    "id": "hex_0807",
+                    "coordinates": "0807",
+                    "q": 7,
+                    "r": 6,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.899,
+                    "seed_fingerprint": "1a3e72ed0077"
+                },
+                {
+                    "id": "hex_0907",
+                    "coordinates": "0907",
+                    "q": 8,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "196c0638cc4a"
+                },
+                {
+                    "id": "hex_1007",
+                    "coordinates": "1007",
+                    "q": 9,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "7507a590e16a"
+                },
+                {
+                    "id": "hex_1107",
+                    "coordinates": "1107",
+                    "q": 10,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a1376d384c83"
+                },
+                {
+                    "id": "hex_1207",
+                    "coordinates": "1207",
+                    "q": 11,
+                    "r": 6,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "d05c67076f47"
+                },
+                {
+                    "id": "hex_1307",
+                    "coordinates": "1307",
+                    "q": 12,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e6145e774ecc"
+                },
+                {
+                    "id": "hex_1407",
+                    "coordinates": "1407",
+                    "q": 13,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a0095e43ffce"
+                },
+                {
+                    "id": "hex_1507",
+                    "coordinates": "1507",
+                    "q": 14,
+                    "r": 6,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.888,
+                    "seed_fingerprint": "a9e6d3dc3677"
+                },
+                {
+                    "id": "hex_1607",
+                    "coordinates": "1607",
+                    "q": 15,
+                    "r": 6,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.895,
+                    "seed_fingerprint": "9de2ab861b22"
+                },
+                {
+                    "id": "hex_1707",
+                    "coordinates": "1707",
+                    "q": 16,
+                    "r": 6,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.867,
+                    "seed_fingerprint": "c902a267f7f2"
+                },
+                {
+                    "id": "hex_1807",
+                    "coordinates": "1807",
+                    "q": 17,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "57c854b869b4"
+                },
+                {
+                    "id": "hex_1907",
+                    "coordinates": "1907",
+                    "q": 18,
+                    "r": 6,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "7386ec26a1af"
+                },
+                {
+                    "id": "hex_2007",
+                    "coordinates": "2007",
+                    "q": 19,
+                    "r": 6,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.078,
+                    "seed_fingerprint": "eb84f3d587d5"
+                },
+                {
+                    "id": "hex_0108",
+                    "coordinates": "0108",
+                    "q": 0,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6670e75ee774"
+                },
+                {
+                    "id": "hex_0208",
+                    "coordinates": "0208",
+                    "q": 1,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "9ac350029b84"
+                },
+                {
+                    "id": "hex_0308",
+                    "coordinates": "0308",
+                    "q": 2,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "fe62144fe222"
+                },
+                {
+                    "id": "hex_0408",
+                    "coordinates": "0408",
+                    "q": 3,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d05df8261b7d"
+                },
+                {
+                    "id": "hex_0508",
+                    "coordinates": "0508",
+                    "q": 4,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.857,
+                    "seed_fingerprint": "2b4caf13a508"
+                },
+                {
+                    "id": "hex_0608",
+                    "coordinates": "0608",
+                    "q": 5,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "8bb076e7b8bd"
+                },
+                {
+                    "id": "hex_0708",
+                    "coordinates": "0708",
+                    "q": 6,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.878,
+                    "seed_fingerprint": "56abbe6ceb54"
+                },
+                {
+                    "id": "hex_0808",
+                    "coordinates": "0808",
+                    "q": 7,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.899,
+                    "seed_fingerprint": "3a34b86e4ed6"
+                },
+                {
+                    "id": "hex_0908",
+                    "coordinates": "0908",
+                    "q": 8,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a7ad5c4a2d77"
+                },
+                {
+                    "id": "hex_1008",
+                    "coordinates": "1008",
+                    "q": 9,
+                    "r": 7,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.087,
+                    "seed_fingerprint": "ac7856a8bcba"
+                },
+                {
+                    "id": "hex_1108",
+                    "coordinates": "1108",
+                    "q": 10,
+                    "r": 7,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.079,
+                    "seed_fingerprint": "e070e2716fd9"
+                },
+                {
+                    "id": "hex_1208",
+                    "coordinates": "1208",
+                    "q": 11,
+                    "r": 7,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.36,
+                    "seed_fingerprint": "cfc091269e4e"
+                },
+                {
+                    "id": "hex_1308",
+                    "coordinates": "1308",
+                    "q": 12,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.902,
+                    "seed_fingerprint": "20df0b4b1c0e"
+                },
+                {
+                    "id": "hex_1408",
+                    "coordinates": "1408",
+                    "q": 13,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "bb1c1bba6962"
+                },
+                {
+                    "id": "hex_1508",
+                    "coordinates": "1508",
+                    "q": 14,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "494570266207"
+                },
+                {
+                    "id": "hex_1608",
+                    "coordinates": "1608",
+                    "q": 15,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.867,
+                    "seed_fingerprint": "463a08c1e228"
+                },
+                {
+                    "id": "hex_1708",
+                    "coordinates": "1708",
+                    "q": 16,
+                    "r": 7,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.857,
+                    "seed_fingerprint": "29052d5e6e04"
+                },
+                {
+                    "id": "hex_1808",
+                    "coordinates": "1808",
+                    "q": 17,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0cf0904dbff9"
+                },
+                {
+                    "id": "hex_1908",
+                    "coordinates": "1908",
+                    "q": 18,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3d6f2c243a69"
+                },
+                {
+                    "id": "hex_2008",
+                    "coordinates": "2008",
+                    "q": 19,
+                    "r": 7,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "07949ff83736"
+                },
+                {
+                    "id": "hex_0109",
+                    "coordinates": "0109",
+                    "q": 0,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "63a0b8f0fdfe"
+                },
+                {
+                    "id": "hex_0209",
+                    "coordinates": "0209",
+                    "q": 1,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6e90628b70dd"
+                },
+                {
+                    "id": "hex_0309",
+                    "coordinates": "0309",
+                    "q": 2,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "1d547768091f"
+                },
+                {
+                    "id": "hex_0409",
+                    "coordinates": "0409",
+                    "q": 3,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "fd61ce603db7"
+                },
+                {
+                    "id": "hex_0509",
+                    "coordinates": "0509",
+                    "q": 4,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5c378bf29e84"
+                },
+                {
+                    "id": "hex_0609",
+                    "coordinates": "0609",
+                    "q": 5,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "1b14507dc073"
+                },
+                {
+                    "id": "hex_0709",
+                    "coordinates": "0709",
+                    "q": 6,
+                    "r": 8,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.075,
+                    "seed_fingerprint": "9aa3aae386e6"
+                },
+                {
+                    "id": "hex_0809",
+                    "coordinates": "0809",
+                    "q": 7,
+                    "r": 8,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.072,
+                    "seed_fingerprint": "ebff240de515"
+                },
+                {
+                    "id": "hex_0909",
+                    "coordinates": "0909",
+                    "q": 8,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f3bd3eff8bda"
+                },
+                {
+                    "id": "hex_1009",
+                    "coordinates": "1009",
+                    "q": 9,
+                    "r": 8,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.072,
+                    "seed_fingerprint": "3da83de37100"
+                },
+                {
+                    "id": "hex_1109",
+                    "coordinates": "1109",
+                    "q": 10,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "9eb813a95851"
+                },
+                {
+                    "id": "hex_1209",
+                    "coordinates": "1209",
+                    "q": 11,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f08626f2f64d"
+                },
+                {
+                    "id": "hex_1309",
+                    "coordinates": "1309",
+                    "q": 12,
+                    "r": 8,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.358,
+                    "seed_fingerprint": "2d69372da32d"
+                },
+                {
+                    "id": "hex_1409",
+                    "coordinates": "1409",
+                    "q": 13,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "14d724ad5b10"
+                },
+                {
+                    "id": "hex_1509",
+                    "coordinates": "1509",
+                    "q": 14,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c7306ad0f694"
+                },
+                {
+                    "id": "hex_1609",
+                    "coordinates": "1609",
+                    "q": 15,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ee4516213511"
+                },
+                {
+                    "id": "hex_1709",
+                    "coordinates": "1709",
+                    "q": 16,
+                    "r": 8,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "d597932ba408"
+                },
+                {
+                    "id": "hex_1809",
+                    "coordinates": "1809",
+                    "q": 17,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e451b6e0ff97"
+                },
+                {
+                    "id": "hex_1909",
+                    "coordinates": "1909",
+                    "q": 18,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6eb0383deeef"
+                },
+                {
+                    "id": "hex_2009",
+                    "coordinates": "2009",
+                    "q": 19,
+                    "r": 8,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "039a85ef9fa5"
+                },
+                {
+                    "id": "hex_0110",
+                    "coordinates": "0110",
+                    "q": 0,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "84ab25e49fe5"
+                },
+                {
+                    "id": "hex_0210",
+                    "coordinates": "0210",
+                    "q": 1,
+                    "r": 9,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.079,
+                    "seed_fingerprint": "541cadbe165b"
+                },
+                {
+                    "id": "hex_0310",
+                    "coordinates": "0310",
+                    "q": 2,
+                    "r": 9,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.076,
+                    "seed_fingerprint": "3a7cd77751b3"
+                },
+                {
+                    "id": "hex_0410",
+                    "coordinates": "0410",
+                    "q": 3,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ef14005c9d00"
+                },
+                {
+                    "id": "hex_0510",
+                    "coordinates": "0510",
+                    "q": 4,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "90a11f7825db"
+                },
+                {
+                    "id": "hex_0610",
+                    "coordinates": "0610",
+                    "q": 5,
+                    "r": 9,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.888,
+                    "seed_fingerprint": "d549856ac1bb"
+                },
+                {
+                    "id": "hex_0710",
+                    "coordinates": "0710",
+                    "q": 6,
+                    "r": 9,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.878,
+                    "seed_fingerprint": "c9ac4b389087"
+                },
+                {
+                    "id": "hex_0810",
+                    "coordinates": "0810",
+                    "q": 7,
+                    "r": 9,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.878,
+                    "seed_fingerprint": "f4f76de8b169"
+                },
+                {
+                    "id": "hex_0910",
+                    "coordinates": "0910",
+                    "q": 8,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c7f5052050f6"
+                },
+                {
+                    "id": "hex_1010",
+                    "coordinates": "1010",
+                    "q": 9,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6d01ec824bee"
+                },
+                {
+                    "id": "hex_1110",
+                    "coordinates": "1110",
+                    "q": 10,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "4ca9df682308"
+                },
+                {
+                    "id": "hex_1210",
+                    "coordinates": "1210",
+                    "q": 11,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "50369662e1c9"
+                },
+                {
+                    "id": "hex_1310",
+                    "coordinates": "1310",
+                    "q": 12,
+                    "r": 9,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.082,
+                    "seed_fingerprint": "a0949499ab96"
+                },
+                {
+                    "id": "hex_1410",
+                    "coordinates": "1410",
+                    "q": 13,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8b79404fb613"
+                },
+                {
+                    "id": "hex_1510",
+                    "coordinates": "1510",
+                    "q": 14,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d76a97e79106"
+                },
+                {
+                    "id": "hex_1610",
+                    "coordinates": "1610",
+                    "q": 15,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "36afeb988769"
+                },
+                {
+                    "id": "hex_1710",
+                    "coordinates": "1710",
+                    "q": 16,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0e59e34fe70c"
+                },
+                {
+                    "id": "hex_1810",
+                    "coordinates": "1810",
+                    "q": 17,
+                    "r": 9,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.072,
+                    "seed_fingerprint": "fc178053a28f"
+                },
+                {
+                    "id": "hex_1910",
+                    "coordinates": "1910",
+                    "q": 18,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "22fa098dc25d"
+                },
+                {
+                    "id": "hex_2010",
+                    "coordinates": "2010",
+                    "q": 19,
+                    "r": 9,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "2fa03e395fe8"
+                },
+                {
+                    "id": "hex_0111",
+                    "coordinates": "0111",
+                    "q": 0,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b027b442eaab"
+                },
+                {
+                    "id": "hex_0211",
+                    "coordinates": "0211",
+                    "q": 1,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.069,
+                    "seed_fingerprint": "c84561e95b02"
+                },
+                {
+                    "id": "hex_0311",
+                    "coordinates": "0311",
+                    "q": 2,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.073,
+                    "seed_fingerprint": "e1e12dca3d2f"
+                },
+                {
+                    "id": "hex_0411",
+                    "coordinates": "0411",
+                    "q": 3,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6082b79709a8"
+                },
+                {
+                    "id": "hex_0511",
+                    "coordinates": "0511",
+                    "q": 4,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "7b5d479023c9"
+                },
+                {
+                    "id": "hex_0611",
+                    "coordinates": "0611",
+                    "q": 5,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.088,
+                    "seed_fingerprint": "9a27dee7e2a4"
+                },
+                {
+                    "id": "hex_0711",
+                    "coordinates": "0711",
+                    "q": 6,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.078,
+                    "seed_fingerprint": "1daf90f63c80"
+                },
+                {
+                    "id": "hex_0811",
+                    "coordinates": "0811",
+                    "q": 7,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a6353084dd61"
+                },
+                {
+                    "id": "hex_0911",
+                    "coordinates": "0911",
+                    "q": 8,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8883b97a4ec8"
+                },
+                {
+                    "id": "hex_1011",
+                    "coordinates": "1011",
+                    "q": 9,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "283e2feb5e31"
+                },
+                {
+                    "id": "hex_1111",
+                    "coordinates": "1111",
+                    "q": 10,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.088,
+                    "seed_fingerprint": "c8e00ba88ab1"
+                },
+                {
+                    "id": "hex_1211",
+                    "coordinates": "1211",
+                    "q": 11,
+                    "r": 10,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.328,
+                    "seed_fingerprint": "1bbb90afd118"
+                },
+                {
+                    "id": "hex_1311",
+                    "coordinates": "1311",
+                    "q": 12,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.087,
+                    "seed_fingerprint": "d648433884cc"
+                },
+                {
+                    "id": "hex_1411",
+                    "coordinates": "1411",
+                    "q": 13,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f8579823a80a"
+                },
+                {
+                    "id": "hex_1511",
+                    "coordinates": "1511",
+                    "q": 14,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "422cb91bdcd9"
+                },
+                {
+                    "id": "hex_1611",
+                    "coordinates": "1611",
+                    "q": 15,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "35f073d8c41c"
+                },
+                {
+                    "id": "hex_1711",
+                    "coordinates": "1711",
+                    "q": 16,
+                    "r": 10,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.084,
+                    "seed_fingerprint": "bd63e2850dab"
+                },
+                {
+                    "id": "hex_1811",
+                    "coordinates": "1811",
+                    "q": 17,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "50b7ca204243"
+                },
+                {
+                    "id": "hex_1911",
+                    "coordinates": "1911",
+                    "q": 18,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "1e2278125da5"
+                },
+                {
+                    "id": "hex_2011",
+                    "coordinates": "2011",
+                    "q": 19,
+                    "r": 10,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b5236f606234"
+                },
+                {
+                    "id": "hex_0112",
+                    "coordinates": "0112",
+                    "q": 0,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5919b21d8915"
+                },
+                {
+                    "id": "hex_0212",
+                    "coordinates": "0212",
+                    "q": 1,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a1695838951c"
+                },
+                {
+                    "id": "hex_0312",
+                    "coordinates": "0312",
+                    "q": 2,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "da0a106ef116"
+                },
+                {
+                    "id": "hex_0412",
+                    "coordinates": "0412",
+                    "q": 3,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b723b8e6ec22"
+                },
+                {
+                    "id": "hex_0512",
+                    "coordinates": "0512",
+                    "q": 4,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b875ebb1dc8d"
+                },
+                {
+                    "id": "hex_0612",
+                    "coordinates": "0612",
+                    "q": 5,
+                    "r": 11,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.08,
+                    "seed_fingerprint": "0f44a71b8bca"
+                },
+                {
+                    "id": "hex_0712",
+                    "coordinates": "0712",
+                    "q": 6,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "04eb3c3dcf34"
+                },
+                {
+                    "id": "hex_0812",
+                    "coordinates": "0812",
+                    "q": 7,
+                    "r": 11,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.857,
+                    "seed_fingerprint": "593a03812a73"
+                },
+                {
+                    "id": "hex_0912",
+                    "coordinates": "0912",
+                    "q": 8,
+                    "r": 11,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "6f36cb1deffb"
+                },
+                {
+                    "id": "hex_1012",
+                    "coordinates": "1012",
+                    "q": 9,
+                    "r": 11,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.878,
+                    "seed_fingerprint": "25eb01e3719a"
+                },
+                {
+                    "id": "hex_1112",
+                    "coordinates": "1112",
+                    "q": 10,
+                    "r": 11,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.902,
+                    "seed_fingerprint": "038726d4230b"
+                },
+                {
+                    "id": "hex_1212",
+                    "coordinates": "1212",
+                    "q": 11,
+                    "r": 11,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "365b5b570b68"
+                },
+                {
+                    "id": "hex_1312",
+                    "coordinates": "1312",
+                    "q": 12,
+                    "r": 11,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.088,
+                    "seed_fingerprint": "8ffe183fc3ed"
+                },
+                {
+                    "id": "hex_1412",
+                    "coordinates": "1412",
+                    "q": 13,
+                    "r": 11,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.338,
+                    "seed_fingerprint": "d0d2dfd73c54"
+                },
+                {
+                    "id": "hex_1512",
+                    "coordinates": "1512",
+                    "q": 14,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5ac8be0287b2"
+                },
+                {
+                    "id": "hex_1612",
+                    "coordinates": "1612",
+                    "q": 15,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b15a43e20b3d"
+                },
+                {
+                    "id": "hex_1712",
+                    "coordinates": "1712",
+                    "q": 16,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3c49d9421abe"
+                },
+                {
+                    "id": "hex_1812",
+                    "coordinates": "1812",
+                    "q": 17,
+                    "r": 11,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.088,
+                    "seed_fingerprint": "8bacd48f5b88"
+                },
+                {
+                    "id": "hex_1912",
+                    "coordinates": "1912",
+                    "q": 18,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "8b0847fd64ed"
+                },
+                {
+                    "id": "hex_2012",
+                    "coordinates": "2012",
+                    "q": 19,
+                    "r": 11,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6b4dc2a82567"
+                },
+                {
+                    "id": "hex_0113",
+                    "coordinates": "0113",
+                    "q": 0,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.323,
+                    "seed_fingerprint": "482a51b9bd04"
+                },
+                {
+                    "id": "hex_0213",
+                    "coordinates": "0213",
+                    "q": 1,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.355,
+                    "seed_fingerprint": "606e7a465501"
+                },
+                {
+                    "id": "hex_0313",
+                    "coordinates": "0313",
+                    "q": 2,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "29c431467322"
+                },
+                {
+                    "id": "hex_0413",
+                    "coordinates": "0413",
+                    "q": 3,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.333,
+                    "seed_fingerprint": "80043d25e783"
+                },
+                {
+                    "id": "hex_0513",
+                    "coordinates": "0513",
+                    "q": 4,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.335,
+                    "seed_fingerprint": "3e1d698abce7"
+                },
+                {
+                    "id": "hex_0613",
+                    "coordinates": "0613",
+                    "q": 5,
+                    "r": 12,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.076,
+                    "seed_fingerprint": "ecaefeff307e"
+                },
+                {
+                    "id": "hex_0713",
+                    "coordinates": "0713",
+                    "q": 6,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "425ab4b9e480"
+                },
+                {
+                    "id": "hex_0813",
+                    "coordinates": "0813",
+                    "q": 7,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "4c11c5b93f7c"
+                },
+                {
+                    "id": "hex_0913",
+                    "coordinates": "0913",
+                    "q": 8,
+                    "r": 12,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.871,
+                    "seed_fingerprint": "42171283dda9"
+                },
+                {
+                    "id": "hex_1013",
+                    "coordinates": "1013",
+                    "q": 9,
+                    "r": 12,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.892,
+                    "seed_fingerprint": "4f9f1492593f"
+                },
+                {
+                    "id": "hex_1113",
+                    "coordinates": "1113",
+                    "q": 10,
+                    "r": 12,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.874,
+                    "seed_fingerprint": "77de97137704"
+                },
+                {
+                    "id": "hex_1213",
+                    "coordinates": "1213",
+                    "q": 11,
+                    "r": 12,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "1397e208fcac"
+                },
+                {
+                    "id": "hex_1313",
+                    "coordinates": "1313",
+                    "q": 12,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e366622b3a07"
+                },
+                {
+                    "id": "hex_1413",
+                    "coordinates": "1413",
+                    "q": 13,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "55b004c61147"
+                },
+                {
+                    "id": "hex_1513",
+                    "coordinates": "1513",
+                    "q": 14,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "a5c7f2b758cc"
+                },
+                {
+                    "id": "hex_1613",
+                    "coordinates": "1613",
+                    "q": 15,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c30995731c67"
+                },
+                {
+                    "id": "hex_1713",
+                    "coordinates": "1713",
+                    "q": 16,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c4decc6041d8"
+                },
+                {
+                    "id": "hex_1813",
+                    "coordinates": "1813",
+                    "q": 17,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "34c7f5093005"
+                },
+                {
+                    "id": "hex_1913",
+                    "coordinates": "1913",
+                    "q": 18,
+                    "r": 12,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "df01317c7ef5"
+                },
+                {
+                    "id": "hex_2013",
+                    "coordinates": "2013",
+                    "q": 19,
+                    "r": 12,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.864,
+                    "seed_fingerprint": "5a990472d34b"
+                },
+                {
+                    "id": "hex_0114",
+                    "coordinates": "0114",
+                    "q": 0,
+                    "r": 13,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.895,
+                    "seed_fingerprint": "021c584ff724"
+                },
+                {
+                    "id": "hex_0214",
+                    "coordinates": "0214",
+                    "q": 1,
+                    "r": 13,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.084,
+                    "seed_fingerprint": "fd2ce2d53853"
+                },
+                {
+                    "id": "hex_0314",
+                    "coordinates": "0314",
+                    "q": 2,
+                    "r": 13,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.075,
+                    "seed_fingerprint": "44a500131661"
+                },
+                {
+                    "id": "hex_0414",
+                    "coordinates": "0414",
+                    "q": 3,
+                    "r": 13,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.082,
+                    "seed_fingerprint": "8cce6055ccce"
+                },
+                {
+                    "id": "hex_0514",
+                    "coordinates": "0514",
+                    "q": 4,
+                    "r": 13,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.348,
+                    "seed_fingerprint": "ba24c3cf133c"
+                },
+                {
+                    "id": "hex_0614",
+                    "coordinates": "0614",
+                    "q": 5,
+                    "r": 13,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.082,
+                    "seed_fingerprint": "d23d965412ed"
+                },
+                {
+                    "id": "hex_0714",
+                    "coordinates": "0714",
+                    "q": 6,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "fa2f06d6a675"
+                },
+                {
+                    "id": "hex_0814",
+                    "coordinates": "0814",
+                    "q": 7,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "39dfa79ae4cf"
+                },
+                {
+                    "id": "hex_0914",
+                    "coordinates": "0914",
+                    "q": 8,
+                    "r": 13,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.08,
+                    "seed_fingerprint": "0d85c5561207"
+                },
+                {
+                    "id": "hex_1014",
+                    "coordinates": "1014",
+                    "q": 9,
+                    "r": 13,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.368,
+                    "seed_fingerprint": "bf8091342708"
+                },
+                {
+                    "id": "hex_1114",
+                    "coordinates": "1114",
+                    "q": 10,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0c21a55b0137"
+                },
+                {
+                    "id": "hex_1214",
+                    "coordinates": "1214",
+                    "q": 11,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f43eed102cef"
+                },
+                {
+                    "id": "hex_1314",
+                    "coordinates": "1314",
+                    "q": 12,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6fddb2afde26"
+                },
+                {
+                    "id": "hex_1414",
+                    "coordinates": "1414",
+                    "q": 13,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "f73b3289a0a4"
+                },
+                {
+                    "id": "hex_1514",
+                    "coordinates": "1514",
+                    "q": 14,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "654fd62dcf03"
+                },
+                {
+                    "id": "hex_1614",
+                    "coordinates": "1614",
+                    "q": 15,
+                    "r": 13,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.878,
+                    "seed_fingerprint": "4b44e6c8174a"
+                },
+                {
+                    "id": "hex_1714",
+                    "coordinates": "1714",
+                    "q": 16,
+                    "r": 13,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.874,
+                    "seed_fingerprint": "6b574053256c"
+                },
+                {
+                    "id": "hex_1814",
+                    "coordinates": "1814",
+                    "q": 17,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3106da28d064"
+                },
+                {
+                    "id": "hex_1914",
+                    "coordinates": "1914",
+                    "q": 18,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "7e7f1ccb229e"
+                },
+                {
+                    "id": "hex_2014",
+                    "coordinates": "2014",
+                    "q": 19,
+                    "r": 13,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "6a73ec11e039"
+                },
+                {
+                    "id": "hex_0115",
+                    "coordinates": "0115",
+                    "q": 0,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5355fd87e385"
+                },
+                {
+                    "id": "hex_0215",
+                    "coordinates": "0215",
+                    "q": 1,
+                    "r": 14,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.338,
+                    "seed_fingerprint": "dd6a438e96a0"
+                },
+                {
+                    "id": "hex_0315",
+                    "coordinates": "0315",
+                    "q": 2,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "986b4bf5379d"
+                },
+                {
+                    "id": "hex_0415",
+                    "coordinates": "0415",
+                    "q": 3,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b8f6b380e913"
+                },
+                {
+                    "id": "hex_0515",
+                    "coordinates": "0515",
+                    "q": 4,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "78834e959fe9"
+                },
+                {
+                    "id": "hex_0615",
+                    "coordinates": "0615",
+                    "q": 5,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "988de29f0321"
+                },
+                {
+                    "id": "hex_0715",
+                    "coordinates": "0715",
+                    "q": 6,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "c9a8e164f0b2"
+                },
+                {
+                    "id": "hex_0815",
+                    "coordinates": "0815",
+                    "q": 7,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3a068f912827"
+                },
+                {
+                    "id": "hex_0915",
+                    "coordinates": "0915",
+                    "q": 8,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "503c83b065cc"
+                },
+                {
+                    "id": "hex_1015",
+                    "coordinates": "1015",
+                    "q": 9,
+                    "r": 14,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.375,
+                    "seed_fingerprint": "e3d25299b99f"
+                },
+                {
+                    "id": "hex_1115",
+                    "coordinates": "1115",
+                    "q": 10,
+                    "r": 14,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.375,
+                    "seed_fingerprint": "13783181a2d5"
+                },
+                {
+                    "id": "hex_1215",
+                    "coordinates": "1215",
+                    "q": 11,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "30273a902c91"
+                },
+                {
+                    "id": "hex_1315",
+                    "coordinates": "1315",
+                    "q": 12,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b4f02063d0cc"
+                },
+                {
+                    "id": "hex_1415",
+                    "coordinates": "1415",
+                    "q": 13,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "456bed372a50"
+                },
+                {
+                    "id": "hex_1515",
+                    "coordinates": "1515",
+                    "q": 14,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "cddf17ae391f"
+                },
+                {
+                    "id": "hex_1615",
+                    "coordinates": "1615",
+                    "q": 15,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e607973e4898"
+                },
+                {
+                    "id": "hex_1715",
+                    "coordinates": "1715",
+                    "q": 16,
+                    "r": 14,
+                    "terrain": "plains",
+                    "features": [
+                        "plains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.073,
+                    "seed_fingerprint": "c2523935c46a"
+                },
+                {
+                    "id": "hex_1815",
+                    "coordinates": "1815",
+                    "q": 17,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "615661e45e30"
+                },
+                {
+                    "id": "hex_1915",
+                    "coordinates": "1915",
+                    "q": 18,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "be417742d93b"
+                },
+                {
+                    "id": "hex_2015",
+                    "coordinates": "2015",
+                    "q": 19,
+                    "r": 14,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "2f89308b2ada"
+                },
+                {
+                    "id": "hex_0116",
+                    "coordinates": "0116",
+                    "q": 0,
+                    "r": 15,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.343,
+                    "seed_fingerprint": "cbc684d013bc"
+                },
+                {
+                    "id": "hex_0216",
+                    "coordinates": "0216",
+                    "q": 1,
+                    "r": 15,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.338,
+                    "seed_fingerprint": "5a5852bf1319"
+                },
+                {
+                    "id": "hex_0316",
+                    "coordinates": "0316",
+                    "q": 2,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "5b25c0a6b2a6"
+                },
+                {
+                    "id": "hex_0416",
+                    "coordinates": "0416",
+                    "q": 3,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "e3289dcb1dda"
+                },
+                {
+                    "id": "hex_0516",
+                    "coordinates": "0516",
+                    "q": 4,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "ec82c8a28545"
+                },
+                {
+                    "id": "hex_0616",
+                    "coordinates": "0616",
+                    "q": 5,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "1f6fd27903c3"
+                },
+                {
+                    "id": "hex_0716",
+                    "coordinates": "0716",
+                    "q": 6,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "3080a64a18c3"
+                },
+                {
+                    "id": "hex_0816",
+                    "coordinates": "0816",
+                    "q": 7,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "9f0671b862e8"
+                },
+                {
+                    "id": "hex_0916",
+                    "coordinates": "0916",
+                    "q": 8,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "b5d77a640d61"
+                },
+                {
+                    "id": "hex_1016",
+                    "coordinates": "1016",
+                    "q": 9,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "12e390648699"
+                },
+                {
+                    "id": "hex_1116",
+                    "coordinates": "1116",
+                    "q": 10,
+                    "r": 15,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.323,
+                    "seed_fingerprint": "27ec537f32ef"
+                },
+                {
+                    "id": "hex_1216",
+                    "coordinates": "1216",
+                    "q": 11,
+                    "r": 15,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.325,
+                    "seed_fingerprint": "43e325dfe84e"
+                },
+                {
+                    "id": "hex_1316",
+                    "coordinates": "1316",
+                    "q": 12,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "d0476a73ded7"
+                },
+                {
+                    "id": "hex_1416",
+                    "coordinates": "1416",
+                    "q": 13,
+                    "r": 15,
+                    "terrain": "hills",
+                    "features": [
+                        "hills"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.353,
+                    "seed_fingerprint": "b4fed21afe3b"
+                },
+                {
+                    "id": "hex_1516",
+                    "coordinates": "1516",
+                    "q": 14,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "0eaebaa176c5"
+                },
+                {
+                    "id": "hex_1616",
+                    "coordinates": "1616",
+                    "q": 15,
+                    "r": 15,
+                    "terrain": "water",
+                    "features": [
+                        "water"
+                    ],
+                    "water": true,
+                    "elevation_index": -0.15,
+                    "seed_fingerprint": "18099f58cf90"
+                },
+                {
+                    "id": "hex_1716",
+                    "coordinates": "1716",
+                    "q": 16,
+                    "r": 15,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.906,
+                    "seed_fingerprint": "0c25df72eb45"
+                },
+                {
+                    "id": "hex_1816",
+                    "coordinates": "1816",
+                    "q": 17,
+                    "r": 15,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.944,
+                    "seed_fingerprint": "d8b9c002b2f5"
+                },
+                {
+                    "id": "hex_1916",
+                    "coordinates": "1916",
+                    "q": 18,
+                    "r": 15,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.916,
+                    "seed_fingerprint": "65b151c656eb"
+                },
+                {
+                    "id": "hex_2016",
+                    "coordinates": "2016",
+                    "q": 19,
+                    "r": 15,
+                    "terrain": "mountains",
+                    "features": [
+                        "mountains"
+                    ],
+                    "water": false,
+                    "elevation_index": 0.86,
+                    "seed_fingerprint": "7d0167e0fced"
+                }
+            ]
+        },
+        "locations": {
+            "spaceports": [],
+            "population_centers": []
+        },
+        "generation_fingerprint": "8fa637a5a796db6b65729e7c"
+    }
+}

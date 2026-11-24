@@ -1,0 +1,21 @@
+CORE 0.1.120 — Universe Terminology Refinement
+
+Baseline: supplied CORE 0.1.119 source tree.
+
+PASS
+- Focused Universe View terminology regression.
+- Centralized release version regression.
+- PHP syntax checks: player/game.php, player/selection.php, config/version.php, tests/run.php.
+- JavaScript syntax check: player/player.js.
+- ZIP integrity (verified after packaging).
+
+Full supplied-source test suite: 113 passed, 3 failed.
+The three failures are the same source-archive limitations already present in the supplied 0.1.119 tree:
+1. Colyseus foundation test cannot inspect multiplayer/package.json and multiplayer source contracts because the multiplayer directory is not present in the supplied PHP source archive.
+2. Colyseus server matchmaking test cannot inspect multiplayer package/server sources for the same reason.
+3. Remote avatar tint test fails its existing snapshot assertion because multiplayer/rooms/UniverseRoom.ts is absent.
+
+No new test failures were introduced by the terminology change. The focused terminology test and release-version test both pass.
+
+Scope limitation
+This is a player-facing terminology/UI pass only. Persisted JSON data, IDs, seeds, generator logic, navigation API names, and multiplayer identity fields remain unchanged. It does not create a new nested constellation-to-star-system generation model or implement separate inter-constellation travel technology/cost mechanics.

@@ -1,0 +1,26 @@
+CORE 0.1.181 QA RESULTS
+
+Automated regression suite:
+  php tests/run.php
+  PASS: 170
+  FAIL: 0
+
+JavaScript syntax:
+  node --check player/astronomical-environment.js — PASS
+
+PHP syntax:
+  php -l config/version.php — PASS
+  php -l tests/run.php — PASS
+  Full-project PHP syntax is covered by the automated regression suite — PASS
+
+ZIP integrity:
+  PASS (verified after packaging)
+
+Browser visual verification:
+  NOT PERFORMED. User verification is still required.
+  Acceptance criteria:
+  - Large pure-white MOON 1 / MOON 2 markers appear in the planetary sky.
+  - Markers have dark outlines and readable labels.
+  - Bright white screen-space orbital traces are visible.
+  - Diagnostics reports moonProofOverlay.visibleMoonCount.
+  - Existing scene meshes and generated moon data remain intact.

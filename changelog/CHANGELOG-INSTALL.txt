@@ -1,0 +1,27 @@
+CORE 0.1.120 — Universe Terminology Refinement
+
+Purpose
+- Correct player-facing universe hierarchy terminology.
+- A Universe contains Constellations; the Universe View identifies the character's current Constellation.
+- The nested list is labeled Systems in This Constellation.
+
+Files changed
+- player/game.php
+- player/player.js
+- player/selection.php
+- config/version.php
+- tests/run.php
+
+Compatibility
+- No JSON data layout, persisted keys, IDs, seeds, API route names, navigation payloads, multiplayer room identifiers, or generator behavior changed. Existing `systems`, `system_id`, and `current_system_id` fields remain intact.
+- This release is a terminology/UI pass only. It does not yet implement a new nested constellation/system generation model or new inter-constellation travel technology/cost mechanics.
+
+Installation
+1. Back up the CORE application directory.
+2. Extract this patch into the CORE application root, preserving paths and overwriting the listed files.
+3. No service restart or data migration is required.
+4. Hard-refresh the browser to load assets with release 0.1.120 cache keys.
+
+QA
+Run: php tests/run.php
+The focused regression verifies visible terminology and confirms the existing persisted system identifiers remain present.

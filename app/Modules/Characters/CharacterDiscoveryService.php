@@ -37,7 +37,7 @@ final class CharacterDiscoveryService
         $resultDiscovery = [];
         $resultReward = null;
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $discoveryId, $expectedRevision, $discoveryDefinitions, $items, &$investigationStatus, &$resultDiscovery, &$resultReward): array {
-            if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $actualRevision = (int)($character['revision'] ?? 0);
             if ($actualRevision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $actualRevision . '.');

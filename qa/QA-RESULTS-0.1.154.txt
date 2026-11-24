@@ -1,0 +1,10 @@
+CORE 0.1.154 QA RESULTS
+
+Assistant-executed checks:
+- PHP regression suite: 147 passed, 0 failed.
+- PHP syntax: passed (project-wide PHP syntax test plus explicit generator/version lint).
+- JavaScript syntax: passed (`node --check player/astronomical-environment.js`).
+- ZIP integrity: passed after packaging.
+
+Latest user-reported baseline before this release: CORE 0.1.153 PASS — 162 tests passed.
+Browser-based visual/runtime verification of generated moon orbits has not been performed by the assistant.

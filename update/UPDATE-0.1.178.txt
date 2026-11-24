@@ -1,0 +1,26 @@
+CORE 0.1.178 UPDATED-FILES MANIFEST
+
+New:
+- api/diagnostics-report.php
+- player/diagnostics.js
+- changelog/CHANGELOG-0.1.178.txt
+- install/INSTALL-0.1.178.txt
+- qa/QA-RESULTS-0.1.178.txt
+- release/RELEASE-NOTES-0.1.178.md
+- update/UPDATE-0.1.178.txt
+
+Updated:
+- PROJECT_STATE.md
+- app/Core/Logger.php
+- bootstrap.php
+- config/version.php
+- player/game.php
+- player/player.css
+- player/player.js
+- player/system-view.js
+- player/world.php
+- player/world.css
+- player/world.js
+- tests/run.php
+
+All archive paths are relative to the CORE application root. Extract into the existing CORE root and overwrite the listed files.

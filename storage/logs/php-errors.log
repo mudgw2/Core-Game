@@ -4,3 +4,15 @@
 {"time":"2026-11-10T01:23:59+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $accountId","file":"/var/www/html/core-game/api/qa.php","line":2057}}
 {"time":"2026-11-11T02:33:59+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $accountId","file":"/var/www/html/core-game/api/qa.php","line":2088}}
 {"time":"2026-11-12T20:52:50+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $accountId","file":"/var/www/html/core-game/api/qa.php","line":2090}}
+{"time":"2026-11-16T19:33:26+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2333}}
+{"time":"2026-11-16T20:40:14+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2333}}
+{"time":"2026-11-16T21:48:02+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T14:45:30+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T14:53:57+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T15:14:14+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T15:25:41+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T16:38:39+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T17:22:20+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T18:02:30+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-17T18:06:02+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $locationId","file":"/var/www/html/core-game/api/qa.php","line":2334}}
+{"time":"2026-11-18T17:14:25+00:00","level":"ERROR","message":"PHP runtime error","context":{"severity":2,"message":"Undefined variable $storage","file":"/var/www/html/core-game/app/Application.php","line":606}}

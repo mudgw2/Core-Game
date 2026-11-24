@@ -1,0 +1,48 @@
+{
+    "enemy": [
+        {
+            "title": "Fallen Friendship",
+            "description": "A former friend now hates you"
+        },
+        {
+            "title": "Blood Feud",
+            "description": "A relative now hates you"
+        },
+        {
+            "title": "Ghost from the Past",
+            "description": "A childhood enemy, an old face you hoped you would never see again has returned"
+        },
+        {
+            "title": "Bad Terms with the Boss",
+            "description": "A person you worked for"
+        },
+        {
+            "title": "Mutiny and Malice",
+            "description": "A person that worked for you, hates you"
+        },
+        {
+            "title": "Bitter Breakup",
+            "description": "A former partner turns to arguments"
+        },
+        {
+            "title": "Wrong Crowd",
+            "description": "You managed to step on the really wrong foot and now a gang or tribe hates you"
+        },
+        {
+            "title": "Targeted by the Badge",
+            "description": "Someone amongst the law really dislikes you"
+        },
+        {
+            "title": "Noticed by the Dark",
+            "description": "Somehow you've come to the attention of dark forces, and they know your name"
+        },
+        {
+            "title": "Vengeful Beast",
+            "description": "You kicked that animal one time too many, and now it hates you to the bone"
+        },
+        {
+            "title": "Wrath of the Supernatural",
+            "description": "You have raised the anger of a supernatural creature"
+        }
+    ]
+}

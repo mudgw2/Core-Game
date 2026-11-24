@@ -1,0 +1,6 @@
+CORE 0.1.153
+- Updated PROJECT_STATE.md to the user-confirmed 0.1.152 baseline.
+- Added CORE-DESIGN-PRINCIPLES.md.
+- Added CORE-ROADMAP.md with balanced incremental development priorities.
+- Recorded audit findings for world/geography, astronomical environment, jumping, character skills, modules, and multiplayer test tooling.
+- No gameplay behavior or player data changes.

@@ -13,8 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals((string)($_SESSION['co
 $root = dirname(__DIR__);
 define('CORE_ROOT', $root);
 require $root . '/bootstrap.php';
-$config = require $root . '/config/app.php';
-$storage = new \Core\Storage\JsonStorage((string)$config['storage']['path']);
+$application = new \Core\Application();
+$application->bootDefaultModules();
+$services = $application->services();
+$storage = $services->get('core.storage');
 $owner = (string)$_SESSION['core_user']['id'];
 $action = (string)($_POST['action'] ?? '');
 try {
@@ -24,8 +26,12 @@ try {
         $species = trim((string)($_POST['species_id'] ?? 'human'));
         $attributes = is_array($_POST['attributes'] ?? null) ? $_POST['attributes'] : [];
         $humanBonusAttribute = trim((string)($_POST['human_bonus_attribute'] ?? ''));
-        $service = new \Core\Modules\Characters\CharacterService($storage);
-        $service->create('', $name, $role, $species, $attributes, $owner, $humanBonusAttribute !== '' ? $humanBonusAttribute : null);
+        $appearance = is_array($_POST['appearance'] ?? null) ? $_POST['appearance'] : [];
+        $backgroundRaw = (string)($_POST['background_snapshot'] ?? '');
+        $background = $backgroundRaw !== '' ? json_decode($backgroundRaw, true) : null;
+        if (!is_array($background)) { http_response_code(400); exit('Generate and lock a character history in the Background section before saving.'); }
+        $service = $services->get('character.service');
+        $service->create('', $name, $role, $species, $attributes, $owner, $humanBonusAttribute !== '' ? $humanBonusAttribute : null, $appearance, $background);
         header('Location: ' . $base . '/selection.php?created=1'); exit;
     }
     if ($action === 'create_universe') {
@@ -43,8 +49,8 @@ try {
         foreach (['system_density', 'anomaly_rate', 'binary_star_rate', 'nebula_presence'] as $setting) {
             if (isset($_POST[$setting]) && is_scalar($_POST[$setting])) $settings[$setting] = (int)$_POST[$setting];
         }
-        $universe = (new \Core\Modules\Universe\UniverseService($storage))->createOrLoad($seed, $settings);
-        $assignedCharacter = (new \Core\Modules\Characters\CharacterUniverseAssignmentService($storage))
+        $universe = $services->get('universe.service')->createOrLoad($seed, $settings);
+        $assignedCharacter = $services->get('character.universe-assignment')
             ->assign((string)$character['id'], $owner, (string)$universe['id']);
         // Keep the player-facing seed as a one-time flash message; universe IDs remain internal.
         $_SESSION['core_flash_universe_seed'] = $seed;

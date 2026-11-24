@@ -1,0 +1,16 @@
+CORE 0.1.204 — Updated files
+
+Extract into the existing CORE application root, preserving relative paths.
+
+Included files:
+- config/version.php
+- player/planetary-environment.js
+- tests/run.php
+- changelog/CHANGELOG-0.1.204.txt
+- release/RELEASE-NOTES-0.1.204.md
+- qa/QA-RESULTS-0.1.204.txt
+- update/UPDATE-MANIFEST-0.1.204.txt
+
+No storage/, universe, character, account, or existing world data is included.
+Back up the application before installing. No database or world-data migration is required.
+Persistent geographic chunk storage and predictive LOD streaming are not included in this release.

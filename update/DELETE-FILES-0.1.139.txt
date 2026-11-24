@@ -1,0 +1,25 @@
+CORE 0.1.139 DOCUMENTATION PATH CLEANUP
+
+After extracting the patch and confirming each destination file exists, delete these obsolete root-level paths:
+
+QA-RESULTS-0.1.117.txt
+QA-RESULTS-0.1.118.txt
+QA-RESULTS-0.1.120.txt
+QA-RESULTS-0.1.122.txt
+QA-RESULTS-0.1.127.txt
+QA-RESULTS-0.1.128.txt
+QA-RESULTS-0.1.133.txt
+QA-RESULTS-0.1.134.txt
+QA-RESULTS-0.1.137.txt
+QA-RESULTS-0.1.138.txt
+QA-RESULTS.txt
+CHANGELOG-0.1.122.txt
+CHANGELOG-0.1.133.txt
+CHANGELOG-0.1.134.txt
+CHANGELOG-INSTALL.txt
+RELEASE-NOTES-0.1.135.md
+RELEASE-NOTES-0.1.136.md
+RELEASE-NOTES-0.1.137.md
+RELEASE-NOTES-0.1.138.md
+
+These are moves, not content deletions. Their preserved copies are under qa/, changelog/, and release/.

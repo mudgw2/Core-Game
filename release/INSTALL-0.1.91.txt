@@ -1,0 +1,11 @@
+CORE 0.1.91 — INSTALLATION
+
+1. Back up your current CORE application files.
+2. Extract this ZIP into the CORE application root, preserving the included folder structure.
+3. Allow the included files to overwrite their matching application files.
+4. Do not replace or merge your storage/ directory. This patch contains no player data or storage files.
+5. Refresh the Player Portal with a hard reload so player.css and player.js are reloaded.
+6. Open a character with an assigned universe, select a star system, then select one of its worlds to inspect the full generated profile.
+7. Run your normal QA process. The development-only browser QA endpoint remains available under the existing local/development restrictions.
+
+Rollback: restore the application-file backup. No data migration or rollback operation is needed.

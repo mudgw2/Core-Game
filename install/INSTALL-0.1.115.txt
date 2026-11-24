@@ -1,0 +1,26 @@
+CORE 0.1.115 INSTALLATION
+
+1. Back up the current CORE source before applying the patch.
+2. Extract CORE-0.1.115-patch.zip into the application root, preserving project-relative paths.
+3. Do not replace storage/, .git/, generated universe records, character records, accounts, credentials, logs, or backups.
+4. This patch does not require a data migration, new environment variables, new ports, or firewall changes.
+5. The PHP application version should report 0.1.115.
+6. The multiplayer package is version 0.1.115 and introduces no new dependencies. On the host, from multiplayer/, run `npm test`, then restart the existing core-multiplayer systemd service using the normal deployment procedure.
+7. Run:
+     php tests/run.php
+   Then open the existing protected browser QA endpoint from the permitted development/private network.
+
+SHARED UNIVERSE TEST
+- Account A: select a character and create/rotate a share code for its home universe. Share the displayed code privately with Account B.
+- Account B: select a character that already has its own home universe, enter the code in Shared Universe Access, and visit.
+- Verify Account B's roster marks the character as visiting and shows both current shared-universe seed and permanent home-universe seed.
+- Open gameplay on both accounts and verify they can join the same system/world session.
+- Account B: return to Character Selection and choose Return to home universe. Verify the original home seed and home system are restored.
+- Rotating Account A's share code invalidates the previous code for future visits.
+- Universe deletion is blocked while visitors are still active; they must return home first.
+
+DATA MODEL
+- `universe_id` remains the permanent home universe.
+- `active_universe_id` exists only while visiting a shared universe.
+- Share code hashes are stored under the universe record's `sharing` object. Raw codes are never stored.
+- System and world seeds are generated deterministically. Legacy system seeds are derived at runtime without rewriting saved universe records.

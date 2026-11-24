@@ -50,6 +50,95 @@ $equal = static function (mixed $expected, mixed $actual, string $message = ''):
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
+$test('Constellation and System views distinguish Constellations, Star Systems, and Worlds without changing persisted keys', static function () use ($assert): void {
+    $view = file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = file_get_contents(CORE_ROOT . '/player/player.js');
+    $selection = file_get_contents(CORE_ROOT . '/player/selection.php');
+    $assert(str_contains($view, '<dt>Constellations</dt>'), 'Universe summary does not label the top-level count as constellations.');
+    $assert(str_contains($view, 'id="selectedWorldList"') && str_contains($script, 'WORLDS IN THIS SYSTEM'), 'Selected star system does not list its generated worlds.');
+    $assert(str_contains($script, "viewButton.textContent='View Selected System'"), 'Star system detail action is not labeled correctly.');
+    $assert(str_contains($view, 'Current Constellation') && str_contains($view, 'Current System'), 'Character location does not display Constellation and System separately.');
+    $assert(str_contains($script, 'core:world-selected'), 'World list selection does not emit the shared world-selected event.');
+    $assert(str_contains($script, 'star systems in') && str_contains($script, 'visibleSystems()'), 'Map status does not scope Systems to the selected Constellation.');
+    $assert(str_contains($view, "nestedSystemRecord['worlds']"), 'Player payload does not populate nested Constellation -> System -> World hierarchy.');
+    $assert(str_contains($selection, 'Last known constellation'), 'Character roster location label is not constellation-aware.');
+    $assert(str_contains($script, 'current_system_id') && str_contains($script, 'system_id'), 'Existing internal system identifiers were unexpectedly removed.');
+    $assert(str_contains($view, "'initialSystemId' => (string)("), 'Gameplay boot still allows a stale URL system_id to override the character location.');
+    $assert(str_contains($script, "dispatchEvent(new CustomEvent('core:world-selected'"), 'World list clicks do not update the selected-world state.');
+    $assert(str_contains($script, 'identity.constellationId !== currentConstellationId()'), 'Multiplayer grant validation does not verify the active Constellation identity.');
+    $assert(str_contains(file_get_contents(CORE_ROOT . '/app/Application.php'), '\'constellationId\' => $currentConstellationId'), 'PHP multiplayer grant omits the active Constellation identity.');
+});
+
+$test('CORE 0.1.127 keeps entity labels and side navigation aligned with the hierarchy', static function () use ($assert): void {
+    $view = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $worldGenerator = (string)file_get_contents(CORE_ROOT . '/app/Modules/Universe/WorldGenerator.php');
+    $shareEndpoint = (string)file_get_contents(CORE_ROOT . '/api/universe-share.php');
+    $styles = (string)file_get_contents(CORE_ROOT . '/player/system-view.css');
+    $assert(str_contains($view, '<h2>Constellation View</h2>') && str_contains($view, '<h2>Universe View</h2>'), 'Universe and Constellation navigation headings must remain distinct.');
+    $assert(str_contains($view, 'id="constellationViewToolbar"') && str_contains($script, "$('constellationViewToolbar')?.classList.add('hidden')"), 'Constellation selection controls are not hidden in System View.');
+    $assert(str_contains($view, 'system-list-panel') && strpos($view, 'id="selectedWorldList"') < strpos($view, 'id="systemViewCanvas"'), 'World navigation list is not positioned before the System visualization.');
+    $assert(str_contains($view, 'id="constellationSystemList"') && str_contains($view, 'id="selectedWorldList"') && str_contains($script, "setEntityListMode('system')"), 'System View does not switch the shared left navigation panel to Worlds.');
+    $assert(str_contains($worldGenerator, "'name' => 'World '"), 'Generated World names do not explicitly identify them as Worlds.');
+    $assert(str_contains($shareEndpoint, "'/api/universe/share'") && str_contains($shareEndpoint, "public/index.php"), 'Direct share-code endpoint does not route through the authenticated application router.');
+    $assert(str_contains($script, "request(api('universe-share.php')"), 'Gameplay Copy Key does not use the direct PHP share endpoint.');
+});
+
+$test('CORE 0.1.131 orders gameplay hierarchy and resolves selected-world entry against the active System', static function () use ($assert): void {
+    $view = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $selectedPanel = strpos($view, 'id="selectedPanel"');
+    $worldInspector = strpos($view, 'id="systemWorldInspector"');
+    $systemList = strpos($view, 'class="panel section-panel system-list-panel"');
+    $multiplayer = strpos($view, 'class="panel section-panel multiplayer-panel"');
+    $travel = strpos($view, 'class="panel section-panel travel-panel"');
+    $universeData = strpos($view, 'id="universeDataPanel"');
+    $assert($universeData !== false && $selectedPanel !== false && $worldInspector !== false && $systemList !== false && $multiplayer !== false && $travel !== false && $universeData < $selectedPanel && $selectedPanel < $worldInspector && $worldInspector < $systemList && $systemList < $multiplayer && $multiplayer < $travel, 'Sidebar order must follow Universe before System and World details, then entity list, Multiplayer, and navigation support.');
+    $assert(str_contains($script, "viewButton.hidden=state.view==='system'") && str_contains($script, "if(viewButton) viewButton.hidden=true"), 'View Selected System remains visible after entering System View.');
+    foreach (['currentSystemRecord()', 'selectedWorldEntryContext()', 'canEnterSelectedWorld()', 'normalizeEntityId', 'updateWorldEntryControl()', 'window.CORE_SYSTEM_VIEW?.activeSystemId', 'context.system.id', 'context.world.id'] as $needle) {
+        $assert(str_contains($script, $needle), 'World entry selection is missing active-System validation: ' . $needle);
+    }
+    $assert(str_contains($script, 'state.selectedSystem = normalizeEntityId(system.id);'), 'Opening System View does not synchronize the active System identity.');
+    $assert(str_contains($script, '].map(normalizeEntityId).filter(Boolean)'), 'Current-System candidates are not trimmed and blank values are not discarded.');
+    $assert(str_contains($script, 'candidates.find(id => systems().some(system => normalizeEntityId(system.id) === id))'), 'A stale legacy location field can mask a valid System record.');
+    $assert(str_contains($script, 'Ready to enter this generated World.'), 'Enabled Test World state does not explain the action.');
+    $assert(str_contains($view, 'Enter Test World opens a temporary environment'), 'The Test World action does not explain its purpose before selection.');
+});
+
+$test('Constellation View opens at the character Constellation and navigation returns through contextual controls', static function () use ($assert): void {
+    $view = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    foreach (['Constellation View', 'id="constellationSelect"', 'id="constellationSystemList"', 'id="selectedWorldList"', 'System View', 'Back to Constellation View'] as $needle) {
+        $assert(str_contains($view, $needle), 'Navigation view is missing ' . $needle . '.');
+    }
+    foreach (['visibleSystems()', 'selectedConstellationId = currentConstellationId()', 'state.selectedConstellationId = system.constellation_id', "state.view = 'system'", "state.view='constellation'", "state.view = 'universe'", 'renderMap();'] as $needle) {
+        $assert(str_contains($script, $needle), 'Navigation state is missing ' . $needle . '.');
+    }
+    $assert(!str_contains($script, 'drawSystemView(boot.initialSystemId)'), 'Play must open Constellation View rather than opening a System directly.');
+    $assert(str_contains($script, 'state.character.active_universe_id || state.character.universe_id'), 'Shared-universe visitors must be validated against the active universe.');
+    $assert(str_contains($script, 'state.selectedConstellationId = currentConstellationId()'), 'After travel, Constellation View must follow the character current Constellation.');
+});
+
+$test('Request strips the CORE deployment prefix when Apache rewrites to the public front controller', static function () use ($assert, $equal): void {
+    $originalServer = $_SERVER;
+    $originalGet = $_GET;
+    try {
+        // Simulate the common subdirectory deployment where DOCUMENT_ROOT is
+        // already the CORE directory, making filesystem-only inference fail.
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/core-game/api/multiplayer/token';
+        $_SERVER['SCRIPT_NAME'] = '/core-game/public/index.php';
+        $_SERVER['DOCUMENT_ROOT'] = CORE_ROOT;
+        $_GET = [];
+        $request = Core\Http\Request::fromGlobals();
+        $equal('POST', $request->method());
+        $equal('/api/multiplayer/token', $request->path(), 'Mounted API path was not normalized');
+    } finally {
+        $_SERVER = $originalServer;
+        $_GET = $originalGet;
+    }
+});
+
 $test('player API ownership checks isolate character and universe records by account', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-player-security-' . bin2hex(random_bytes(6));
     try {
@@ -213,6 +302,40 @@ $test('generated system count and fields are internally consistent', static func
         $assert($system['y'] >= -10000 && $system['y'] <= 10000, 'Y coordinate out of bounds');
     }
 });
+$test('universe generation builds deterministic Universe to Constellation to System hierarchy', static function () use ($assert, $equal): void {
+    $generator = new UniverseGenerator();
+    $baseline = $generator->generate('qa-universe-constellation-system-world');
+    $again = $generator->generate('qa-universe-constellation-system-world');
+    $equal($baseline, $again, 'Hierarchy generation is not deterministic.');
+    $assert(($baseline['generator_version'] ?? 0) >= 3, 'Universe generator version was not advanced.');
+    $assert(($baseline['constellation_count'] ?? 0) === count($baseline['constellations'] ?? []), 'Constellation count does not match the hierarchy.');
+    $assert(($baseline['system_count'] ?? 0) === count($baseline['systems'] ?? []), 'System index count does not match the hierarchy.');
+    $indexed = [];
+    foreach ($baseline['constellations'] as $constellation) {
+        $assert(isset($constellation['id'], $constellation['seed']) && str_starts_with($constellation['seed'], 'CON-'), 'Constellation identity or seed is missing.');
+        $assert(($constellation['system_count'] ?? -1) === count($constellation['systems'] ?? []), 'Constellation system count is inconsistent.');
+        foreach ($constellation['systems'] as $system) {
+            $assert(($system['constellation_id'] ?? '') === $constellation['id'], 'System parent constellation ID is incorrect.');
+            $assert(str_starts_with((string)($system['seed'] ?? ''), 'SYS-'), 'System seed is missing.');
+            $assert(isset($system['star']['id'], $system['star']['spectral_class']), 'System primary star profile is missing.');
+            $indexed[$system['id']] = $system;
+        }
+    }
+    $assert(count($indexed) === count($baseline['systems']), 'Nested systems do not match the flat system index.');
+    foreach ($baseline['systems'] as $system) {
+        $assert(isset($indexed[$system['id']]), 'Flat system index contains an unparented system.');
+        $assert($indexed[$system['id']] === $system, 'Flat system index differs from its nested constellation record.');
+    }
+    $worldGenerator = new WorldGenerator();
+    foreach ($baseline['systems'] as $system) {
+        foreach ($worldGenerator->generateForSystem($baseline['seed'], $system) as $world) {
+            $assert(($world['system_id'] ?? '') === $system['id'], 'World does not identify its parent system.');
+            $assert(($world['constellation_id'] ?? '') === $system['constellation_id'], 'World does not identify its parent constellation.');
+            $assert(($world['system_seed'] ?? '') === $system['seed'], 'World does not retain its parent system seed.');
+        }
+    }
+});
+
 $test('world profiles are deterministic and stable for a universe seed and system ID', static function () use ($equal, $assert): void {
     $generator = new WorldGenerator();
     $system = ['id' => 'sys_world_qa', 'name' => 'QA System'];
@@ -221,17 +344,196 @@ $test('world profiles are deterministic and stable for a universe seed and syste
     $equal($first, $second, 'Repeated world generation changed the profile.');
     $assert(count($first) >= 1 && count($first) <= 9, 'World count is outside expected bounds.');
     $ids = [];
+    $uwps = [];
     foreach ($first as $world) {
         $assert(isset($world['id'], $world['name'], $world['type'], $world['uwp']), 'World is missing a required identity/profile field.');
         $assert(!in_array($world['id'], $ids, true), 'Duplicate world ID was generated.');
         $ids[] = $world['id'];
         $assert(strlen($world['uwp']) === 8, 'UWP must contain eight profile characters.');
+        $assert(!in_array($world['uwp'], $uwps, true), 'Two worlds in the same system share a UWP.');
+        $uwps[] = $world['uwp'];
         foreach (['size' => 10, 'atmosphere' => 15, 'hydrographics' => 10, 'population' => 10, 'government' => 15, 'law_level' => 15, 'tech_level' => 15] as $field => $maximum) {
             $assert(is_int($world[$field]) && $world[$field] >= 0 && $world[$field] <= $maximum, 'World field is outside its valid range: ' . $field);
         }
     }
     $assert($first !== $generator->generateForSystem('different-world-seed', $system), 'Different universe seeds produced identical world profiles.');
 });
+$test('world profiles include deterministic estimated physical data and coherent moon orbital records', static function () use ($assert, $equal): void {
+    $generator = new WorldGenerator();
+    $system = ['id' => 'sys_physical_qa', 'name' => 'Physical QA'];
+    $first = $generator->generateForSystem('physical-world-seed', $system);
+    $again = $generator->generateForSystem('physical-world-seed', $system);
+    $equal($first, $again, 'Physical or moon data changed for an identical world seed.');
+    foreach ($first as $world) {
+        $physical = $world['physical'] ?? [];
+        $assert(($physical['model'] ?? '') === 'seeded_estimate_v1' && ($physical['estimated'] ?? false) === true, 'World physical profile must identify itself as a deterministic estimate.');
+        $assert(($physical['radius_km'] ?? 0) > 0 && ($physical['mass_earth'] ?? 0) > 0 && ($physical['surface_gravity_g'] ?? 0) > 0, 'World physical estimates must contain positive radius, mass, and gravity.');
+        $assert(($physical['rotation_period_hours'] ?? 0) >= 8 && ($physical['axial_tilt_degrees'] ?? -1) >= 0 && ($physical['axial_tilt_degrees'] ?? 100) <= 45, 'World rotation or axial tilt estimate is outside its configured range.');
+        $moons = $world['moons'] ?? null;
+        $assert(is_array($moons) && count($moons) <= 3, 'World moon list must be a bounded array.');
+        foreach ($moons as $index => $moon) {
+            $assert(($moon['type'] ?? '') === 'moon' && ($moon['id'] ?? '') !== '', 'Generated moon is missing its stable identity or type.');
+            $assert(($moon['diameter_km'] ?? 0) > 0 && ($moon['orbital_radius_planet_radii'] ?? 0) > 0 && ($moon['orbital_period_hours'] ?? 0) > 0, 'Generated moon has invalid orbital or physical data.');
+            $assert(($moon['phase_degrees'] ?? -1) >= 0 && ($moon['phase_degrees'] ?? 360) <= 359, 'Generated moon phase is outside the expected range.');
+        }
+    }
+});
+
+$test('hierarchical procedural seeds are unique and deterministic at system and world levels', static function () use ($assert, $equal): void {
+    $generator = new UniverseGenerator();
+    $baseline = $generator->generate('qa-hierarchical-seed');
+    $again = $generator->generate('qa-hierarchical-seed');
+    $equal($baseline, $again, 'Hierarchical system seeds changed across identical generation.');
+    $systemSeeds = [];
+    foreach ($baseline['systems'] as $system) {
+        $assert(is_string($system['seed'] ?? null) && str_starts_with($system['seed'], 'SYS-'), 'Generated system is missing its independent system seed.');
+        $assert(!in_array($system['seed'], $systemSeeds, true), 'Two systems share a system seed.');
+        $systemSeeds[] = $system['seed'];
+    }
+    $worldGenerator = new WorldGenerator();
+    $worldSeeds = [];
+    foreach ($baseline['systems'] as $system) {
+        $worlds = $worldGenerator->generateForSystem($baseline['seed'], $system);
+        foreach ($worlds as $world) {
+            $assert(is_string($world['seed'] ?? null) && str_starts_with($world['seed'], 'WLD-'), 'World is missing its independent world seed.');
+            $assert(($world['system_seed'] ?? '') === $system['seed'], 'World does not retain its parent system seed.');
+            $assert(strlen((string)($world['uwp'] ?? '')) === 8, 'World UWP is not a complete eight-character profile.');
+            $assert(!in_array($world['seed'], $worldSeeds, true), 'Two worlds share a world seed.');
+            $worldSeeds[] = $world['seed'];
+        }
+    }
+    $assert(count($worldSeeds) > count($baseline['systems']), 'The generated universe did not produce multiple individually seeded worlds.');
+});
+$test('universe deletion is blocked while a character from another home universe is visiting', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-shared-delete-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $shared = (new UniverseService($storage))->createOrLoad('qa-shared-delete-target');
+        $home = (new UniverseService($storage))->createOrLoad('qa-shared-delete-home');
+        $storage->write('characters', 'chr-active-visitor', [
+            'id' => 'chr-active-visitor', 'owner_account_id' => 'acct-visitor',
+            'universe_id' => $home['id'], 'active_universe_id' => $shared['id'],
+        ]);
+        $service = new \Core\Modules\UniverseDeletionService($storage, new UniverseBackupService($storage, $dir . '/backups'));
+        $blocked = false;
+        try { $service->delete($shared['id'], 'DELETE UNIVERSE ' . $shared['id'], 0, 0, []); }
+        catch (RuntimeException $e) { $blocked = str_contains($e->getMessage(), 'visiting it'); }
+        $assert($blocked, 'Universe deletion did not block an active visitor.');
+        $assert($storage->read('universes', $shared['id']) !== null, 'Shared universe was deleted despite its active visitor.');
+        $assert($storage->read('characters', 'chr-active-visitor') !== null, 'Visiting character record was changed during blocked deletion.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+$test('shared universe visit preserves home assignment and restores home location on exit', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-shared-universe-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $ownerUniverse = (new UniverseService($storage))->createOrLoad('qa-shared-owner-seed');
+        $visitorHome = (new UniverseService($storage))->createOrLoad('qa-shared-visitor-home-seed');
+        $ownerSystem = $ownerUniverse['baseline']['systems'][0]['id'];
+        $homeSystem = $visitorHome['baseline']['systems'][1]['id'] ?? $visitorHome['baseline']['systems'][0]['id'];
+        $storage->write('characters', 'chr-share-owner', ['id' => 'chr-share-owner', 'owner_account_id' => 'acct-owner', 'universe_id' => $ownerUniverse['id'], 'current_system_id' => $ownerSystem, 'lifecycle' => ['enabled' => true, 'locked' => false]]);
+        $storage->write('characters', 'chr-share-visitor', ['id' => 'chr-share-visitor', 'owner_account_id' => 'acct-visitor', 'universe_id' => $visitorHome['id'], 'current_system_id' => $homeSystem, 'location' => ['system_id' => $homeSystem, 'updated_at' => '2026-01-01T00:00:00Z'], 'lifecycle' => ['enabled' => true, 'locked' => false], 'revision' => 0]);
+        $service = new \Core\Modules\Universe\SharedUniverseService($storage);
+        $share = $service->createShareCode($ownerUniverse['id'], 'acct-owner');
+        $assert(strlen($share['share_code']) === 32, 'Share code must contain 128 bits of random hexadecimal data.');
+        $rotatedShare = $service->createShareCode($ownerUniverse['id'], 'acct-owner');
+        $invalidated = false;
+        try { $service->visit('chr-share-visitor', 'acct-visitor', $share['share_code']); } catch (RuntimeException) { $invalidated = true; }
+        $assert($invalidated, 'Rotating the share code did not invalidate the previous code.');
+        $savedUniverse = $storage->read('universes', $ownerUniverse['id']);
+        $assert(!isset($savedUniverse['sharing']['share_code']), 'Raw share code must not be persisted.');
+        $assert(isset($savedUniverse['sharing']['code_hash']), 'Share code hash was not persisted.');
+        $visited = $service->visit('chr-share-visitor', 'acct-visitor', $rotatedShare['share_code']);
+        $equal($visitorHome['id'], $visited['universe_id'], 'Visiting overwrote the character home universe.');
+        $equal($ownerUniverse['id'], $visited['active_universe_id'], 'Character did not enter the shared universe.');
+        $equal($ownerUniverse['baseline']['systems'][0]['constellation_id'], $visited['current_constellation_id'], 'Shared visit did not set the destination Constellation ID.');
+        $equal($ownerUniverse['baseline']['systems'][0]['constellation_id'], $visited['location']['constellation_id'] ?? null, 'Shared visit location lost its Constellation ID.');
+        $equal($ownerUniverse['id'], $visited['location']['universe_id'] ?? null, 'Shared visit location lost its active Universe ID.');
+        $assert(\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $ownerUniverse['id'], 'acct-visitor'), 'Visitor cannot access the universe they joined.');
+        $secondOwnerUniverse = (new UniverseService($storage))->createOrLoad('qa-shared-second-owner-seed');
+        $storage->write('characters', 'chr-share-second-owner', ['id' => 'chr-share-second-owner', 'owner_account_id' => 'acct-second-owner', 'universe_id' => $secondOwnerUniverse['id'], 'current_system_id' => $secondOwnerUniverse['baseline']['systems'][0]['id'], 'lifecycle' => ['enabled' => true, 'locked' => false]]);
+        $secondShare = $service->createShareCode($secondOwnerUniverse['id'], 'acct-second-owner');
+        $switched = $service->visit('chr-share-visitor', 'acct-visitor', $secondShare['share_code']);
+        $equal($visitorHome['id'], $switched['universe_id'], 'Switching shared universes changed the permanent home universe.');
+        $equal($secondOwnerUniverse['id'], $switched['active_universe_id'], 'Visiting a second shared universe did not automatically switch the active universe.');
+        $assert(!\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $ownerUniverse['id'], 'acct-visitor'), 'Visitor retained access to the previous shared universe after switching.');
+        $assert(\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $secondOwnerUniverse['id'], 'acct-visitor'), 'Visitor did not gain access to the newly selected shared universe.');
+        $failedSwitch = false;
+        try { $service->visit('chr-share-visitor', 'acct-visitor', str_repeat('0', 32)); } catch (RuntimeException) { $failedSwitch = true; }
+        $assert($failedSwitch, 'An invalid destination share code was accepted.');
+        $stillSwitched = $storage->read('characters', 'chr-share-visitor');
+        $equal($secondOwnerUniverse['id'], $stillSwitched['active_universe_id'], 'A failed destination validation changed the current active universe.');
+        $returned = $service->leave('chr-share-visitor', 'acct-visitor');
+        $equal($visitorHome['id'], $returned['universe_id'], 'Leaving did not preserve the home universe.');
+        $assert(!isset($returned['active_universe_id']), 'Active shared universe was not cleared on exit.');
+        $equal($homeSystem, $returned['current_system_id'], 'Home system was not restored on exit.');
+        $assert(!\Core\Http\PlayerApiSecurity::canAccessUniverse($storage, $ownerUniverse['id'], 'acct-visitor'), 'Visitor retained shared-universe access after leaving.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+$test('legacy universe baselines rebuild into the full hierarchy and reconcile active and home locations', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-hierarchy-rebuild-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $baseline = (new UniverseGenerator())->generate('qa-legacy-hierarchy-seed');
+        $legacyBaseline = $baseline;
+        unset($legacyBaseline['constellations']);
+        $legacyBaseline['hierarchy_version'] = 0;
+        foreach ($legacyBaseline['systems'] as &$legacySystem) {
+            unset($legacySystem['constellation_id'], $legacySystem['constellation_seed']);
+        }
+        unset($legacySystem);
+        $universe = [
+            'id' => $baseline['id'], 'seed' => $baseline['seed'], 'settings' => $baseline['settings'],
+            'generator_version' => 2, 'hierarchy_version' => 0, 'baseline' => $legacyBaseline,
+            'state' => ['schema_version' => 1, 'revision' => 9, 'changes' => [['type' => 'preserve-me']]],
+            'sharing' => ['enabled' => true, 'code_hash' => hash('sha256', 'share-key')],
+            'owner_account_id' => 'acct-owner',
+        ];
+        $storage->write('universes', $universe['id'], $universe);
+        $storage->write('characters', 'chr-hierarchy-home', [
+            'id' => 'chr-hierarchy-home', 'owner_account_id' => 'acct-home', 'universe_id' => $universe['id'],
+            'current_system_id' => 'old-system-id', 'current_constellation_id' => 'old-constellation-id',
+            'location' => ['system_id' => 'old-system-id'], 'revision' => 3,
+        ]);
+        $storage->write('characters', 'chr-hierarchy-visitor', [
+            'id' => 'chr-hierarchy-visitor', 'owner_account_id' => 'acct-visitor', 'universe_id' => 'uni-home',
+            'active_universe_id' => $universe['id'], 'current_system_id' => 'old-active-system',
+            'location' => ['system_id' => 'old-active-system'], 'revision' => 4,
+        ]);
+        $storage->write('characters', 'chr-hierarchy-away', [
+            'id' => 'chr-hierarchy-away', 'owner_account_id' => 'acct-away', 'universe_id' => $universe['id'],
+            'active_universe_id' => 'uni-away', 'current_system_id' => 'active-away-system',
+            'location' => ['system_id' => 'active-away-system'], 'revision' => 5,
+            'home_location_snapshot' => ['current_system_id' => 'old-home-system', 'location' => ['system_id' => 'old-home-system']],
+        ]);
+
+        $rebuilt = (new UniverseService($storage))->ensureCurrentHierarchy($universe['id']);
+        $first = $rebuilt['baseline']['systems'][0];
+        $equal($universe['id'], $rebuilt['id'], 'Universe identity changed during hierarchy rebuild.');
+        $equal(1, $rebuilt['hierarchy_version'], 'Hierarchy version was not upgraded.');
+        $assert(isset($rebuilt['baseline']['constellations'][0]['systems'][0]), 'Nested Constellation -> System hierarchy was not rebuilt.');
+        $equal(9, $rebuilt['state']['revision'], 'Persistent universe state revision was discarded.');
+        $equal($universe['sharing'], $rebuilt['sharing'], 'Universe sharing metadata was discarded.');
+        $home = $storage->read('characters', 'chr-hierarchy-home');
+        $equal($first['id'], $home['current_system_id'], 'Home character was not moved to a valid regenerated System.');
+        $equal($first['constellation_id'], $home['current_constellation_id'], 'Home character Constellation was not reconciled.');
+        $visitor = $storage->read('characters', 'chr-hierarchy-visitor');
+        $equal($first['id'], $visitor['current_system_id'], 'Active visitor was not moved to a valid regenerated System.');
+        $equal($universe['id'], $visitor['location']['universe_id'], 'Active visitor location lost the regenerated Universe identity.');
+        $away = $storage->read('characters', 'chr-hierarchy-away');
+        $equal('active-away-system', $away['current_system_id'], 'Home-universe rebuild overwrote the visitor current location.');
+        $equal($first['id'], $away['home_location_snapshot']['current_system_id'], 'Home location snapshot was not reconciled.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
 $test('world generation leaves the persisted universe baseline unchanged', static function () use ($assert, $equal): void {
     $dir = sys_get_temp_dir() . '/core-world-qa-' . bin2hex(random_bytes(6));
     try {
@@ -893,6 +1195,83 @@ $test('Workbench defaults to structured content editing with optional advanced J
 });
 
 
+$test('CORE runtime module provides only shared configuration and persistence', static function () use ($assert): void {
+    $dir = sys_get_temp_dir() . '/core-runtime-module-' . bin2hex(random_bytes(6));
+    try {
+        $config = ['storage' => ['path' => $dir . '/data']];
+        $services = new Core\Modules\ServiceContainer();
+        $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext($services));
+        $registry->register(new Core\Modules\Core\CoreRuntimeModule($config));
+        $order = $registry->bootAll();
+        if ($order !== ['core.runtime']) throw new RuntimeException('Unexpected CORE runtime module boot order.');
+        $assert($services->has('core.config'), 'Runtime config service was not registered.');
+        $assert($services->has('core.storage'), 'Runtime storage service was not registered.');
+        $assert(!$services->has('universe.service'), 'Runtime module must not own universe services.');
+        $assert(!$services->has('character.service'), 'Runtime module must not own character services.');
+        $assert($services->get('core.storage') instanceof JsonStorage, 'CORE runtime storage service has the wrong type.');
+        $assert(is_dir($dir . '/data'), 'CORE runtime module did not initialize the configured storage directory.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+$test('CORE domain modules compose services in declared dependency order', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-domain-modules-' . bin2hex(random_bytes(6));
+    try {
+        $config = ['storage' => ['path' => $dir . '/data']];
+        $services = new Core\Modules\ServiceContainer();
+        $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext($services));
+        // Register in reverse dependency order to prove the registry resolves dependencies.
+        $registry->register(new Core\Modules\Core\CoreContentModule());
+        $registry->register(new Core\Modules\Core\CoreDataManagementModule());
+        $registry->register(new Core\Modules\Characters\CharacterModule());
+        $registry->register(new Core\Modules\Universe\UniverseModule());
+        $registry->register(new Core\Modules\Core\CoreRuntimeModule($config));
+        $equal(
+            ['core.runtime', 'core.universe', 'core.content', 'core.data-management', 'core.characters'],
+            $registry->bootAll(),
+            'CORE modules did not boot in dependency order.'
+        );
+        foreach ([
+            'universe.service', 'universe.lifecycle', 'navigation.routes', 'universe.backups', 'universe.deletion',
+            'character.service', 'character.universe-assignment', 'character.travel', 'character.scan', 'character.discovery', 'character.crafting',
+            'character.fitting', 'character.lifecycle', 'data.management', 'content.characteristics', 'content.management',
+        ] as $id) {
+            $assert($services->has($id), 'Expected domain service was not registered: ' . $id);
+        }
+        $assert($services->get('universe.service') instanceof Core\Modules\Universe\UniverseService, 'Universe service has the wrong type.');
+        $assert($services->get('character.service') instanceof Core\Modules\Characters\CharacterService, 'Character service has the wrong type.');
+        $assert($services->get('character.universe-assignment') instanceof Core\Modules\Characters\CharacterUniverseAssignmentService, 'Character assignment service has the wrong type.');
+        $assert($services->get('universe.deletion') instanceof Core\Modules\UniverseDeletionService, 'Universe deletion service has the wrong type.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
+$test('player workflows boot and reuse the standard application module services', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-player-module-boot-' . bin2hex(random_bytes(6));
+    try {
+        $app = new Core\Application();
+        $config = ['storage' => ['path' => $dir . '/data'], 'logging' => ['path' => $dir . '/logs/core.log']];
+        $order = $app->bootDefaultModules($config);
+        $equal(['core.runtime', 'core.universe', 'core.characters', 'core.data-management', 'core.content'], $order, 'Unexpected player workflow module boot order.');
+        $assert($app->services()->get('core.storage') instanceof JsonStorage, 'Player workflow did not reuse module storage.');
+        $assert($app->services()->get('universe.service') instanceof Core\Modules\Universe\UniverseService, 'Player workflow universe service was not booted.');
+        $assert($app->services()->get('character.service') instanceof Core\Modules\Characters\CharacterService, 'Player workflow character service was not booted.');
+        $assert($app->services()->get('character.universe-assignment') instanceof Core\Modules\Characters\CharacterUniverseAssignmentService, 'Player workflow assignment service was not booted.');
+        $equal($order, $app->bootDefaultModules($config), 'Repeated default module boot should be idempotent.');
+        $action = (string)file_get_contents(CORE_ROOT . '/player/player-action.php');
+        foreach (['bootDefaultModules()', "get('core.storage')", "get('character.service')", "get('universe.service')", "get('character.universe-assignment')"] as $needle) {
+            $assert(str_contains($action, $needle), 'Player action does not use shared module service: ' . $needle);
+        }
+        foreach (['new \\Core\\Storage\\JsonStorage', 'new \\Core\\Modules\\Characters\\CharacterService', 'new \\Core\\Modules\\Universe\\UniverseService', 'new \\Core\\Modules\\Characters\\CharacterUniverseAssignmentService'] as $needle) {
+            $assert(!str_contains($action, $needle), 'Player action still constructs a domain service directly: ' . $needle);
+        }
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+
 $test('module registry boots a demonstration module and exposes its service', static function () use ($assert, $equal): void {
     $services = new Core\Modules\ServiceContainer();
     $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext($services));
@@ -988,6 +1367,19 @@ $test('Character creation includes an interactive Babylon.js primitive preview',
     foreach (['BABYLON.Engine', 'BABYLON.ArcRotateCamera', 'CreateSphere', 'CreateCylinder', 'CreateGround', 'CreateTorus', 'attachControl', 'previewColor', '3D preview failed'] as $needle) {
         $assert(is_string($js) && str_contains($js, $needle), 'Character preview script missing marker: ' . $needle);
     }
+});
+
+$test('Character creation workspace exposes explained sections and a neutral standing preview', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/character-create.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/character-creation.js');
+    $preview = (string)file_get_contents(CORE_ROOT . '/player/character-preview.js');
+    foreach (['Appearance', 'Role', 'Attributes', 'Skills &amp; Feats', 'Traits &amp; Benefits', 'Inventory', 'Background', 'Misc'] as $section) {
+        $assert(str_contains($page, $section), 'Character creation section is missing: ' . $section);
+    }
+    $assert(str_contains($page, 'role="tablist"') && str_contains($page, 'role="tabpanel"'), 'Character creation navigation needs accessible tabs and panels.');
+    $assert(str_contains($script, 'activateTab') && str_contains($script, 'updateDescriptions'), 'Character creation tabs/descriptions are not wired.');
+    $assert(str_contains($preview, 'Neutral standing idle') && str_contains($preview, 'Neutral rest pose'), 'Character preview must identify its neutral standing/rest state.');
+    $assert(!preg_match('/walking\.start|walking\.speedRatio/i', $preview), 'Character creation preview must not start the walking animation.');
 });
 
 $test('Player game API root uses the public URL path, not the filesystem path', static function () use ($assert): void {
@@ -1090,7 +1482,7 @@ $test('Account listing is non-provisioning and exposes only safe management meta
 $test('Player prototype QA matches authenticated boot-data architecture', static function () use ($assert): void {
     $js = (string)file_get_contents(CORE_ROOT . '/player/player.js');
     $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
-    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'const boot = window.CORE_BOOT || {}'] as $needle) {
+    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', "mesh.metadata={entityId:system.id,entityType:'system'}", 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'const boot = window.CORE_BOOT || {}'] as $needle) {
         $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
     }
     $assert(str_contains($game, "'universe' => \$playerUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the selected character and assigned universe.');
@@ -1140,14 +1532,1111 @@ $test('Player-facing copy uses universe terminology and current account security
     $assert(!str_contains($game, 'characterCreationScreen') && !str_contains($game, 'Full point-buy and species adjustments are not implemented yet'), 'Gameplay still contains the obsolete duplicate character-creation screen.');
 });
 
+
+$test('Character previews rotate the complete imported GLB rig toward the camera', static function () use ($assert): void {
+    $creation = (string)file_get_contents(CORE_ROOT . '/player/character-preview.js');
+    $roster = (string)file_get_contents(CORE_ROOT . '/player/character-roster-preview.js');
+    foreach ([$creation, $roster] as $index => $js) {
+        $assert(str_contains($js, 'result.transformNodes || []'), 'Preview ' . $index . ' must include imported transform nodes.');
+        $assert(str_contains($js, 'new BABYLON.TransformNode('), 'Preview ' . $index . ' must rotate a wrapper around the complete rig.');
+        $assert(str_contains($js, 'importedRoots.forEach((node) => { node.parent = modelRoot; })'), 'Preview ' . $index . ' must parent every imported root to the wrapper.');
+        $assert(str_contains($js, 'modelRoot.rotation.y += Math.PI'), 'Preview ' . $index . ' must face the known +Z model front toward its -Z camera.');
+    }
+});
+$test('System overview orbit tubes and planets share the same local orbital plane', static function () use ($assert): void {
+    $js = (string)file_get_contents(CORE_ROOT . '/player/system-view.js');
+    $assert(str_contains($js, 'BABYLON.MeshBuilder.CreateTube(`orbit-${index}`'), 'System orbit must be generated from explicit path geometry.');
+    $assert(str_contains($js, 'orbitPath.push(new BABYLON.Vector3('), 'System orbit path must use explicit local coordinates.');
+    $assert(str_contains($js, 'window.CORE_ORBITS.layout'), 'System view must use the shared orbital layout.');
+    $assert(!str_contains($js, 'plane.rotation'), 'System view must not invent orbital inclinations.');
+    $assert(!str_contains($js, 'orbit.rotation.x = Math.PI / 2'), 'System orbit must not be rotated away from the planet path.');
+});
+$test('Character selection location preview uses shared coplanar orbital geometry', static function () use ($assert): void {
+    $js = (string)file_get_contents(CORE_ROOT . '/player/character-roster-preview.js');
+    $assert(str_contains($js, 'window.CORE_ORBITS.layout'), 'Location preview must use the shared orbital layout.');
+    $assert(str_contains($js, 'BABYLON.MeshBuilder.CreateTube'), 'Location preview must construct explicit orbit paths.');
+    $assert(!str_contains($js, 'plane.rotation'), 'Location preview must not invent orbital inclinations.');
+    $assert(str_contains($js, 'Math.sin(angle) * orbitRadius'), 'Location planet must use the same circular local path as its orbit.');
+    $assert(!str_contains($js, 'Math.sin(angle) * orbit * .42'), 'Location preview must not use an elliptical planet path inside a circular ring.');
+});
+
+$test('Character creation persists the selected model tint for later views', static function () use ($assert, $equal): void {
+    $dir = sys_get_temp_dir() . '/core-character-appearance-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $service = new CharacterService($storage);
+        $character = $service->create('', 'Tint Persistence', 'explorer', 'human', [], 'tint-owner', null, ['tint' => '#a14bc7', 'saturation' => 145, 'brightness' => 115]);
+        $equal('#a14bc7', $character['appearance']['tint'] ?? null, 'Selected character tint was not persisted.');
+        $equal(145, $character['appearance']['saturation'] ?? null, 'Selected appearance saturation was not persisted.');
+        $equal(115, $character['appearance']['brightness'] ?? null, 'Selected appearance brightness was not persisted.');
+        $universe = (new UniverseService($storage))->createOrLoad('core-cli-appearance-tint-assigned');
+        $assigned = $service->create($universe['id'], 'Assigned Tint', 'explorer', 'human', [], 'tint-owner', null, ['tint' => '#25a0d8', 'saturation' => 80, 'brightness' => 90]);
+        $equal('#25a0d8', $assigned['appearance']['tint'] ?? null, 'Assigned character tint was not persisted.');
+        $equal(80, $assigned['appearance']['saturation'] ?? null, 'Assigned character saturation was not persisted.');
+        $equal(90, $assigned['appearance']['brightness'] ?? null, 'Assigned character brightness was not persisted.');
+        $invalid = $service->create('', 'Tint Fallback', 'explorer', 'human', [], 'tint-owner', null, ['tint' => 'not-a-color']);
+        $equal('#61d8e8', $invalid['appearance']['tint'] ?? null, 'Invalid tint did not fall back to the default.');
+        $equal(100, $invalid['appearance']['saturation'] ?? null, 'Invalid saturation did not fall back to the default.');
+        $equal(100, $invalid['appearance']['brightness'] ?? null, 'Invalid brightness did not fall back to the default.');
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+$test('Active System resolution falls back when current_system_id is empty', static function () use ($assert, $equal): void {
+    $equal('system-from-location', \Core\Modules\Characters\CharacterUniverseContext::activeSystemId([
+        'current_system_id' => '',
+        'location' => ['system_id' => 'system-from-location'],
+    ]), 'An empty current_system_id prevented fallback to the nested active location.');
+    $equal('system-from-location', \Core\Modules\Characters\CharacterUniverseContext::activeSystemId([
+        'current_system_id' => '   ',
+        'location' => ['system_id' => 'system-from-location'],
+    ]), 'A whitespace current_system_id prevented fallback to the nested active location.');
+    $equal('canonical-system', \Core\Modules\Characters\CharacterUniverseContext::activeSystemId([
+        'current_system_id' => 'canonical-system',
+        'location' => ['system_id' => 'other-system'],
+    ]), 'A non-empty canonical current_system_id was not kept authoritative.');
+    $worldPage = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $assert(str_contains($worldPage, 'CharacterUniverseContext::activeSystemId($character)'), 'Test-world server validation does not use canonical active-System resolution.');
+});
+$test('Universe Data is the first visible gameplay sidebar card', static function () use ($assert): void {
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $universe = strpos($game, 'id="universeDataPanel"');
+    $selectedSystem = strpos($game, 'id="selectedPanel"');
+    $assert($universe !== false && $selectedSystem !== false && $universe < $selectedSystem, 'Universe Data must appear before System and World detail cards in the sidebar.');
+});
+$test('Test-world entry is restricted to a generated world in the character current system', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $client = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $worldClient = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $environmentClient = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    foreach (['CharacterLifecycleGuard::assertCanPerformGameplayAction', 'UniverseLifecycleGuard::assertCanPerformGameplayAction', '$systemId !== $currentSystemId', 'WorldGenerator())->generateForSystem', '$worldId'] as $needle) {
+        $assert(str_contains($page, $needle), 'World entry validation is missing: ' . $needle);
+    }
+    $assert(str_contains($game, 'id="enterWorldButton"'), 'System inspector does not expose the test-world entry action.');
+    $assert(str_contains($client, "core:world-selected") && str_contains($client, "world.php"), 'Gameplay client does not route the selected world into the test environment.');
+    foreach (['keydown', 'keyup', 'camera.getDirection(BABYLON.Axis.Z)', 'speedWalk', 'SceneLoader.ImportMeshAsync', 'CORE_PLANETARY_ENVIRONMENT.load', 'CORE_PLANETARY_ENVIRONMENT.create', 'CORE_PLANETARY_ENVIRONMENT.moveOnSurface'] as $needle) {
+        $assert(str_contains($worldClient, $needle), 'Test-world movement/rendering is missing: ' . $needle);
+    }
+    foreach (['api/world-geography.php', 'create(scene)', 'surfaceAtNormal', 'surfaceField', 'sampleHeight', 'moveOnSurface', 'getCoordinates', 'core-planetary-terrain'] as $needle) {
+        $assert(str_contains($environmentClient, $needle), 'Planetary geography-to-terrain integration is missing: ' . $needle);
+    }
+    $assert(str_contains($worldClient, 'positionCameraAboveSurface') && str_contains($worldClient, 'camera.setPosition'), 'Planetary camera is not positioned relative to the character surface.');
+    $assert(str_contains($worldClient, 'rotateVectorBetweenNormals'), 'Planetary camera orientation is not transported as the character moves across the globe.');
+    $assert(!str_contains($environmentClient, 'core-planetary-spawn-marker'), 'Unwanted visible spawn marker remains in the planetary environment.');
+    $assert(!str_contains($worldClient, 'sampleAtCoordinates(window.CORE_PLANETARY_ENVIRONMENT.getCoordinates'), 'Per-frame movement still performs redundant terrain resampling.');
+    foreach (['worldMapOverlay', 'worldMapCanvas', 'worldOverlay', 'worldCoordinates', 'worldMapPlayerMarker'] as $needle) {
+        $assert(str_contains($page, $needle) || str_contains($worldClient, $needle), 'Planetary navigation UI is missing: ' . $needle);
+    }
+    foreach (['showMainMenu', 'showCharacterInfo', 'showInventory', "key === 'm'", "key === 'c'", "key === 'i'", "key === 'escape'"] as $needle) {
+        $assert(str_contains($worldClient, $needle), 'Planetary keyboard navigation is missing: ' . $needle);
+    }
+    $assert(!str_contains($page, 'world-coordinate-readout') && !str_contains($page, 'TEST WORLD · SESSION ONLY') && !str_contains($page, 'world-character-label'), 'Redundant test-world banner or character label remains in the 3D viewport.');
+    foreach (['universeName', 'constellationName', "'universe' =>", "'constellation' =>"] as $needle) {
+        $assert(str_contains($page, $needle), 'World header hierarchy is missing: ' . $needle);
+    }
+});
+$test('Planetary character orientation uses supported Babylon.js quaternion APIs', static function () use ($assert): void {
+    $worldClient = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($worldClient, 'function alignUpToSurface(normal)'), 'Planetary surface alignment helper is missing.');
+    $assert(str_contains($worldClient, 'BABYLON.Quaternion.RotationAxis'), 'Surface alignment does not use a supported Babylon.js quaternion factory.');
+    $assert(!str_contains($worldClient, 'BABYLON.Quaternion.FromUnitVectors'), 'Unsupported Quaternion.FromUnitVectors call remains in the world client.');
+});
+$test('Character appearance controls persist and render consistently', static function () use ($assert): void {
+    $create = (string)file_get_contents(CORE_ROOT . '/player/character-create.php');
+    $creationJs = (string)file_get_contents(CORE_ROOT . '/player/character-creation.js');
+    $appearanceJs = (string)file_get_contents(CORE_ROOT . '/player/appearance.js');
+    $service = (string)file_get_contents(CORE_ROOT . '/app/Modules/Characters/CharacterService.php');
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $roster = (string)file_get_contents(CORE_ROOT . '/player/character-roster-preview.js');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    foreach ([[$create, 'appearance[tint]'], [$create, 'previewSaturation'], [$create, 'previewBrightness'], [$create, 'data-appearance-preset'], [$creationJs, 'characterSaturationValue'], [$creationJs, 'characterBrightnessValue'], [$appearanceJs, 'applyToMaterial'], [$service, '\'appearance\' => $savedAppearance'], [$selection, 'data-saturation='], [$selection, 'data-brightness='], [$roster, 'canvas.dataset.saturation'], [$world, 'characterAppearance'], [$world, 'snapshot.appearanceSaturation'], [$world, 'snapshot.appearanceBrightness']] as [$source, $needle]) {
+        $assert(str_contains($source, $needle), 'Character appearance pipeline is missing: ' . $needle);
+    }
+});
+
+$test('Humanoid GLB animation library selects exact Walk and exposes all imported clips', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    foreach (["findClip('Walk')", "findClip('Run_Anime', 'Jog', 'Sprint', 'Run_Female')", 'window.CORE_ANIMATION_CATALOG', 'window.CORE_PLAY_ANIMATION', 'animationGroups.map(group =>'] as $needle) {
+        $assert(str_contains($world, $needle), 'Humanoid animation selection/catalog support is missing: ' . $needle);
+    }
+    $assert(!str_contains($world, "find(group => /walk/i.test(group.name))"), 'Broad walk matching can select Crouch_Walk instead of Walk.');
+});
+
+$test('multiplayer token grant has a direct PHP endpoint that bypasses rewrite configuration', static function () use ($assert): void {
+    $endpoint = (string)file_get_contents(CORE_ROOT . '/api/multiplayer-token.php');
+    $playerClient = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $worldClient = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $environmentClient = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $assert(str_contains($endpoint, "REQUEST_URI'] = '/api/multiplayer/token'") && str_contains($endpoint, "/public/index.php"), 'Direct multiplayer-token endpoint does not dispatch to the canonical application route.');
+    $assert(str_contains($playerClient, '/api/multiplayer-token.php'), 'Player client does not use the direct multiplayer-token endpoint.');
+    $assert(str_contains($worldClient, '/api/multiplayer-token.php'), 'World client does not use the direct multiplayer-token endpoint.');
+});
+
+$test('shared-universe API routes are rewritten to the application front controller', static function () use ($assert): void {
+    $rules = (string)file_get_contents(CORE_ROOT . '/.htaccess');
+    $client = (string)file_get_contents(CORE_ROOT . '/player/shared-universe.js');
+    $assert(str_contains($rules, 'api/(universe/(share|visit|leave)|multiplayer/token)') && str_contains($rules, 'public/index.php'), 'Application-router JSON endpoints, including the multiplayer token route, are not mapped to the front controller.');
+    $assert(str_contains($client, 'content-type') && str_contains($client, 'non-JSON response'), 'Share-code client does not handle HTML/non-JSON API responses safely.');
+});
+
+
+$test('CORE 0.1.180 renders upright, readable Universe and Constellation labels and keeps Back navigation out of Universe View', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(str_contains($page, 'id="universeViewToolbar"') && str_contains($page, 'id="constellationViewToolbar" class="map-toolbar constellation-view-toolbar hidden"'), 'Universe and Constellation toolbars must have distinct initial visibility.');
+    $assert(!str_contains($page, 'id="backToUniverseViewButton"'), 'Universe View navigation must not render a self-referential Back button.');
+    foreach (['function renderUniverseMap()', 'constellations()', 'constellation-marker-', 'constellation-label-', 'createMapLabel(', 'texture.vScale = -1', 'selectConstellation(id)', "state.view = 'universe'"] as $needle) {
+        $assert(str_contains($script, $needle), 'Universe hierarchy renderer is missing ' . $needle . '.');
+    }
+    $assert(str_contains($script, "if (state.view === 'universe') renderUniverseMap()"), 'Universe View must render the universe-level constellation overview.');
+    $assert(str_contains($script, 'texture.vScale = -1') && str_contains($script, 'createMapLabel('), 'Map labels must be vertically corrected and use the shared readable-label renderer.');
+    $assert(str_contains($script, 'constellation-label-system-') && str_contains($script, 'system.worlds?.length'), 'Constellation View must visibly identify each star system and its world count.');
+    $assert(str_contains($script, 'View Selected Constellation'), 'Universe View must offer a contextual action to open the selected constellation.');
+});
+
+$test('CORE 0.1.180 preserves bright moon and orbital-path development visibility', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    foreach (['mesh.scaling.setAll(3.0)', 'radius: 54', 'moon.orbitMaterial.emissiveColor = BABYLON.Color3.White().scale(4.0)', 'const atmosphericFade ='] as $needle) {
+        $assert(str_contains($astronomy, $needle), 'Planetary celestial presentation is missing ' . $needle . '.');
+    }
+    $assert(str_contains($astronomy, 'moon.mesh.position.copyFrom(planetCenter.add(moonDirection.scale(orbitalRadius)))'), 'Moon mesh must be positioned in planet-centered world space.');
+    $assert(str_contains($astronomy, 'moon.worldOrbitPoints = pathPoints'), 'Moon orbital paths must be real 3D geometry.');
+});
+
+$test('CORE 0.1.180 keeps planetary diagnostics separate away from the bottom-right connection display', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    $assert(str_contains($page, '<details><summary>Diagnostics</summary>'), 'Planetary diagnostics must be collapsed by default.');
+    $assert(str_contains($css, 'left:1rem;bottom:1rem;right:auto'), 'Planetary diagnostics must use the separate bottom-left HUD position.');
+});
+
+$test('CORE 0.1.180 provides visible and hover identification for System View planets and their moons', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/system-view.js');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/system-view.css');
+    $assert(str_contains($page, 'id="systemViewHoverLabel"'), 'System View is missing its hover label surface.');
+    foreach (['POINTERMOVE', 'parentWorld', 'moonIndex', 'CORE_SELECTED_WORLD', 'makeBodyLabel(', 'world-label-', 'moon-label-'] as $needle) $assert(str_contains($script, $needle), 'System View hover identification is missing ' . $needle . '.');
+    $assert(str_contains($script, 'texture.vScale = -1'), 'System View body labels must render upright.');
+    $assert(str_contains($css, '.system-view-hover-label'), 'System View hover label styling is missing.');
+});
+
+$test('CORE 0.1.203 preserves jump/run controls, lands fly mode at the current dry location, and initializes authoritative spawn', static function () use ($assert): void {
+    $terrain = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    foreach (['core-local-terrain-relief', 'localPatchSizeKm = 512', 'localPatchSegments = 320', 'Math.sqrt(2 * planetRadius * 26)', 'updateLocalPatch', 'getAltitude(position)', 'includeLocalRelief', 'core-low-poly-ocean', 'findDrySpawnNormal', 'spawnSurface.water', 'updateWater'] as $needle) {
+        $assert(str_contains($terrain, $needle), 'Local terrain relief/altitude implementation is missing ' . $needle . '.');
+    }
+    $assert(str_contains($world, 'updateLocalPatch(groundPosition)'), 'The local terrain patch must follow the current character position.');
+    $assert(str_contains($world, "event.code === 'F6'"), 'Developer fly mode must have an F6 toggle.');
+    $assert(str_contains($world, "pressed.has('pageup')") && str_contains($world, "pressed.has('pagedown')"), 'Developer flight must use Page Up / Page Down for vertical movement.');
+    $assert(str_contains($world, 'getSurfacePosition(camera.position)'), 'Exiting fly mode must land at the current camera location.');
+    $assert(str_contains($world, "multiplayerRoom.send('set-position'"), 'Authoritative multiplayer position must be initialized from the validated dry-land spawn and updated after flight.');
+    $assert(str_contains($world, '!developerFlyMode && multiplayerRoom && authoritativeTransform'), 'Server position interpolation must not pull the camera/avatar back while flying.');
+    $assert(str_contains($world, 'flySpeed * delta'), 'Fly speed must not be bound to Shift.');
+    $assert(!str_contains($world, "if (pressed.has(' ')) travel") && !str_contains($world, "pressed.has('shift') ? 4"), 'Space and Shift must not control flight elevation or speed.');
+    $assert(str_contains($world, 'developerFlyMode'), 'Developer fly mode must have a separate movement state.');
+    $assert(str_contains($world, 'Altitude:'), 'The planetary map must display current surface altitude.');
+    $assert(str_contains($world, 'altitudeMeters.toLocaleString()'), 'The location HUD must display altitude in meters.');
+});
+
 $test('CORE release version is centralized and matches the current release', static function () use ($assert): void {
     $version = require CORE_ROOT . '/config/version.php';
-    $assert(is_string($version) && preg_match('/^0\.1\.90$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $assert(is_string($version) && preg_match('/^0\\.1\\.205$/', $version) === 1, 'Unexpected CORE release version: ' . (string)$version);
+    $worldPage = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($worldPage, '\'seed\' => $seed'), 'World boot data must expose the assigned universe seed for scoped test presentation.');
+    $assert(str_contains($astronomy, "universeSeed === 'tttttt'"), 'Lunar visibility override must be restricted to the documented test universe seed.');
+    $assert(str_contains($astronomy, 'index === 0 ? 1.5 : 1.85'), 'Test moons must use corrected near-planet orbital radii.');
+});
+
+$test('Character selection provides an account-owned CSRF-protected delete action and hides archived characters', static function () use ($assert): void {
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    foreach (['delete_character', 'hash_equals', 'owner_account_id', "['archived'] = true", 'character-delete-button', 'lifecycle'] as $needle) {
+        $assert(str_contains($selection, $needle), 'Character deletion flow is missing: ' . $needle);
+    }
+});
+
+$test('Test world uses the full viewport with overlay navigation and HUD', static function () use ($assert): void {
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    foreach (['position:fixed;inset:0', 'width:100%;height:100%', 'world-topbar'] as $needle) {
+        $assert(str_contains($css, $needle), 'Full-viewport test world styling is missing: ' . $needle);
+    }
+});
+
+$test('Test world uses a full-viewport canvas without global main constraints', static function () use ($assert): void {
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    foreach (['max-width:none!important', 'margin:0!important', 'padding:0!important', 'width:100vw!important', 'height:100vh!important'] as $needle) {
+        $assert(str_contains($css, $needle), 'Full-viewport override is missing: ' . $needle);
+    }
+});
+
+$test('Test world builds a real procedural idle animation when the GLB has no idle clip', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, 'createProceduralIdleAnimation'), 'Procedural idle animation builder is missing.');
+    $assert(str_contains($world, 'new BABYLON.AnimationGroup'), 'Idle AnimationGroup is missing.');
+    $assert(str_contains($world, 'rotationQuaternion'), 'Idle skeleton bone animation is missing.');
+    $assert(str_contains($world, 'setAnimation(idleAnimation)'), 'Idle transition when movement stops is missing.');
+});
+
+$test('Character roster deletion posts to an active account-protected endpoint', static function () use ($assert): void {
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $endpoint = (string)file_get_contents(CORE_ROOT . '/api/character-delete.php');
+    $assert(str_contains($selection, 'action="../api/character-delete.php"'), 'Roster delete form does not target the deletion endpoint.');
+    $assert(str_contains($endpoint, 'REQUEST_METHOD'), 'Deletion endpoint does not restrict requests to POST.');
+    $assert(str_contains($endpoint, 'hash_equals'), 'Deletion endpoint does not validate CSRF.');
+    $assert(str_contains($endpoint, "'archived'"), 'Deletion endpoint does not archive the character.');
+    $assert(!str_contains($endpoint, 'http_response_code(410)'), 'Deletion endpoint is still retired.');
+});
+
+
+$test('Character roster portrait selects the exact Walk animation, never Crouch_Walk', static function () use ($assert): void {
+    $preview = (string)file_get_contents(CORE_ROOT . '/player/character-roster-preview.js');
+    $assert(str_contains($preview, "String(group.name || '').trim().toLowerCase() === 'walk'"), 'Portrait animation does not select the exact Walk clip.');
+    $assert(!str_contains($preview, 'find((group) => /walk/i.test(group.name))'), 'Broad walk matching can select Crouch_Walk.');
+});
+
+$test('Character selection and system view share the same coplanar orbital layout', static function () use ($assert): void {
+    $helper = (string)file_get_contents(CORE_ROOT . '/player/orbital-mechanics.js');
+    $roster = (string)file_get_contents(CORE_ROOT . '/player/character-roster-preview.js');
+    $system = (string)file_get_contents(CORE_ROOT . '/player/system-view.js');
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $assert(str_contains($helper, 'window.CORE_ORBITS'), 'Shared orbital helper is missing.');
+    $assert(str_contains($roster, 'window.CORE_ORBITS.layout'), 'Character selection does not use shared orbital layout.');
+    $assert(str_contains($system, 'window.CORE_ORBITS.layout'), 'System view does not use shared orbital layout.');
+    $assert(str_contains($selection, '/orbital-mechanics.js'), 'Character selection does not load orbital helper.');
+    $assert(str_contains($game, '/orbital-mechanics.js'), 'Gameplay does not load orbital helper.');
+    $assert(!str_contains($system, 'plane.rotation'), 'System view still invents inclined orbital planes.');
+    $assert(!str_contains($roster, 'plane.rotation'), 'Character selection still invents inclined orbital planes.');
+});
+
+
+$test('Borderless interface contract removes component border declarations across all shared stylesheets', static function () use ($assert): void {
+    $root = CORE_ROOT;
+    $shared = (string)file_get_contents($root . '/assets/borderless.css');
+    $assert(str_contains($shared, 'border: 0 !important'), 'The central borderless contract is missing its universal border reset.');
+    $assert(str_contains($shared, '*::before'), 'Pseudo-elements are not covered by the borderless contract.');
+    $assert(str_contains($shared, '::-webkit-slider-thumb'), 'Browser-native form-control parts are not covered.');
+    foreach (['assets/admin.css', 'assets/admin-player-account.css', 'player/player.css', 'player/world.css', 'player/system-view.css'] as $relative) {
+        $css = (string)file_get_contents($root . '/' . $relative);
+        $assert(preg_match('/(?<![a-z-])border(?:-(?:top|right|bottom|left|width|style|color|image))?\s*:/i', $css) !== 1, 'A component border declaration remains in ' . $relative . '.');
+    }
+    $assert(!str_contains((string)file_get_contents($root . '/player/player.css'), 'box-shadow:inset 0 -2px'), 'The current workflow step still draws a border-like inset stripe.');
+});
+
+$test('Every CORE HTML surface loads the cache-busted borderless stylesheet last', static function () use ($assert): void {
+    foreach (['index.php', 'player/index.php', 'player/account.php', 'player/selection.php', 'player/character-create.php', 'player/universe-create.php', 'player/game.php', 'player/world.php', 'admin/player-account.php'] as $relative) {
+        $page = (string)file_get_contents(CORE_ROOT . '/' . $relative);
+        $globalPosition = strrpos($page, 'borderless.css?v=');
+        $lastStylesheetPosition = strrpos($page, 'rel="stylesheet"');
+        $assert($globalPosition !== false, 'The borderless stylesheet is not loaded by ' . $relative . '.');
+        $assert($lastStylesheetPosition !== false && $globalPosition > $lastStylesheetPosition, 'The borderless stylesheet is not the final stylesheet in ' . $relative . '.');
+    }
+});
+
+$test('Standalone account administration uses external CSS and preserves keyboard focus indicators', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/admin/player-account.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/assets/admin-player-account.css');
+    $global = (string)file_get_contents(CORE_ROOT . '/assets/borderless.css');
+    $assert(!str_contains($page, '<style>'), 'Standalone account administration still embeds its stylesheet.');
+    $assert(str_contains($page, 'admin-player-account.css?v='), 'Standalone account administration does not load its external stylesheet.');
+    $assert(str_contains($global, ':focus-visible'), 'The shared borderless stylesheet does not preserve keyboard focus visibility.');
+    $assert(str_contains($css, 'button:focus-visible'), 'Standalone account administration has no keyboard focus styling.');
+});
+
+
+$test('Colyseus foundation defines isolated service and identity contracts', static function () use ($assert): void {
+    $package = json_decode((string)file_get_contents(CORE_ROOT . '/multiplayer/package.json'), true);
+    $identity = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/contracts/MultiplayerIdentity.ts');
+    $room = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/contracts/RoomIdentity.ts');
+    $movement = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/contracts/MovementProtocol.ts');
+    $architecture = (string)file_get_contents(CORE_ROOT . '/multiplayer/ARCHITECTURE.md');
+    $assert(is_array($package) && ($package['private'] ?? false) === true, 'Multiplayer package must remain private.');
+    $assert(str_starts_with((string)($package['dependencies']['@colyseus/core'] ?? ''), '^0.16.'), 'Colyseus core dependency must target the 0.16-compatible line.');
+    $assert(!isset($package['dependencies']['colyseus']) && !isset($package['dependencies']['@colyseus/auth']), 'Umbrella Colyseus/auth dependency must not reintroduce Grant, elliptic, or uuid chains.');
+    $assert(($package['overrides']['@colyseus/core']['nanoid'] ?? '') === '^3.3.18', 'Colyseus core must resolve NanoID to the patched 3.3.18 line.');
+    $assert(($package['engines']['node'] ?? '') === '>=20', 'Multiplayer service must declare Node.js 20 or newer.');
+    $assert(str_contains($identity, 'universeSeed') && str_contains($identity, 'universeId'), 'Identity contract must distinguish universe seed and saved universe ID.');
+    $assert(str_contains($room, 'locationId: string | null'), 'Room identity must represent the currently optional location ID.');
+    $assert(str_contains($movement, 'forward: -1 | 0 | 1') && !str_contains($movement, 'targetX'), 'Movement contract must express bounded input intent, not client target coordinates.');
+    $assert(str_contains($architecture, 'Production joins require') && str_contains($architecture, 'HMAC-SHA256 grant'), 'Architecture must state the authentication implementation boundary.');
+});
+
+$test('Colyseus 0.16 server registers protected universe rooms with normalized location-aware matchmaking', static function () use ($assert): void {
+    $root = CORE_ROOT . '/multiplayer';
+    $package = json_decode((string)file_get_contents($root . '/package.json'), true);
+    $server = (string)file_get_contents($root . '/src/server.ts');
+    $room = (string)file_get_contents($root . '/src/rooms/UniverseRoom.ts');
+    $identity = (string)file_get_contents($root . '/src/contracts/RoomIdentity.ts');
+    $config = (string)file_get_contents($root . '/src/config/runtime.ts');
+    $assert(is_array($package) && ($package['version'] ?? '') === '0.1.115', 'Multiplayer package version is not 0.1.115.');
+    $assert(str_starts_with((string)($package['dependencies']['@colyseus/core'] ?? ''), '^0.16.'), 'Colyseus core must remain on the 0.16-compatible line.');
+    $assert(str_contains($server, 'new Server(') && str_contains($server, 'createServer(app)') && str_contains($server, 'server.listen(config.port, config.host)'), 'Colyseus server does not initialize and bind using runtime configuration.');
+    $assert(str_contains($server, 'new WebSocketTransport(') && str_contains($server, 'pingInterval: 10000') && str_contains($server, 'pingMaxRetries: 2'), 'WebSocket transport options are not configured on the transport instance.');
+    foreach (['universeId', 'systemId', 'locationId'] as $field) {
+        $assert(str_contains($server, '"' . $field . '"'), 'Matchmaking does not filter by ' . $field . '.');
+    }
+    foreach (['onCreate(', 'onAuth(', 'onJoin(', 'onLeave(', 'onDispose(', 'setMetadata('] as $needle) {
+        $assert(str_contains($room, $needle), 'Universe room lifecycle is missing ' . $needle . '.');
+    }
+    $assert(str_contains($room, 'playerPresence') && str_contains($room, 'client.sessionId'), 'Transient server-side player presence is not keyed by Colyseus session ID.');
+    $assert(str_contains($room, 'setSimulationInterval') && str_contains($room, 'player-transforms') && str_contains($room, 'receiveMovement'), 'Server-authoritative movement simulation and transform broadcasts are missing.');
+    $assert(str_contains($room, 'isDevelopmentJoinAllowed') && str_contains($config, "nodeEnvironment !== 'production'") && str_contains($config, 'isLoopbackHost'), 'Development joins are not restricted to non-production loopback.');
+    $assert(str_contains($identity, 'normalizeRoomIdentity') && str_contains($identity, 'JSON.stringify'), 'Room identity normalization or collision-safe key generation is missing.');
+    $assert(str_contains((string)file_get_contents(CORE_ROOT . '/app/Application.php'), "'locationId' => \$locationId") && str_contains((string)file_get_contents(CORE_ROOT . '/player/world.php'), 'CORE_MULTIPLAYER_PUBLIC_URL'), 'PHP world-scoped grants or world multiplayer configuration are missing.');
+    $assert(str_contains($server, '"/health"') && str_contains($server, '"php-hmac-grant"'), 'Health endpoint does not report the PHP authentication boundary.');
+    $assert(str_contains((string)file_get_contents(CORE_ROOT . '/player/game.php'), 'colyseus.js@0.16.22'), 'The pinned Colyseus browser SDK is missing from the gameplay page.');
+});
+
+$test('Babylon gameplay can request a PHP grant and join the authenticated Colyseus universe room', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $client = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(str_contains($page, 'colyseus.js@0.16.22'), 'Gameplay page does not load the pinned Colyseus 0.16 browser SDK.');
+    $assert(str_contains($page, 'CORE_MULTIPLAYER_PUBLIC_URL') && str_contains($page, 'data-multiplayer-url'), 'Gameplay page does not expose the validated public multiplayer URL.');
+    $assert(str_contains($page, 'id="multiplayerConnectButton"') && str_contains($page, 'id="multiplayerStatus"'), 'Gameplay page is missing multiplayer session controls.');
+    $assert(str_contains($client, '/api/multiplayer-token.php') && str_contains($client, 'client.auth.token = grant.token'), 'Browser client does not request and apply the PHP-issued authorization grant through the direct PHP endpoint.');
+    $assert(str_contains($client, "joinOrCreate('universe'") && str_contains($client, 'locationId:') && str_contains($client, 'identity.characterId'), 'Browser client does not join the verified character universe/system room.');
+    $assert(str_contains($client, 'refreshMultiplayerSystemRoom') && str_contains($client, 'pagehide'), 'Browser client does not migrate rooms after travel or leave on page exit.');
+});
+
+$test('Multiplayer movement bounds permit spherical planetary traversal', static function () use ($assert): void {
+    $protocol = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/contracts/MovementProtocol.ts');
+    $assert(str_contains($protocol, 'MOVEMENT_WORLD_LIMIT = 100000'), 'Multiplayer movement bounds are too small for spherical planetary traversal.');
+});
+
+$test('Planetary test world uses a location-bound grant and sends movement intent to the server', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $client = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $application = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $assert(str_contains($page, 'colyseus.js@0.16.22') && str_contains($page, 'worldMultiplayerStatus'), 'World page does not load the pinned SDK or show shared-world status.');
+    $assert(str_contains($client, "joinOrCreate('universe'") && str_contains($client, 'world_id: boot.world.id'), 'World client does not join a world-scoped room with a PHP grant.');
+    $assert(str_contains($client, "send('move'") && str_contains($client, 'player-transforms') && str_contains($client, 'server-authoritative'), 'World client does not send bounded input and consume authoritative transforms.');
+    $assert(str_contains($application, 'generateForSystem') && str_contains($application, "'locationId' => \$locationId"), 'PHP does not validate generated world membership before issuing a location-bound grant.');
+});
+
+$test('CORE 0.1.150 initializes eastward planetary travel and handles physical bracket keys', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, 'getEastTangent(playerRoot.position)'), 'Equatorial spawn must initialize an eastward tangent heading so forward travel changes longitude.');
+    $assert(str_contains($world, "event.code === 'BracketLeft'") && str_contains($world, "event.code === 'BracketRight'"), 'Time controls must support physical bracket key codes.');
+    $assert(str_contains($world, 'adjustTimeHours?.(timeBackward ? -1 : 1)'), 'Bracket keys must adjust simulated time in one-hour increments.');
+});
+
+$test('CORE 0.1.115 exposes shared-universe visit controls and hierarchical seed identities', static function () use ($assert): void {
+    $application = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $selection = (string)file_get_contents(CORE_ROOT . '/player/selection.php');
+    $sharedClient = (string)file_get_contents(CORE_ROOT . '/player/shared-universe.js');
+    $worldGenerator = (string)file_get_contents(CORE_ROOT . '/app/Modules/Universe/WorldGenerator.php');
+    $systemGenerator = (string)file_get_contents(CORE_ROOT . '/app/Modules/Universe/UniverseGenerator.php');
+    $security = (string)file_get_contents(CORE_ROOT . '/app/Http/PlayerApiSecurity.php');
+    foreach (["'/api/universe/share'", "'/api/universe/visit'", "'/api/universe/leave'"] as $route) $assert(str_contains($application, $route), 'Missing shared-universe route ' . $route);
+    $assert(str_contains($selection, 'sharedUniverseVisitForm') && str_contains($selection, 'shared-universe-share') && str_contains($selection, 'shared-universe-leave'), 'Character roster does not expose sharing, visiting, and returning controls.');
+    $assert(str_contains($sharedClient, "post('universe/visit'") && str_contains($sharedClient, "post('universe/leave'") && str_contains($sharedClient, "post('universe-share.php'"), 'Shared-universe client actions are incomplete.');
+    $assert(str_contains($systemGenerator, "\$systemSeed = 'SYS-"), 'Star systems are not assigned independent seeds.');
+    $assert(str_contains($worldGenerator, "'seed' => \$worldSeed") && str_contains($worldGenerator, "'system_seed' => \$systemSeed"), 'Worlds do not expose their independent seed and parent system seed.');
+    $assert(str_contains($security, 'canAccessUniverse') && str_contains($application, 'CharacterUniverseContext::activeUniverseId'), 'Active shared-universe access is not reflected in authorization and multiplayer grants.');
+    $deletion = (string)file_get_contents(CORE_ROOT . '/app/Modules/UniverseDeletionService.php');
+    $assert(str_contains($deletion, 'activeVisitorsFor') && str_contains($deletion, 'joined this shared universe'), 'Universe deletion does not protect active visiting characters.');
+});
+
+$test('CORE 0.1.114 renders remote humanoids and interpolates authoritative player transforms', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $player = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $room = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/rooms/UniverseRoom.ts');
+    $application = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    foreach (['createRemoteAvatar', 'createRemoteNameplate', 'updateRemotePlayers', 'shortestAngle', 'player-left', 'remote.running'] as $needle) {
+        $assert(str_contains($world, $needle), 'Remote-player presentation is missing: ' . $needle);
+    }
+    $assert(str_contains($world, 'SceneLoader.ImportMeshAsync') && str_contains($world, 'CreateCapsule'), 'Remote players need GLB humanoids with a primitive fallback.');
+    $assert(str_contains($world, 'appearanceTint') && str_contains($room, 'normalizeAppearanceTint'), 'Remote character appearance tint is not safely carried through the room snapshot.');
+    $assert(str_contains($world, 'snapshot.appearanceSaturation') && str_contains($room, 'appearanceSaturation'), 'Remote character saturation is not safely carried through the room snapshot.');
+    $assert(str_contains($world, 'snapshot.appearanceBrightness') && str_contains($room, 'appearanceBrightness'), 'Remote character brightness is not safely carried through the room snapshot.');
+    $assert(str_contains($application, "'appearanceTint' => \$appearanceTint") && str_contains($application, "'appearanceSaturation' => \$appearanceSaturation") && str_contains($application, "'appearanceBrightness' => \$appearanceBrightness"), 'PHP grant does not derive the complete shared appearance configuration from the owned character record.');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    $version = (string)file_get_contents(CORE_ROOT . '/config/version.php');
+    $assert(str_contains($game, 'id="multiplayerConnectButton"') && str_contains($game, 'id="multiplayerCopyKeyButton"'), 'Gameplay must expose Connect/Disconnect and Copy Key controls.');
+    $assert(str_contains($game, "'canShareUniverse' => " . '$canShareActiveUniverse') && str_contains($game, 'PlayerApiSecurity::ownsUniverse'), 'Copy Key must be limited to the active universe owner.');
+    $assert(str_contains($player, "button.textContent = connected ? 'Disconnect'") && str_contains($player, 'universe-share.php'), 'Session disconnect and universe key actions are not wired.');
+    $assert(str_contains($player, 'navigator.clipboard.writeText(key)'), 'Copy Key does not write the sharing key to the clipboard.');
+    $assert(!str_contains($player, 'room.roomId') && !str_contains($player, 'room.id ||'), 'Internal Colyseus room IDs must not be exposed in player-facing session status.');
+});
+
+
+
+
+
+$test('CORE 0.1.164 preserves browser modifier shortcuts from gameplay keybindings', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, 'if (event.ctrlKey || event.metaKey || event.altKey) return;'), 'Gameplay shortcuts must ignore Ctrl, Command, and Alt modified key events.');
+    $assert(str_contains($world, 'target.isContentEditable') && str_contains($world, "['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)"), 'Gameplay shortcuts must continue to ignore editable controls.');
+});
+
+$test('CORE 0.1.142 corrects panel toggles, non-blocking transparent map HUD, and map-centered spawn', static function () use ($assert): void {
+    $planet = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $view = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    $sky = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($planet, 'new BABYLON.Vector3(1, 0, 0)'), 'Spawn must be at latitude 0 / longitude 0, the map center.');
+    $assert(str_contains($world, 'keepCameraAboveTerrain(camera)') && str_contains($world, 'camera.setPosition(normal.scale(minimumRadius))'), 'Camera terrain clearance must be enforced during gameplay.');
+    $assert(str_contains($world, 'camera.maxZ = Math.max(250000') && str_contains($world, 'camera.fov = Math.max(camera.fov, 1.3)'), 'Camera far clipping must include the astronomical sky.');
+    $assert(str_contains($view, '<aside id="worldMapOverlay"') && !str_contains($view, 'id="worldMapOverlay" class="world-map-overlay hidden" aria-modal'), 'Planetary map must be an in-world HUD aside, not a modal dialog.');
+    $assert(str_contains($css, '.world-map-overlay{position:fixed;z-index:18;top:88px;right:18px;') && str_contains($css, 'background:transparent') && str_contains($css, 'pointer-events:none'), 'Map must be a transparent, frameless HUD that does not intercept gameplay input.');
+    $assert(str_contains($world, "if (activePanel === panelKey && !overlay.classList.contains('hidden'))") && str_contains($world, "showPanel('character', 'Character Information'") && str_contains($world, "showPanel('inventory', 'Inventory'"), 'C and I panels must close when their own shortcut is pressed again.');
+    $assert(str_contains($world, "if (activePanel === 'map' && !mapOverlay?.classList.contains('hidden')) closePanels()") && str_contains($world, 'The floating map is informational and must never capture/block movement.') && str_contains($world, "if (!overlay?.classList.contains('hidden')) return;"), 'M must toggle the map and movement must remain enabled while the map is visible.');
+    $assert(str_contains($world, 'const x = 360 + (coordinates.longitude * 2)') && str_contains($world, 'const y = 180 - (coordinates.latitude * 2)'), 'The global map projection must place the 0°,0° spawn at the exact map center.');
+    $assert(str_contains($sky, 'this.moonMeshes = moons.map') && str_contains($sky, 'core-night-sky-stars'), 'Night sky must include a visible natural-satellite presentation and fog-independent stars.');
+});
+
+$test('CORE 0.1.144 uses a Babylon.js-supported matrix constructor for character orientation', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, 'BABYLON.Matrix.FromValues('), 'Character orientation must construct its basis using the supported Matrix.FromValues API.');
+    $assert(str_contains($world, 'right.x, right.y, right.z, 0,') && str_contains($world, 'up.x, up.y, up.z, 0,'), 'Orientation matrix must store local right/up/forward vectors as Babylon matrix columns.');
+    $assert(!str_contains($world, 'BABYLON.Matrix.FromXYZAxes'), 'Character orientation must not call the unavailable Matrix.FromXYZAxes API.');
+});
+
+$test('CORE 0.1.143 preserves character heading, centers planetary coordinate frames, improves night readability, and cleans map HUD', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $planet = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $sky = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $view = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    $version = (string)file_get_contents(CORE_ROOT . '/config/version.php');
+    $assert(str_contains($world, 'function orientCharacterToSurface(normal, heading)') && str_contains($world, 'BABYLON.Matrix.FromValues(') && !str_contains($world, 'BABYLON.Matrix.FromXYZAxes'), 'Character orientation must combine surface alignment with an independent heading direction.');
+    $assert(str_contains($world, 'facingDirection = rotateVectorBetweenNormals(facingDirection, previousNormal, movedNormal)') && str_contains($world, 'orientCharacterToSurface(surfaceNormal, facingDirection)'), 'Movement must preserve and transport heading as the character traverses the spherical surface.');
+    $assert(!str_contains($world, 'playerRoot.rotationQuaternion = alignUpToSurface(surfaceNormal)'), 'Per-frame surface alignment must not overwrite the character heading.');
+    $assert(str_contains($planet, 'BABYLON.Axis.X.scale(Math.cos(angle))') && str_contains($planet, 'new BABYLON.Vector3(0, Number(z) / distance, Number(x) / distance)'), 'Multiplayer/local coordinates must use the same 0°,0° map-center origin as the world map.');
+    $assert(str_contains($sky, 'this.ambient.intensity = .92') && str_contains($sky, 'new BABYLON.Color3(.20, .22, .27)'), 'Planetary ambient fill must keep terrain readable during night conditions.');
+    $assert(!str_contains($view, 'world-map-legend') && !str_contains($view, '>Water</span>') && str_contains($view, 'id="worldMapLocation"'), 'Map terrain legend must be removed while retaining the location readout directly below the map.');
+    $assert(str_contains($css, '.world-map-location{display:block;margin:2px 0 0;'), 'Current location must sit immediately beneath the map without a legend gap.');
+});
+
+
+
+$test('CORE 0.1.145 corrects avatar basis orientation, improves night visibility, and consolidates the map HUD', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $sky = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $view = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    $version = (string)file_get_contents(CORE_ROOT . '/config/version.php');
+    $assert(str_contains($world, 'right.x, right.y, right.z, 0,') && str_contains($world, 'up.x, up.y, up.z, 0,') && str_contains($world, 'correctedForward.x, correctedForward.y, correctedForward.z, 0,'), 'Avatar orientation basis must be assembled in Babylon column order.');
+    $assert(str_contains($world, 'material.emissiveColor = material.diffuseColor.scale(.18)'), 'Player material must retain modest self-illumination for night visibility.');
+    $assert(str_contains($sky, 'this.ambient.intensity = .92') && str_contains($sky, 'new BABYLON.Color3(.20, .22, .27)'), 'Night ambient illumination must be raised enough to preserve terrain readability.');
+    $assert(!str_contains($view, 'TEST WORLD · SESSION ONLY') && !str_contains($view, 'world-map-heading'), 'Unnecessary world banner and map title must be removed from the 3D viewport.');
+    $assert(str_contains($view, 'id="worldMapCanvas"') && str_contains($view, 'id="worldMapLocation"'), 'Map and current-location readout must remain grouped in one HUD element.');
+    $assert(str_contains($css, '.world-map-overlay{position:absolute!important;') && str_contains($css, 'top:14px!important;left:14px!important;') && str_contains($css, 'height:auto!important;min-height:0!important;'), 'Map HUD must be positioned inside the 3D viewport with compact dimensions and no detached location gap.');
+});
+
+$test('CORE 0.1.133 integrates procedural Lifepath generation, age limits, profession direction, and locked background persistence', static function () use ($assert, $equal): void {
+    $engine = new \Core\Modules\Characters\Lifepath\LifepathEngine();
+    $first = $engine->generateLifepath('human', null, 'generate');
+    $equal(13, $first['current_age'], 'Human Lifepath must begin at its configured post-maturation year');
+    $equal(13, $first['maturation_age'], 'Maturation age metadata');
+    $assert(count($first['history']) >= 2, 'Initial year must include upbringing and a yearly event.');
+    $maximum = $engine->generateLifepath('human', $first['seed'], 'reload', 1000);
+    $equal(85, $maximum['current_age'], 'Lifepath must stop at the species maximum age');
+    $assert($maximum['at_maximum_age'] === true, 'Maximum-age state must be exposed to the client.');
+
+    $view = (string)file_get_contents(CORE_ROOT . '/player/character-create.php');
+    $client = (string)file_get_contents(CORE_ROOT . '/player/lifepath-creation.js');
+    $service = (string)file_get_contents(CORE_ROOT . '/app/Modules/Characters/CharacterService.php');
+    $endpoint = (string)file_get_contents(CORE_ROOT . '/api/lifepath.php');
+    foreach (['backgroundSnapshot', 'lifepathTimeline', 'lifepathCareerMilestone', 'lifepathLock'] as $needle) {
+        $assert(str_contains($view, $needle), 'Background tab is missing Lifepath UI element: ' . $needle);
+    }
+    foreach (['education', 'military', 'employment', 'independent', 'buildSnapshot', 'at_maximum_age'] as $needle) {
+        $assert(str_contains($client, $needle), 'Lifepath client is missing workflow support: ' . $needle);
+    }
+    $assert(str_contains($endpoint, 'X_CORE_CSRF') && str_contains($endpoint, 'core_user'), 'Lifepath endpoint must require an authenticated, CSRF-protected session.');
+    $assert(str_contains($service, "'background' => \$backgroundSnapshot") && str_contains($service, "'age' => \$backgroundSnapshot['age']"), 'Character records must persist the locked history snapshot and current age.');
+    $assert(str_contains($service, 'validateBackgroundSnapshot') && str_contains($service, 'Lock the generated character history'), 'Server must reject incomplete or unlocked Lifepath snapshots.');
+
+    $dir = sys_get_temp_dir() . '/core-lifepath-persist-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $snapshot = [
+            'locked' => true, 'species_key' => 'human', 'race' => $first['race'],
+            'seed' => $first['seed'], 'age' => $first['current_age'],
+            'maturation_age' => $first['maturation_age'], 'graduation_age' => $first['race']['graduation_age'],
+            'max_allowable_age' => $first['max_allowable_age'], 'career_path' => null,
+            'siblings' => $first['siblings'], 'history' => $first['history'],
+        ];
+        $savedCharacter = (new CharacterService($storage))->create('', 'Lifepath Persistence', 'explorer', 'human', [], 'lifepath-owner', 'strength', [], $snapshot);
+        $saved = $storage->read('characters', $savedCharacter['id']);
+        $equal(13, $saved['age'] ?? null, 'Character current age was not persisted.');
+        $equal(true, $saved['background']['locked'] ?? false, 'Locked history was not persisted.');
+        $equal($first['seed'], $saved['background']['seed'] ?? null, 'Lifepath seed was not retained.');
+        $badSnapshot = $snapshot;
+        $badSnapshot['locked'] = false;
+        try {
+            (new CharacterService($storage))->create('', 'Unlocked Lifepath', 'explorer', 'human', [], 'lifepath-owner', 'strength', [], $badSnapshot);
+            throw new RuntimeException('An unlocked Lifepath snapshot was accepted.');
+        } catch (RuntimeException $e) {
+            $assert(str_contains($e->getMessage(), 'Lock the generated character history'), 'Unexpected unlocked-history rejection.');
+        }
+    } finally {
+        if (is_dir($dir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+            @rmdir($dir);
+        }
+    }
+});
+
+
+$test('QA results, changelogs, and release notes use dedicated documentation folders', static function () use ($assert): void {
+    foreach (['qa/QA-RESULTS-0.1.146.txt', 'changelog/CHANGELOG-0.1.146.txt', 'release/RELEASE-NOTES-0.1.146.md'] as $path) {
+        $assert(is_file(CORE_ROOT . '/' . $path), 'Missing organized release document: ' . $path);
+    }
+    foreach (glob(CORE_ROOT . '/QA-RESULTS*.txt') ?: [] as $path) $assert(false, 'QA result remains in project root: ' . basename($path));
+    foreach (glob(CORE_ROOT . '/CHANGELOG*.txt') ?: [] as $path) $assert(false, 'Changelog remains in project root: ' . basename($path));
+    foreach (glob(CORE_ROOT . '/RELEASE-NOTES-*.md') ?: [] as $path) $assert(false, 'Release note remains in project root: ' . basename($path));
+});
+
+$test('Planetary geography is deterministic, UWP-informed, and exposes stable hex/location records', static function () use ($assert, $equal): void {
+    $world = [
+        'id' => 'wld_test_001', 'seed' => 'WLD-TEST-SEED-001', 'uwp' => 'B867A99-C',
+        'starport' => 'B', 'size' => 8, 'hydrographics' => 6, 'population' => 10,
+    ];
+    $generator = new \Core\Modules\Universe\PlanetaryGeographyGenerator();
+    $first = $generator->generate($world);
+    $second = $generator->generate($world);
+    $equal($first, $second, 'Identical world inputs must produce identical geography.');
+    $equal(320, $first['map']['hex_count'], 'Default map should contain 20 x 16 hexes.');
+    $equal(192, $first['map']['water_hex_count'], 'Hydrographics 6 should produce 60% water coverage.');
+    $equal(192, count(array_filter($first['map']['hexes'], static fn(array $hex): bool => $hex['water'])), 'Water hex count does not match hydrographics.');
+    $assert(count($first['locations']['population_centers']) > 0, 'Populated world should receive population centers.');
+    $equal(1, count($first['locations']['spaceports']), 'A/B/C/D/E starport should produce one geographic spaceport marker.');
+    $ids = array_column($first['map']['hexes'], 'id');
+    $equal(320, count(array_unique($ids)), 'Hex identifiers must be unique.');
+    $different = $world;
+    $different['seed'] = 'WLD-OTHER-SEED';
+    $assert($first['generation_fingerprint'] !== $generator->generate($different)['generation_fingerprint'], 'Different world seeds should produce different geography.');
+    $waterless = $world;
+    $waterless['hydrographics'] = 0;
+    $equal(0, $generator->generate($waterless)['map']['water_hex_count'], 'Hydrographics 0 should produce no water hexes.');
+    $uninhabited = $world;
+    $uninhabited['population'] = 0;
+    $equal([], $generator->generate($uninhabited)['locations']['population_centers'], 'Population 0 should not produce population centers.');
+    $noPort = $world;
+    $noPort['starport'] = 'X';
+    $equal([], $generator->generate($noPort)['locations']['spaceports'], 'X starport should not produce a spaceport.');
+    try {
+        $generator->generate(['id' => 'missing-seed', 'uwp' => 'A000000-0', 'size' => 0, 'hydrographics' => 0, 'population' => 0, 'starport' => 'A']);
+        throw new RuntimeException('Missing world seed was accepted.');
+    } catch (InvalidArgumentException $e) {
+        $assert(str_contains($e->getMessage(), 'seed'), 'Unexpected invalid-world error.');
+    }
+});
+
+$test('Planetary geography defines a physical spherical world independent of the legacy hex demo grid', static function () use ($assert, $equal): void {
+    $world = ['id' => 'wld_sphere', 'seed' => 'SPHERE-SEED', 'uwp' => 'B867A99-C', 'starport' => 'B', 'size' => 8, 'hydrographics' => 6, 'population' => 10, 'type' => 'large_terrestrial'];
+    $geography = (new \Core\Modules\Universe\PlanetaryGeographyGenerator())->generate($world);
+    $equal(2, $geography['schema_version'], 'Spherical geography schema was not advanced.');
+    $equal(6400, $geography['planet']['radius_km'], 'Planet radius must derive from the Traveller size code.');
+    $equal(12800, $geography['planet']['diameter_km'], 'Planet diameter must be twice its radius.');
+    $equal('spherical_latitude_longitude', $geography['planet']['coordinate_system'], 'Planetary coordinates are not spherical.');
+    $equal('seeded_spherical_field', $geography['global_surface']['model'], 'Global surface generation is not seed-driven and spherical.');
+    $equal(0.6, $geography['global_surface']['hydrographics_fraction'], 'Global surface does not expose its hydrographics target.');
+    $equal(320, $geography['map']['hex_count'], 'Legacy hex data should remain available as a compatibility/demo reference.');
+});
+
+$test('Planetary geography API persists the first baseline without overwriting established geography', static function () use ($assert, $equal): void {
+    $source = file_get_contents(CORE_ROOT . '/app/Application.php');
+    $assert(is_string($source) && str_contains($source, "createIfAbsent('world_geography', \$worldId"), 'Geography API must persist its first baseline using atomic create-if-absent storage.');
+    $assert(str_contains($source, "'universe_id' => \$universeId") && str_contains($source, "'system_id' => \$systemId"), 'Persisted geography must retain its owning universe and system identity.');
+
+    $root = sys_get_temp_dir() . '/core-geography-persistence-' . bin2hex(random_bytes(5));
+    try {
+        $storage = new JsonStorage($root);
+        $first = ['id' => 'wld_persist', 'universe_id' => 'uni_owner', 'system_id' => 'sys_owner', 'world_id' => 'wld_persist', 'geography' => ['generation_fingerprint' => 'first']];
+        $second = $first;
+        $second['geography']['generation_fingerprint'] = 'replacement';
+        $equal($first, $storage->createIfAbsent('world_geography', 'wld_persist', $first), 'First generated geography should be stored.');
+        $equal($first, $storage->createIfAbsent('world_geography', 'wld_persist', $second), 'A later generation must not overwrite the established baseline.');
+    } finally {
+        if (is_dir($root)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+            @rmdir($root);
+        }
+    }
+});
+
+$test('Planetary terrain definitions are deterministic, editable, and independent from climate', static function () use ($assert, $equal): void {
+    $world = ['id' => 'wld_terrain_test', 'seed' => 'TERRAIN-SEED-001', 'uwp' => 'B867A99-C', 'starport' => 'B', 'size' => 8, 'hydrographics' => 6, 'population' => 7];
+    $geography = (new \Core\Modules\Universe\PlanetaryGeographyGenerator())->generate($world);
+    $generator = new \Core\Modules\Universe\PlanetaryTerrainGenerator();
+    $first = $generator->generate($world, $geography);
+    $second = $generator->generate($world, $geography);
+    $equal($first, $second, 'Terrain definitions must be deterministic for the same world.');
+    $equal('spherical_domain_warped_fractal_noise', $first['generator']['model'], 'Terrain must use spherical domain-warped fractal noise.');
+    $equal(0.6, $first['generator']['parameters']['hydrographics_fraction'], 'Terrain must retain the world hydrographics target.');
+    $equal([], $first['modifications'], 'New worlds should start without authored terrain modifications.');
+    $assert(in_array('volcano', $first['feature_schema']['supported_types'], true), 'Terrain feature schema must support volcanoes.');
+    $assert(in_array('meteor_crater', $first['feature_schema']['supported_types'], true), 'Terrain feature schema must support meteor craters.');
+    $climate = (new \Core\Modules\Universe\PlanetaryClimateGenerator())->generate($world, $geography);
+    $assert(!isset($climate['generator']['parameters']['elevation_scale_km']), 'Climate must not own terrain elevation parameters.');
+    $assert(isset($climate['parameters']['elevation_lapse_rate_c_per_km']), 'Climate should expose elevation as an environmental input.');
+    $changed = $world;
+    $changed['seed'] = 'TERRAIN-SEED-002';
+    $assert($first['world']['terrain_seed'] !== $generator->generate($changed, $geography)['world']['terrain_seed'], 'Different world seeds must produce different terrain seeds.');
+});
+
+$test('Terrain and climate accept legacy geography records without rewriting them', static function () use ($assert, $equal): void {
+    $world = ['id' => 'wld_legacy_geo', 'seed' => 'LEGACY-GEO-SEED', 'size' => 9, 'hydrographics' => 3, 'population' => 6, 'starport' => 'C'];
+    // Schema v1 records predate the planet.radius_km field.
+    $legacyGeography = [
+        'schema_version' => 1,
+        'world' => ['id' => $world['id'], 'size' => 9],
+        'map' => ['columns' => 20, 'rows' => 16],
+    ];
+    $original = $legacyGeography;
+    $terrain = (new \Core\Modules\Universe\PlanetaryTerrainGenerator())->generate($world, $legacyGeography);
+    $climate = (new \Core\Modules\Universe\PlanetaryClimateGenerator())->generate($world, $legacyGeography);
+    $equal(7200.0, $terrain['world']['radius_km'], 'Legacy size-9 geography should resolve to the established 7,200 km radius.');
+    $equal(7200.0, $climate['parameters']['world_radius_km'], 'Climate should use the same resolved legacy radius.');
+    $equal($original, $legacyGeography, 'Resolving legacy radius must not mutate or rewrite saved geography.');
+});
+
+$test('Persistent terrain and climate assets are created once and preserve developer edits', static function () use ($assert, $equal): void {
+    $source = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $assert(str_contains($source, "createIfAbsent('world_terrain', \$worldId"), 'Terrain API must persist its first definition atomically.');
+    $assert(str_contains($source, "createIfAbsent('world_climate', \$worldId"), 'Climate API must persist its first definition atomically.');
+    $assert(is_file(CORE_ROOT . '/api/world-terrain.php'), 'Explicit terrain API endpoint is missing.');
+    $root = sys_get_temp_dir() . '/core-terrain-persistence-' . bin2hex(random_bytes(5));
+    try {
+        $storage = new JsonStorage($root);
+        $first = ['id' => 'wld_terrain_persist', 'universe_id' => 'uni_owner', 'system_id' => 'sys_owner', 'world_id' => 'wld_terrain_persist', 'terrain' => ['modifications' => []]];
+        $edited = $first;
+        $edited['terrain']['modifications'][] = ['id' => 'volcano_test', 'type' => 'volcano', 'latitude' => 12, 'longitude' => -44, 'radius_km' => 8, 'height_km' => 3];
+        $equal($first, $storage->createIfAbsent('world_terrain', 'wld_terrain_persist', $first), 'Initial terrain asset should be stored.');
+        $storage->write('world_terrain', 'wld_terrain_persist', $edited);
+        $equal($edited, $storage->createIfAbsent('world_terrain', 'wld_terrain_persist', $first), 'Subsequent terrain generation must not overwrite a developer edit.');
+    } finally {
+        if (is_dir($root)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $item) $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+            @rmdir($root);
+        }
+    }
+});
+
+$test('Planetary terrain renderer consumes persistent fractal definitions and authored features', static function () use ($assert): void {
+    $client = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    foreach (["api/world-terrain.php", 'terrainPayload.terrain', 'continental_frequency', 'regional_frequency', 'mountain_frequency', 'detail_frequency', 'domain_warp_strength', 'meteor_crater', 'volcano', 'surfaceAtNormal', 'moveOnSurface'] as $needle) {
+        $assert(str_contains($client, $needle), 'Persistent fractal terrain integration is missing: ' . $needle);
+    }
+    $assert(str_contains($client, 'get terrain()') && str_contains($client, 'get climate()'), 'Loaded terrain and climate definitions should be available for diagnostics and future tools.');
+});
+
+$test('Planetary terrain renderer produces visible geometric relief at adequate mesh resolution', static function () use ($assert): void {
+    $environment = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $generator = (string)file_get_contents(CORE_ROOT . '/app/Modules/Universe/PlanetaryTerrainGenerator.php');
+    $assert(str_contains($environment, 'const segments = 128;'), 'The distant planetary fallback mesh should remain lightweight because the local patch supplies close detail.');
+    $assert(str_contains($environment, 'relief_exaggeration') && str_contains($environment, 'elevation *= reliefExaggeration'), 'Elevation exaggeration must be applied consistently to generated terrain and authored features.');
+    $assert(str_contains($environment, 'mesh.refreshBoundingInfo(true)'), 'Babylon bounds must be refreshed after terrain vertices are displaced.');
+    $assert(str_contains($environment, 'build.positions[positionOffset + 1] = direction.y * radius;'), 'Generated elevation must displace actual local-patch vertex positions.');
+    $assert(str_contains($environment, 'const localPatchBatchSize = 4096;') && str_contains($environment, 'requestAnimationFrame(processBatch)'), 'Local terrain sampling must be spread across frames instead of blocking movement.');
+    $assert(str_contains($environment, 'Stable, world-space surface breakup') && str_contains($environment, 'textureNoise'), 'Ground surface color variation must be deterministic and world-space stable.');
+    $assert(str_contains($environment, 'material.specularPower = 72') && str_contains($environment, 'waterPhase'), 'Ocean rendering must include stronger specular highlights and animated wave displacement.');
+    $assert(str_contains($environment, 'valueNoise3D(normal.x * 80 + 41.7'), 'Broad landform sampling must use deterministic low-frequency spatial noise.');
+    $assert(str_contains($environment, 'const landform = 0.8 + broadDetail * 0.85'), 'Local terrain patch must remain above the coarse sphere so sampled valleys are not hidden by the base mesh.');
+    $assert(str_contains($environment, 'function hashTerrainSeed(seed)'), 'Terrain seeds with WLD-/SYS- prefixes must be hashed as full strings rather than parsed as hexadecimal prefixes.');
+    $assert(str_contains($environment, 'terrainSeedNumber = hashTerrainSeed(seed);'), 'The full persistent world seed must drive deterministic terrain noise.');
+    $assert(str_contains($environment, 'Math.cos(6 / planetRadius)'), 'Terrain patch updates must be throttled to prevent frequent CPU spikes.');
+    $assert(str_contains($generator, "'relief_exaggeration' => 2.5"), 'New persistent terrain definitions must declare their relief exaggeration explicitly.');
+});
+
+$test('Planetary geography generator rejects unsafe map dimensions', static function () use ($assert): void {
+    $generator = new \Core\Modules\Universe\PlanetaryGeographyGenerator();
+    try {
+        $generator->generate(['id' => 'wld', 'seed' => 'seed', 'uwp' => 'A000000-0', 'size' => 0, 'hydrographics' => 0, 'population' => 0, 'starport' => 'A'], 100, 100);
+        throw new RuntimeException('Oversized geography dimensions were accepted.');
+    } catch (InvalidArgumentException $e) {
+        $assert(str_contains($e->getMessage(), 'dimensions'), 'Unexpected dimension validation error.');
+    }
+});
+
+
+$test('Planetary test world passes complete generated system data to the astronomical renderer', static function () use ($assert): void {
+    $view = file_get_contents(CORE_ROOT . '/player/world.php');
+    $renderer = file_get_contents(CORE_ROOT . '/player/world.js');
+    $helper = file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(is_string($view) && str_contains($view, "'system' => array_merge(\$system"), 'The world boot payload must retain full system astronomy data.');
+    $assert(strpos($view, 'astronomical-environment.js') < strpos($view, 'world.js?v='), 'The astronomical helper must load before the world controller.');
+    $assert(str_contains($renderer, 'CORE_ASTRONOMICAL_ENVIRONMENT.create(') && str_contains($renderer, 'camera.getTarget().subtract(camera.position).normalize()'), 'The world scene must initialize the astronomical renderer with the entry camera heading.');
+    $assert(str_contains($renderer, 'CORE_ASTRONOMICAL_ENVIRONMENT.update(') && str_contains($renderer, 'camera.getTarget().subtract(camera.position).normalize()'), 'The astronomical simulation must receive the live camera heading during gameplay.');
+    $assert(str_contains($helper, 'system?.stars') && str_contains($helper, 'system?.star'), 'The renderer must support both multi-star and legacy primary-star system records.');
+    $assert(str_contains($helper, 'system?.central_body') && str_contains($helper, 'is_luminous'), 'Non-stellar central bodies must be represented without automatically treating them as stars.');
+});
+
+$test('CORE 0.1.184 passes generated system worlds to the sky renderer and simulates visible planetary positions', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($page, "'systemWorlds' => " . '$worlds'), 'Gameplay boot must include all generated worlds in the current system.');
+    foreach (['systemPlanets', 'SYSTEM_PLANET_SCALE', 'const periodHours = 8760 * Math.pow(slot, 1.5)', 'entry.mesh.isVisible = true;', 'systemPlanetCount'] as $needle) {
+        $assert(str_contains($astronomy, $needle), 'System sky simulation is missing ' . $needle . '.');
+    }
+});
+
+$test('astronomical renderer uses planet-fixed world-space moon orbits with elapsed-time motion', static function () use ($assert): void {
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($script, 'this.moonMeshes = moons.map'), 'Renderer must create a mesh for every generated moon.');
+    $assert(str_contains($script, 'moon.periodHours') && str_contains($script, 'moon.phase'), 'Moon orbital period and rotation phase must come from generated world data.');
+    $assert(str_contains($script, 'this.orbitForward = BABYLON.Axis.Z.clone()') && str_contains($script, 'this.orbitRight = BABYLON.Axis.X.clone()'), 'Planet-fixed orbital axes must be initialized once and remain independent of later camera movement.');
+    $assert(str_contains($script, 'const planetCenter = BABYLON.Vector3.Zero()') && str_contains($script, 'moon.mesh.position.copyFrom(planetCenter.add(moonDirection.scale(orbitalRadius)))'), 'Moon positions must be anchored around the planet world origin.');
+    $assert(str_contains($script, 'moon.orbitRadiusWorld = orbitalRadius') && str_contains($script, 'moon.worldOrbitPoints = pathPoints'), 'Moon diagnostics and orbital tubes must use the same world-space orbital radius and points.');
+    $assert(!str_contains($script, 'moonSkyBasis') && !str_contains($script, 'cameraForward.subtract(normal.scale'), 'Moon positions must not be recalculated from the live camera heading.');
+    $assert(str_contains($script, 'const orbitalCycles = (this.elapsed / Math.max(1, this.dayLengthSeconds))'), 'Moon orbital position must advance from authoritative simulation elapsed time.');
+    $assert(str_contains($script, 'material.disableLighting = true') && str_contains($script, 'debugMaterial.emissiveColor = BABYLON.Color3.White().scale(4.0)'), 'Development moons must remain bright and independent of scene lighting.');
+    $assert(str_contains($script, 'material.depthFunction = BABYLON.Engine.ALWAYS') && str_contains($script, 'mesh.renderingGroupId = 3') && str_contains($script, 'moon.mesh.isVisible = this.isLunarVisibilityTest ? true : isAboveHorizon'), 'Development moon meshes must render after geometric horizon filtering.');
+    $assert(!str_contains($script, 'core-moon-proof-overlay') && !str_contains($script, 'createElementNS(\'http://www.w3.org/2000/svg\''), 'Moon markers must not be rendered as screen-space overlays.');
+    $assert(str_contains($script, 'moon.mesh?.dispose()') && str_contains($script, '(moon.orbitMeshes || [moon.orbitMesh]).forEach(mesh => mesh?.dispose())'), 'Moon meshes and all clipped orbital arcs must be disposed with the scene.');
+    $assert(str_contains($script, 'worldAnchored: true') && str_contains($script, 'cameraRelative: false'), 'Diagnostics must explicitly report the world-space anchoring model.');
+});
+
+$test('planetary jump phases remain active in multiplayer and camera supports sky inspection', static function () use ($assert): void {
+    $renderer = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($renderer, "jumpAnimationPhase === 'grounded') setAnimation(idleAnimation)") &&
+        str_contains($renderer, "'Standing by · server controlled'"),
+        'Multiplayer idle playback must be gated by grounded jump state.');
+    $assert(str_contains($renderer, "jumpAnimationPhase === 'takeoff' && jumpVelocity <= 0") &&
+        str_contains($renderer, "jumpAnimationPhase = 'airborne'"),
+        'Takeoff must transition to airborne at the physical jump apex.');
+    $assert(str_contains($renderer, 'camera.lowerBetaLimit = .08') &&
+        str_contains($renderer, 'camera.upperBetaLimit = Math.PI - .08'),
+        'Planetary camera pitch must permit looking toward both sky and ground.');
+    $assert(str_contains($renderer, "if (key === 'f')") &&
+        str_contains($renderer, "cameraMode === 'close' ? 'firstPerson' : 'thirdPerson'") &&
+        str_contains($renderer, "camera._coreFirstPersonMode = mode === 'firstPerson'") &&
+        str_contains($renderer, 'camera.radius <= 2.45'),
+        'F and wheel zoom must support a distinct first-person camera mode.');
+    $assert(str_contains($renderer, "playerRoot.setEnabled(mode !== 'firstPerson'") &&
+        str_contains($renderer, "cameraMode === 'firstPerson' ? 1.62 : 1.05"),
+        'First-person mode must move the camera to eye height and hide the player model.');
+    $assert(str_contains($astronomy, 'this.orbitForward = BABYLON.Axis.Z.clone()') &&
+        str_contains($astronomy, 'mesh.alwaysSelectAsActiveMesh = true') &&
+        str_contains($astronomy, 'material.disableLighting = true'),
+        'Planetary moons must use fixed 3D orbital coordinates and remain visibly rendered at night.');
+});
+
+$test('Universe 1337 System 01 supplies deterministic test moons to its previously moonless worlds only', static function () use ($assert, $equal): void {
+    $generator = new WorldGenerator();
+    $system = [
+        'id' => 'sys_7c6a9d2f7d9b50a9',
+        'seed' => 'SYS-830B59FB1D8A57BDC294C8D9',
+        'constellation_id' => 'con_a6a6cc5189b909c6',
+        'constellation_seed' => 'CON-5A47BB6697D4EFE54342A3B6',
+        'name' => 'System 01',
+    ];
+    $worlds = $generator->generateForSystem('1337', $system);
+    $again = $generator->generateForSystem('1337', $system);
+    $equal($worlds, $again, '1337 test moons must be deterministic.');
+    $assert(count($worlds) === 6, 'The 1337 test system should retain its six generated worlds.');
+    foreach ($worlds as $world) {
+        $assert(count($world['moons'] ?? []) >= 1, $world['name'] . ' should have at least one testable moon.');
+    }
+    $other = $generator->generateForSystem('not-1337', $system);
+    $moonlessOther = array_filter($other, static fn(array $world): bool => ($world['type'] ?? '') === 'asteroid' || ($world['type'] ?? '') === 'desert');
+    $assert(count(array_filter($moonlessOther, static fn(array $world): bool => count($world['moons'] ?? []) === 0)) > 0, 'The fixture override must not affect other universe seeds.');
+});
+
+$test('Legacy binary systems receive a deterministic presentation companion without rewriting universe records', static function () use ($assert): void {
+    $helper = file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $universeGenerator = file_get_contents(CORE_ROOT . '/app/Modules/Universe/UniverseGenerator.php');
+    $assert(is_string($helper) && str_contains($helper, 'derived_for_legacy_binary'), 'Legacy binary records must resolve a stable companion for sky rendering.');
+    $assert(is_string($universeGenerator) && str_contains($universeGenerator, "'is_binary' => \$classification === 'binary'"), 'The existing binary classification source must remain intact.');
+    $assert(!str_contains($helper, 'storage/data/'), 'The renderer must not read or mutate persistent player data.');
+});
+
+
+
+
+$test('CORE 0.1.146 uses A/D to turn the character and positions the map at the upper-right', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $css = (string)file_get_contents(CORE_ROOT . '/player/world.css');
+    $version = (string)file_get_contents(CORE_ROOT . '/config/version.php');
+    $assert(str_contains($world, "const turnAmount = (pressed.has('d') || pressed.has('arrowright') ? 1 : 0)") && str_contains($world, "pressed.has('a') || pressed.has('arrowleft') ? 1 : 0"), 'A/D and left/right arrows must produce a signed turn input.');
+    $assert(str_contains($world, 'BABYLON.Matrix.RotationAxis(radial, turnAmount * 2.4 * delta)') && str_contains($world, 'TransformNormal(facingDirection, turnRotation)'), 'Turning must rotate the persistent character heading around the local planetary surface normal.');
+    $assert(str_contains($world, 'const direction = facingDirection.clone().scaleInPlace(forwardAmount)') && str_contains($world, 'rotateVectorBetweenNormals(facingDirection, previousNormal, movedNormal)'), 'W/S movement must follow the character heading while preserving heading over spherical movement.');
+    $assert(str_contains($world, 'A / D or Left / Right') && str_contains($world, 'Turn left / right'), 'The in-game keybinding help must describe turning controls accurately.');
+    $assert(str_contains($css, '.world-map-overlay{top:78px!important;right:20px!important;left:auto!important;') && str_contains($css, 'top:68px!important;right:12px!important;'), 'Map HUD must be positioned in the upper-right below the header on desktop and mobile.');
+});
+
+
+$test('CORE 0.1.151 persists the authoritative simulation clock across requests and adjustments', static function () use ($assert): void {
+    $directory = sys_get_temp_dir() . '/core-clock-' . bin2hex(random_bytes(6));
+    $first = \Core\Simulation\SimulationClock::update($directory, 'universe-test', 'world-test');
+    usleep(30000);
+    $second = \Core\Simulation\SimulationClock::update($directory, 'universe-test', 'world-test');
+    $assert($second['elapsedSeconds'] > $first['elapsedSeconds'], 'Server clock did not advance between requests.');
+    $adjusted = \Core\Simulation\SimulationClock::update($directory, 'universe-test', 'world-test', 3600);
+    $assert($adjusted['elapsedSeconds'] >= $second['elapsedSeconds'] + 3599, 'Server-side time adjustment was not persisted.');
+    $reloaded = \Core\Simulation\SimulationClock::update($directory, 'universe-test', 'world-test');
+    $assert($reloaded['elapsedSeconds'] >= $adjusted['elapsedSeconds'], 'Clock regressed after a new request.');
+    $otherWorld = \Core\Simulation\SimulationClock::update($directory, 'universe-test', 'another-world');
+    $assert($otherWorld['elapsedSeconds'] < $reloaded['elapsedSeconds'], 'Clock state leaked between worlds.');
+    foreach (glob($directory . '/simulation_clocks/*') ?: [] as $file) @unlink($file);
+    @rmdir($directory . '/simulation_clocks');
+    @rmdir($directory);
+});
+
+$test('CORE 0.1.151 bootstraps and synchronizes the world clock through the authenticated API', static function () use ($assert): void {
+    $page = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $application = (string)file_get_contents(CORE_ROOT . '/app/Application.php');
+    $security = (string)file_get_contents(CORE_ROOT . '/app/Http/PlayerApiSecurity.php');
+    $assert(str_contains($page, "'clock' => \$initialClock") && str_contains($page, "'csrfToken' =>"), 'World page must bootstrap server clock state and CSRF token.');
+    $assert(str_contains($script, 'setInterval(() => this.syncClock(), 15000)') && str_contains($script, 'adjustTimeHours(hours)'), 'Client must periodically synchronize and submit time adjustments.');
+    $assert(str_contains($script, 'pendingClockAdjustmentHours += adjustment') && str_contains($script, 'if (!synchronized) this.pendingClockAdjustmentHours += adjustmentHours'), 'Time adjustments must be queued during in-flight sync and retained after a failed request.');
+    $assert(str_contains($application, "'/api/world/clock'") && str_contains($security, "'/api/world/clock'"), 'Clock API must be registered and protected by universe access and CSRF policy.');
+});
+
+$test('CORE 0.1.151 uses an explicit positive-longitude tangent for initial planetary travel', static function () use ($assert): void {
+    $environment = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($environment, 'new BABYLON.Vector3(-normal.z, 0, normal.x)'), 'East tangent must follow the spherical longitude derivative.');
+    $assert(str_contains($environment, 'getEastTangent, getNorthTangent, getLocalMovementComponents, getCoordinates'), 'Planetary tangent basis must be exposed to the player controller.');
+    $assert(str_contains($world, 'getEastTangent(playerRoot.position)'), 'Spawn heading must use the explicit east tangent.');
+    $assert(str_contains($world, 'facingDirection.clone().scaleInPlace(forwardAmount)'), 'Movement input must not mutate the persistent heading vector.');
+    $assert(str_contains($environment, 'Math.atan2(normal.z, normal.x)'), 'Displayed longitude must be derived from the same spherical position.');
+});
+
+
+
+$test('CORE 0.1.152 maps world-space movement onto server east/north axes', static function () use ($assert): void {
+    $environment = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $protocol = (string)file_get_contents(CORE_ROOT . '/multiplayer/src/contracts/MovementProtocol.ts');
+    $assert(str_contains($environment, 'BABYLON.Vector3.Dot(direction, east)') && str_contains($environment, 'BABYLON.Vector3.Dot(direction, north)'), 'World-space movement must be projected onto local east and north tangents.');
+    $assert(str_contains($world, 'getLocalMovementComponents(groundPosition, direction)'), 'Multiplayer input must use planetary tangent components rather than world X/Z.');
+    $assert(str_contains($world, 'inputStrafe = Math.abs(localMovement.east)') && str_contains($world, 'inputForward = Math.abs(localMovement.north)'), 'East must map to server strafe/X and north to server forward/Z.');
+    $assert(str_contains($protocol, 'let x = strafe;') && str_contains($protocol, 'let z = forward;'), 'Server map axes must remain X=east and Z=north.');
+});
+
+
+$test('CORE 0.1.156 connects GLB jump animation phases', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, "if (key === ' ')") && str_contains($world, 'beginJumpAnimation()'), 'Spacebar must initiate the jump animation state.');
+    $assert(str_contains($world, "findClip('Jump_Start')") && str_contains($world, "findClip('Jump_air', 'Jump_2')") && str_contains($world, "findClip('Jump_Land')"), 'The GLB takeoff, airborne, and landing clips must be connected.');
+    $assert(str_contains($world, 'beginLandingAnimation()') && str_contains($world, 'jumpVelocity -= gravityAcceleration * delta'), 'Landing animation and spherical gravity must remain connected.');
+});
+
+$test('CORE 0.1.156 retains player-facing world environmental details', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(str_contains($world, 'showEnvironmentalBriefing') && str_contains($world, "key === 'v'"), 'World environment briefing must be accessible in gameplay.');
+    $assert(str_contains($world, 'Atmosphere') && str_contains($world, 'Axial tilt') && str_contains($world, 'Hydrographics'), 'Briefing must expose available environmental properties.');
+});
+
+$test('CORE 0.1.157 renders a deterministic screen-space night sky', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'new BABYLON.DynamicTexture') && str_contains($astronomy, 'core-night-sky-stars'), 'Stars must use a dedicated screen-space background layer.');
+    $assert(str_contains($astronomy, 'for (let i = 0; i < 1800; i++)') && str_contains($astronomy, 'starTexture.update(false)'), 'The deterministic star texture must be populated and uploaded.');
+    $assert(str_contains($astronomy, 'this.starLayer.alpha = clamp(1 - atmosphericFade'), 'The background layer must fade in according to nighttime illumination.');
+    $assert(str_contains($astronomy, 'this.starLayer?.dispose()') && str_contains($astronomy, 'this.starTexture?.dispose()'), 'Star layer and texture must be disposed cleanly.');
+});
+
+$test('CORE 0.1.158 restores reliable GLB animation-group playback', static function () use ($assert): void {
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.js');
+    $assert(!str_contains($world, 'group.enableBlending = true') && !str_contains($world, 'group.blendingSpeed = 0.08'), 'The unverified per-group blending regression must remain disabled.');
+    $assert(str_contains($world, 'activeAnimation.stop();') && str_contains($world, 'activeAnimation.start(true, 1'), 'Locomotion must use the established AnimationGroup stop/start path.');
+    $assert(str_contains($world, 'group.start(false, 1, group.from, group.to, false)') && str_contains($world, "findClip('Jump_Start')") && str_contains($world, "findClip('Jump_air', 'Jump_2')") && str_contains($world, "findClip('Jump_Land')"), 'Takeoff, airborne, and landing clips must retain their established one-shot playback sequence.');
+    $assert(str_contains($world, 'beginJumpAnimation()') && str_contains($world, 'beginLandingAnimation()'), 'Jump animation sequencing must remain connected to the jump physics state machine.');
+});
+
+
+$test('CORE 0.1.156 increases deterministic planetary terrain relief and color separation', static function () use ($assert): void {
+    $environment = (string)file_get_contents(CORE_ROOT . '/player/planetary-environment.js');
+    $assert(str_contains($environment, 'elevation_scale_km') && str_contains($environment, 'mountain_frequency'), 'Land elevation must use persistent relief and mountain parameters.');
+    $assert(str_contains($environment, 'ocean_depth_scale_km'), 'Ocean depth must have visible deterministic variation.');
+    $assert(str_contains($environment, 'initializeTerrain()') && str_contains($environment, 'terrainSeedNumber'), 'Terrain variation must remain deterministic from the persisted terrain seed.');
+});
+
+
+
+$test('CORE 0.1.167 planetary moon arcs use stable planet-space coordinates rather than camera-following sky coordinates', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'this.orbitForward = BABYLON.Axis.Z.clone()'), 'A planet-fixed orbital reference direction must be established from the planet coordinate axes.');
+    $assert(str_contains($astronomy, 'const planetCenter = BABYLON.Vector3.Zero()'), 'The parent planet center must be the orbital anchor.');
+    $assert(str_contains($astronomy, 'const equatorialU = referenceU.scale(Math.cos(node))') && str_contains($astronomy, 'const equatorialV = BABYLON.Vector3.Cross(planetPole, equatorialU)') && str_contains($astronomy, 'equatorialV.scale(Math.cos(inclination))'), 'Orbital planes must be derived from the tilted planetary equator, ascending node, and inclination.');
+    $assert(!str_contains($astronomy, 'cameraForward') && !str_contains($astronomy, 'moonSkyBasis'), 'Live camera direction must not determine moon world positions.');
+    $assert(str_contains($astronomy, 'aboveLocalHorizon'), 'Diagnostics must continue reporting geometric horizon clearance.');
+    $assert(str_contains($astronomy, 'screenProjection'), 'Diagnostics must continue reporting the camera projection of actual moon meshes.');
+});
+
+$test('CORE 0.1.168 makes moons self-lit and checks actual scene render participation', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'material.disableLighting = true'), 'Moon material must not depend on local terrain lighting.');
+    $assert(str_contains($astronomy, 'mesh.renderingGroupId = 3'), 'Moon meshes must render in the final 3D rendering group.');
+    $assert(str_contains($astronomy, 'sceneContainsMoons'), 'Diagnostics must confirm moon meshes belong to the active scene.');
+    $assert(str_contains($astronomy, 'activeThisFrame'), 'Diagnostics must report whether Babylon selected each moon for the frame.');
+    $assert(str_contains($astronomy, 'materialReady'), 'Diagnostics must report material readiness.');
+    $assert(str_contains($astronomy, 'horizonDot'), 'Diagnostics must calculate geometric horizon clearance against the planetary sphere.');
+    $assert(str_contains($astronomy, 'aboveLocalHorizon'), 'Diagnostics must report whether each world-space moon is above the local horizon.');
+});
+
+$test('CORE 0.1.169 prevents terrain depth from suppressing geometrically clear moon meshes', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'material.depthFunction = BABYLON.Engine.ALWAYS') && str_contains($astronomy, 'moon.mesh.isVisible = this.isLunarVisibilityTest ? true : isAboveHorizon'), 'Moon discs must use geometric horizon filtering rather than fragile terrain depth testing.');
+    $assert(str_contains($astronomy, 'material.disableDepthWrite = true'), 'Moon rendering must not overwrite the scene depth buffer.');
+    $assert(str_contains($astronomy, 'mesh.renderingGroupId = 3'), 'Moon meshes must render after terrain and ordinary world geometry.');
+    $assert(str_contains($astronomy, 'material.alpha = 1') && str_contains($astronomy, 'BABYLON.Material.MATERIAL_OPAQUE'), 'Moon materials must remain fully opaque.');
+    $assert(str_contains($astronomy, 'materialDepthFunction') && str_contains($astronomy, 'geometryPresent'), 'Diagnostics must expose material depth state and actual mesh geometry.');
+    $assert(str_contains($astronomy, 'activeCameraIsSceneCamera'), 'Diagnostics must verify the camera used for projection is the active scene camera.');
+});
+
+
+
+$test('CORE 0.1.191 keeps celestial diagnostics opt-in and exposes independent developer controls', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'MOON_DEBUG_VISUALS_DEFAULT = false'), 'Celestial diagnostics must be disabled by default for normal presentation.');
+    $assert(str_contains($astronomy, 'setDeveloperOption(option, enabled)'), 'Developer options must be independently controllable.');
+    $assert(str_contains($astronomy, 'physicalRadiusKm') && str_contains($astronomy, 'angularDiameter'), 'System-world apparent size must derive from physical radius and observer distance.');
+    $assert(str_contains($astronomy, 'core-moon-debug-material-') && str_contains($astronomy, 'debugMaterial.emissiveColor'), 'Each moon must have a distinct bright emissive diagnostic appearance.');
+    $assert(str_contains($astronomy, 'core-moon-orbit-') && str_contains($astronomy, 'BABYLON.MeshBuilder.CreateTube'), 'Each moon must have a visible orbital-path mesh.');
+    $assert(str_contains($astronomy, 'setMoonDebugVisuals(enabled)'), 'Moon markers and orbital paths must have a single switch for a future settings control.');
+    $assert(str_contains($astronomy, 'moonDebugVisuals: this.moonDebugVisuals') && str_contains($astronomy, 'orbitPathVisible'), 'Runtime diagnostics must report debug marker and orbit-path state.');
+});
+
+
+
+$test('CORE 0.1.182 renders white moon diagnostics as real planet-anchored 3D objects', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'BABYLON.Color3.White().scale(4.0)'), 'Moon debug meshes must retain strong white emissive output.');
+    $assert(str_contains($astronomy, 'BABYLON.Color3.White().scale(4.0)'), 'Orbital tubes must retain bright white emissive output.');
+    $assert(!str_contains($astronomy, 'core-moon-proof-overlay') && !str_contains($astronomy, 'moonProofSvg'), 'The camera-fixed SVG proof overlay must be removed.');
+    $assert(str_contains($astronomy, 'moon.mesh.position.copyFrom(planetCenter.add(moonDirection.scale(orbitalRadius)))'), 'Moon positions must be generated in planet-centered 3D world space.');
+    $assert(str_contains($astronomy, 'BABYLON.MeshBuilder.CreateTube') && str_contains($astronomy, 'moon.worldOrbitPoints'), 'Visible orbital paths must be actual 3D tube meshes.');
+    $assert(str_contains($astronomy, 'worldAnchored: true') && str_contains($astronomy, 'cameraRelative: false'), 'Diagnostics must distinguish world-anchored moons from camera-relative representations.');
+});
+
+$test('CORE 0.1.177 permanently removes the Constellation View grid', static function () use ($assert): void {
+    $player = (string)file_get_contents(CORE_ROOT . '/player/player.js');
+    $assert(!str_contains($player, "CreateGround('map-grid'"), 'Constellation View must not create a grid ground mesh.');
+    $assert(!str_contains($player, "m.name==='map-grid'"), 'Constellation View cleanup must not depend on a grid mesh existing.');
+});
+
+$test('CORE 0.1.177 renders moons around their parent planets in System View', static function () use ($assert): void {
+    $system = (string)file_get_contents(CORE_ROOT . '/player/system-view.js');
+    $assert(str_contains($system, 'const moons = Array.isArray(world.moons) ? world.moons : []'), 'System View must consume each generated world moon list.');
+    $assert(str_contains($system, 'moon-orbit-') && str_contains($system, 'satelliteOrbitRadius') && str_contains($system, 'satelliteOrbit.parent = planet'), 'System View must draw a moon orbit attached to its parent planet.');
+    $assert(str_contains($system, 'view.moonEntries.forEach'), 'System View must advance moons around their parent planets.');
+    $assert(str_contains($system, 'entry.parent.position.x') && str_contains($system, 'entry.parent.position.z'), 'Moon positions must follow their parent planet as it moves.');
+});
+
+$test('CORE 0.1.177 initializes the planetary moon orbit tube with the same topology used during updates', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'MOON_ORBIT_PATH_SEGMENTS = 64'), 'Moon orbit path resolution must be defined once.');
+    $assert(str_contains($astronomy, 'length: MOON_ORBIT_PATH_SEGMENTS * 4 + 1'), 'Initial moon tube path must contain 65 points.');
+    $assert(str_contains($astronomy, 'step <= pathSegments'), 'Updated moon tube path must preserve the same point count.');
+});
+
+
+$test('CORE 0.1.178 captures browser and Babylon runtime diagnostics', static function () use ($assert): void {
+    $client = (string)file_get_contents(CORE_ROOT . '/player/diagnostics.js');
+    $game = (string)file_get_contents(CORE_ROOT . '/player/game.php');
+    foreach (['unhandledrejection', 'webglcontextlost', 'console_error', 'snapshotScene', 'activeMeshNames', 'camera', 'webgl', 'download()', 'submit()'] as $needle) {
+        $assert(str_contains($client, $needle), 'Browser diagnostics are missing ' . $needle . '.');
+    }
+    $assert(str_contains($client, 'screenProjection') && str_contains($client, 'inCameraFrustum') && str_contains($client, 'emissiveColor'), 'Scene diagnostics must expose mesh bounds, camera projection, and material brightness for sky-obstruction analysis.');
+    $assert(str_contains($game, '/diagnostics.js?v=') && str_contains($game, 'diagnosticsDownload') && str_contains($game, 'diagnosticsSubmit'), 'Gameplay must load diagnostics and expose download/submit actions.');
+    $world = (string)file_get_contents(CORE_ROOT . '/player/world.php');
+    $assert(str_contains($world, '/diagnostics.js?v=') && str_contains($world, 'id="diagnosticsDownload"') && str_contains($world, 'id="diagnosticsSubmit"'), 'Planetary test world must load diagnostics and expose report actions.');
+});
+
+$test('CORE 0.1.178 registers all primary Babylon scenes with diagnostics', static function () use ($assert): void {
+    foreach (['player/player.js' => 'universe-constellation', 'player/system-view.js' => 'system-view', 'player/world.js' => 'planetary-world'] as $file => $label) {
+        $source = (string)file_get_contents(CORE_ROOT . '/' . $file);
+        $assert(str_contains($source, "captureScene") && str_contains($source, $label), $file . ' is not registered with browser diagnostics.');
+    }
+});
+
+$test('CORE 0.1.178 stores authenticated bounded diagnostic reports', static function () use ($assert): void {
+    $endpoint = (string)file_get_contents(CORE_ROOT . '/api/diagnostics-report.php');
+    $logger = (string)file_get_contents(CORE_ROOT . '/app/Core/Logger.php');
+    foreach (['currentUserId', 'hash_equals', '262144', 'core_csrf', 'storage/diagnostics', 'report_id'] as $needle) {
+        $assert(str_contains($endpoint, $needle), 'Diagnostic endpoint is missing security/storage requirement: ' . $needle . '.');
+    }
+    $assert(str_contains($endpoint, 'array_slice($existing, 0') && str_contains($logger, '$maxBytes = 5 * 1024 * 1024'), 'Diagnostic reports and server logs must have bounded retention.');
+    $assert(str_contains($logger, 'request_id') && str_contains($logger, 'core_version') && str_contains($logger, 'session_fingerprint'), 'Server log entries must include request correlation and CORE version context.');
+});
+
+
+$test('celestial sky markers use visible luminous colors', static function () use ($assert): void {
+    $sky = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($sky, "BABYLON.Color3.White().scale(4.0)"), 'Moon orbit guides must use a luminous pale color.');
+    $assert(str_contains($sky, "type.includes('ocean')") && str_contains($sky, "type.includes('desert')")
+        && str_contains($sky, "type.includes('volcan')") && str_contains($sky, "type.includes('exotic')"),
+        'System worlds must retain distinct type-based colors.');
+    $assert(str_contains($sky, 'color.scale(4.5)'), 'System worlds must use stronger emissive color.');
+    $assert(str_contains($sky, 'BABYLON.Material.MATERIAL_OPAQUE'), 'Celestial markers must render as opaque materials.');
+});
+
+$test('CORE 0.1.187 renders celestial guides in white and respects the planetary horizon', static function () use ($assert): void {
+    $script = file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($script, 'moon.orbitMaterial.diffuseColor = BABYLON.Color3.White()'), 'Lunar orbit guides must be neutral white.');
+    $assert(str_contains($script, 'moon.orbitMaterial.emissiveColor = BABYLON.Color3.White().scale(4.0)'), 'Lunar orbit guides must have strong white emissive output.');
+    $assert(str_contains($script, 'moon.orbitMaterial.depthFunction = BABYLON.Engine.ALWAYS') && str_contains($script, 'instance: moon.orbitMesh'), 'Orbit guides must be geometrically clipped to the above-horizon portions before rendering.');
+    $assert(str_contains($script, 'scene.setRenderingAutoClearDepthStencil(3, false)'), 'Celestial rendering must preserve the terrain depth buffer.');
+    $assert(str_contains($script, 'mesh.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL'), 'Distant system worlds must remain legible as sky discs.');
+    $assert(str_contains($script, 'const angularDiameter = 2 * Math.atan(entry.physicalRadiusScene / distance)'), 'System-world markers must use angular size from physical radius and observer distance.');
+    $assert(str_contains($script, 'const desiredPixels = clamp(pixelDiameter, 2.5, 220)'), 'System-world visibility floor must be restrained and must not normalize all world sizes.');
+    $assert(str_contains($script, 'entry.mesh.isVisible = true;'), 'System worlds must use the geometric horizon visibility test.');
+    $assert(str_contains($script, '5.61 + index * .09'), 'The test moons must begin in the fixed forward-facing planet-space orbital arc.');
+});
+
+$test('CORE 0.1.189 restores persistent full 3D lunar orbit tubes and bright white rendering', static function () use ($assert): void {
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($script, 'moon.orbitMaterial.emissiveColor = BABYLON.Color3.White().scale(4.0)'), 'Orbit paths must be bright neutral white.');
+    $assert(str_contains($script, 'instance: moon.orbitMesh'), 'Orbit geometry must update the persistent tube instead of disposing and recreating clipped fragments.');
+    $assert(!str_contains($script, 'const visibleArcs = []'), 'The unstable per-frame horizon-fragment clipping implementation must be removed.');
+    $assert(str_contains($script, 'moon.visibleOrbitArcCount = this.moonDebugVisuals ? 1 : 0'), 'Diagnostics must report the persistent full orbit path.');
+});
+
+$test('CORE 0.1.189 keeps colored system worlds and test moons available to sky inspection', static function () use ($assert): void {
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($script, 'color.scale(4.5)'), 'System-world type colors must have stronger emissive output.');
+    $assert(str_contains($script, 'entry.mesh.isVisible = true;') && str_contains($script, 'entry.mesh.visibility = 1;'), 'System-world markers must not be silently removed by the simplified horizon test.');
+    $assert(str_contains($script, 'this.isLunarVisibilityTest ? true : isAboveHorizon'), 'Both test moons must remain available for the documented visibility test.');
+    $assert(str_contains($script, 'camera.clone().add(direction.scale(SKY_RADIUS))'), 'Celestial marker placement must not mutate the active camera position.');
+    $assert(str_contains($script, 'center.clone().add(direction.scale(SKY_RADIUS))'), 'Stellar marker placement must not mutate the observer position.');
+});
+
+$test('Planetary moon orbit tubes are not rebuilt every render frame', static function () use ($assert): void {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'orbitGeometryInitialized: false'), 'Moon orbit geometry initialization state is missing.');
+    $assert(str_contains($astronomy, 'if (moon.orbitMesh && !moon.orbitGeometryInitialized)'), 'Orbit tube geometry must be created only once after orbital parameters are available.');
+    $assert(str_contains($astronomy, 'moon.orbitGeometryInitialized = true;'), 'Orbit tube initialization must be marked complete.');
+});
+
+$test('CORE 0.1.190 keeps celestial materials independent of planetary scene fog', static function () use ($assert): void {
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    foreach ([
+        'body.material.fogEnabled = false',
+        'this.centralMaterial.fogEnabled = false',
+        'material.fogEnabled = false',
+        'debugMaterial.fogEnabled = false',
+        'moon.orbitMaterial.fogEnabled = false'
+    ] as $needle) {
+        $assert(str_contains($script, $needle), "Celestial rendering must explicitly disable scene fog: {$needle}.");
+    }
+    $assert(str_contains($script, 'materialFogEnabled:'), 'Runtime diagnostics must report whether fog is enabled on a moon material.');
+});
+
+$test('CORE 0.1.205 derives planetary atmospheric optics from the authoritative UWP atmosphere code', static function () use ($assert): void {
+    $script = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    foreach (['function atmosphereProfile(world)', 'world?.atmosphere', 'scattering:', 'starFade:', 'this.atmosphere = atmosphereProfile(world)', 'scene.fogDensity = this.atmosphere.fog', 'const atmosphericFade =', 'body.material.fogEnabled = false'] as $needle) {
+        $assert(str_contains($script, $needle), "UWP-driven atmosphere rendering is missing requirement: {$needle}.");
+    }
+    $assert(str_contains($script, 'A-F remain conservative') && str_contains($script, 'explicit composition data'), 'Unspecified exotic atmosphere composition must not be invented from UWP alone.');
 });
 
 echo "\nCORE QA summary: {$passed} passed, {$failed} failed\n";
+
 if ($failed > 0) {
-    foreach ($failures as [$name, $message]) echo " - {$name}: {$message}\n";
+    foreach ($failures as [$name, $message]) echo " - {$name}: {$message}\\n";
     exit(1);
 }
 exit(0);

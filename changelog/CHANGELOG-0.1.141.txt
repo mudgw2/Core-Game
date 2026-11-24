@@ -1,0 +1,11 @@
+CORE 0.1.141
+
+Fixed planetary test-world presentation and controls:
+- Spawn location now corresponds to the center of the global map (0° latitude, 0° longitude).
+- Camera position is clamped above sampled terrain during gameplay.
+- Increased camera far clipping and made background stars independent of scene fog.
+- Added a deterministic presentation-only natural satellite to provide a visible night-sky body until generated moon records exist.
+- Replaced the planetary map modal with a compact floating HUD.
+- Added regression assertions for spawn, camera clearance, map presentation, sky visibility, and M/C/I keyboard bindings.
+
+No universe generation, fingerprints, saved universe records, character records, or player data were changed.

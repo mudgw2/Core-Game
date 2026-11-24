@@ -1,0 +1,10 @@
+CORE 0.1.142 PATCH INSTALLATION
+
+1. Back up the current CORE installation before applying the patch.
+2. Extract this ZIP into the CORE project root, preserving the included project-relative paths.
+3. Allow the included files to overwrite their matching files.
+4. Do not delete or replace storage, player records, accounts, universes, characters, backups, logs, or secrets.
+5. Reload the planetary test world with a hard refresh. The version changes to 0.1.142 to invalidate cached world JavaScript and CSS.
+6. Verify C/I toggles, M map HUD, movement while the map is visible, and the centered spawn marker.
+
+This is a focused code patch. It does not modify universe generation, saved universe data, character data, or persistent world geography.

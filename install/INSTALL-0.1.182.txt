@@ -1,0 +1,12 @@
+CORE 0.1.182 updated-files installation
+
+1. Back up the existing CORE application.
+2. Extract this ZIP over the existing CORE application root, preserving storage and player data.
+3. Allow config/version.php, player/astronomical-environment.js, and tests/run.php to be overwritten.
+4. Hard-refresh the browser or clear cached JavaScript so version 0.1.182 is loaded.
+5. Enter the Planetary Test World with a world that has generated moons.
+6. Rotate the camera through east, west, north, and south. The moons must move across the screen naturally while remaining anchored to the planet's fixed 3D coordinate frame.
+7. Advance simulation time and confirm that the moons progress along their bright white 3D orbital tubes.
+8. Inspect Diagnostics -> Moon renderer diagnostics. Confirm `worldAnchored: true`, `cameraRelative: false`, a nonzero `orbitalRadiusWorld`, and live screen projections.
+
+Development visibility intentionally bypasses depth testing. A moon on the far side of the planet may therefore be visible through terrain/planet geometry during this diagnostic phase.

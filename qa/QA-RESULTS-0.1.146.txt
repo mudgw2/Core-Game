@@ -1,0 +1,22 @@
+CORE 0.1.146 automated QA
+
+Result: PASS
+Tests: 139 passed, 0 failed
+
+Checks performed:
+- php tests/run.php: 139 passed, 0 failed
+- php -l player/world.php: PASS
+- php -l config/version.php: PASS
+- php -l tests/run.php: PASS
+- node --check player/world.js: PASS
+
+Coverage added:
+- A/D and left/right arrow inputs produce signed character turning.
+- Turning rotates the character's persistent tangent heading around the local surface normal.
+- W/S and up/down move along the character's facing direction.
+- Character heading is transported while moving over the spherical surface.
+- In-game instructions describe turning separately from forward/backward movement.
+- Map HUD is anchored to the upper-right below the top header on desktop and mobile.
+
+Browser visual and interaction QA: NOT PERFORMED.
+The user must verify A/D turning, W/S movement, and map placement in the installed browser build.

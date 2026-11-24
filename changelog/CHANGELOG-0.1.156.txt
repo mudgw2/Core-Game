@@ -1,0 +1,5 @@
+CORE 0.1.156
+- Connected humanoid GLB jump takeoff/air/landing animation clips.
+- Increased night-sky star visibility using emissive billboard sprites.
+- Increased deterministic planetary terrain relief and color contrast.
+- Updated project state, design principles, and roadmap.

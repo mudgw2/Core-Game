@@ -1,0 +1,13 @@
+CORE 0.1.105 PATCH INSTALLATION
+
+1. Back up your current CORE installation.
+2. Extract this ZIP into the CORE project root, preserving the included relative paths.
+3. Allow the files to overwrite their existing counterparts.
+4. No data migration or database operation is required.
+5. Open Character Selection and confirm that the character portrait uses the upright Walk animation.
+6. Open a system view and compare its orbital layout with the location preview on Character Selection.
+7. Run the project's CLI QA suite: php tests/run.php
+8. Run the browser QA endpoint from the local development environment.
+
+This patch contains only application source, QA tests, and release documentation.
+It does not contain or replace storage/data, backups, logs, accounts, or character records.

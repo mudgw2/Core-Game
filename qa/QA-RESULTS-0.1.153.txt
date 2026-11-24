@@ -1,0 +1,16 @@
+CORE 0.1.153 QA
+
+Source basis:
+- Full source archive: admin(20261119-181011.zip, version 0.1.150)
+- Applied patch: CORE 0.1.151
+- Applied patch: CORE 0.1.152
+
+Pre-update regression run on assembled 0.1.152 source:
+- Command: php tests/run.php
+- Result: 145 passed, 0 failed
+
+User-reported installed QA:
+- CORE 0.1.152: PASS — 162 tests passed.
+- User confirmed planetary time and multiplayer longitude movement work in runtime.
+
+0.1.153 changes are documentation and centralized version metadata only. No browser visual test was performed by the assistant.

@@ -1,0 +1,10 @@
+CORE 0.1.181 updated-files installation
+
+1. Back up the existing CORE application.
+2. Extract this ZIP over the existing CORE application root, preserving existing storage and player data.
+3. Allow config/version.php and player/astronomical-environment.js to be overwritten.
+4. Hard-refresh the browser or clear the site's cached JavaScript so version 0.1.181 is loaded.
+5. Enter the Planetary Test World. Look for large white MOON 1 / MOON 2 markers and white orbital traces.
+6. Open Diagnostics and inspect Moon renderer diagnostics -> moonProofOverlay.visibleMoonCount.
+
+This release is a temporary diagnostic visualization. It does not change generated moon records or authoritative simulation time.

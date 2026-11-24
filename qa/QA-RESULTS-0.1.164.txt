@@ -1,0 +1,17 @@
+CORE 0.1.164 Assistant QA
+Date: 2026-11-19
+
+Change:
+- Gameplay keydown handler ignores Ctrl, Meta/Command, and Alt modified events.
+- Existing editable-target exclusions remain unchanged.
+
+Checks:
+- php tests/run.php: 155 passed, 0 failed
+- node --check player/world.js: PASS
+- php -l config/version.php: PASS
+- php -l tests/run.php: PASS
+- ZIP integrity/content check: pending packaging
+- Browser runtime QA: not performed
+
+Scope:
+- Keyboard shortcut compatibility only. No moon renderer behavior changed.

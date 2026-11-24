@@ -1,0 +1,7 @@
+CORE 0.1.168 incremental patch
+
+Extract this ZIP over the existing CORE 0.1.167 installation, preserving folder paths and allowing changed files to be overwritten. Back up the installation first.
+
+This patch contains only changed/new files. It does not include player data, storage, accounts, secrets, logs, or backups.
+
+After updating, open the planetary world and inspect Moon Renderer Diagnostics. Confirm the moons are visibly above the ground/sky boundary. If still absent, provide the diagnostics including renderPipeline and each moon's activeThisFrame/materialReady values.

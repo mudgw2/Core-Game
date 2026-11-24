@@ -1,0 +1,27 @@
+CORE 0.1.108 — COLYSEUS FOUNDATION INSTALLATION
+
+Source: user-supplied CORE 0.1.107; last user-confirmed baseline CORE 0.1.106 (154 tests passed)
+
+1. Back up the current CORE application source.
+2. Extract this patch into the CORE application root, preserving relative paths.
+3. Allow source files to overwrite their existing counterparts.
+4. Do not overwrite storage/, player records, account records, universe records,
+   backups, credentials, or logs. This patch contains none of those files.
+5. No changes are made to Apache, PHP runtime configuration, Babylon.js pages,
+   player data, or universe data. Existing single-player gameplay is unchanged.
+
+Optional local contract build:
+6. On a machine with Node.js 20+ and npm, open a terminal in the new multiplayer/
+   directory and run `npm install`.
+7. Run `npm run typecheck` and `npm run build`.
+
+IMPORTANT:
+- This release does NOT start a Colyseus server, expose a WebSocket endpoint,
+  issue authentication tokens, or connect the Babylon.js client.
+- Do not configure a real signing secret yet. `.env.example` is a template only.
+- Do not expose a Node service publicly at this stage.
+- Future releases will add the server, authentication, client connection, and
+  synchronized gameplay in separate QA-tested steps.
+
+No JSON data migration is required. No GitHub push or live-server modification
+is performed by this patch.

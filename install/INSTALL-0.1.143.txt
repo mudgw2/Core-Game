@@ -1,0 +1,17 @@
+CORE 0.1.143 — Planetary Movement & Readability
+
+Install:
+1. Back up your current CORE application files.
+2. Extract this ZIP into the CORE application root, preserving the paths.
+3. Allow the listed files to overwrite their existing counterparts.
+4. Reload the planetary test world with a hard refresh (Ctrl+F5).
+
+This is a code-only patch. It does not replace storage, accounts, characters, universes, generated geography, backups, logs, or secrets.
+
+Changes:
+- Character orientation now combines planetary surface alignment with movement heading, rather than overwriting heading every frame.
+- Local/multiplayer coordinate conversion now uses the same +X (0° latitude, 0° longitude) map-center origin as the global map.
+- Increased ambient environmental fill so the terrain remains readable at night while stellar directional lighting still drives the day/night cycle.
+- Removed the terrain legend from the map HUD; current coordinates remain directly beneath the map.
+
+After installation, verify WASD/arrow movement in all four directions, turning, night terrain visibility, map display, and coordinate readout. Automated source tests cannot substitute for browser interaction testing.

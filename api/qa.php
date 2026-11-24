@@ -143,6 +143,21 @@ $run('Gameplay derives worlds at runtime without changing saved universe data', 
     return 'World profiles are derived for the player view and rendered without a storage migration.';
 });
 
+$run('Constellation navigation opens at the character Constellation and restores its parent after System View', static function () use ($assert): string {
+    $game = (string)file_get_contents(dirname(__DIR__) . '/player/game.php');
+    $client = (string)file_get_contents(dirname(__DIR__) . '/player/player.js');
+    foreach (['id="constellationSelect"', 'Constellation View', 'id="constellationSystemList"', 'id="selectedWorldList"', 'Back to Constellation View', 'id="systemViewTitle"'] as $needle) {
+        $assert(str_contains($game, $needle), 'Navigation interface is missing ' . $needle . '.');
+    }
+    foreach (['visibleSystems()', 'state.selectedConstellationId = system.constellation_id', "state.view = 'system'", "state.view='constellation'", 'renderMap();'] as $needle) {
+        $assert(str_contains($client, $needle), 'Hierarchical navigation state is missing ' . $needle . '.');
+    }
+    $assert(!preg_match('/drawSystemView\(boot\.initialSystemId\)/', $client), 'Gameplay must open Constellation View before entering a System.');
+    $assert(str_contains($client, 'state.character.active_universe_id || state.character.universe_id'), 'Shared-universe visitors must be validated against their active universe without replacing their home universe ID.');
+    $assert(str_contains($client, 'state.selectedConstellationId = currentConstellationId()'), 'Travel must move the Constellation View context to the character current Constellation.');
+    return 'Play opens the character Constellation; the System list is scoped to that Constellation; Back restores its Constellation View and Worlds remain in System View.';
+});
+
 $run('Create and reload preserve identity and baseline', static function () use ($equal, $assert, $cleanup): string {
     $dir = sys_get_temp_dir() . '/core-web-qa-' . bin2hex(random_bytes(8));
     try {
@@ -1567,9 +1582,10 @@ $run('Universe backup restore refuses conflicting live records', static function
     } finally { $cleanup($dir); }
 });
 $run('Backup UI and API wiring are present', static function () use ($assert): string {
-    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php');
+    $root = dirname(__DIR__); $html = coreWorkbenchSource($root); $app = file_get_contents($root . '/app/Application.php'); $module = file_get_contents($root . '/app/Modules/Universe/UniverseModule.php');
     foreach (['createUniverseBackupButton', 'refreshBackupsButton', 'restoreUniverseBackupButton', 'backupRestoreConfirmation', 'storage/backups/'] as $needle) $assert(str_contains($html, $needle), 'Backup UI marker missing: ' . $needle);
-    foreach (['/api/data-management/backups', '/api/data-management/backups/restore', 'UniverseBackupService'] as $needle) $assert(str_contains($app, $needle), 'Backup API marker missing: ' . $needle);
+    foreach (['/api/data-management/backups', '/api/data-management/backups/restore'] as $needle) $assert(str_contains($app, $needle), 'Backup API route marker missing: ' . $needle);
+    $assert(str_contains($module, 'UniverseBackupService'), 'Backup service is not registered by the universe module.');
     return 'Backup, list, and guarded restore controls are wired to server routes.';
 });
 
@@ -1681,9 +1697,10 @@ $run('Character creation and universe deletion share the universe lock', static 
 });
 
 $run('Universe deletion API and confirmation UI are wired', static function () use ($assert): string {
-    $html = coreWorkbenchSource(dirname(__DIR__)); $app = file_get_contents(dirname(__DIR__) . '/app/Application.php'); $endpoint = file_get_contents(dirname(__DIR__) . '/api/data-management-universe-delete.php');
+    $root = dirname(__DIR__); $html = coreWorkbenchSource($root); $app = file_get_contents($root . '/app/Application.php'); $module = file_get_contents($root . '/app/Modules/Universe/UniverseModule.php'); $endpoint = file_get_contents($root . '/api/data-management-universe-delete.php');
     foreach (['deleteManagedUniverseButton', 'cleanupUniverseConfirmation', 'DELETE UNIVERSE ', 'pre-deletion backup'] as $needle) $assert(str_contains($html, $needle), 'Universe deletion UI marker missing: ' . $needle);
-    foreach (["'/api/data-management/universe-delete'", 'UniverseDeletionService', 'developmentRequestAllowed'] as $needle) $assert(str_contains($app, $needle), 'Universe deletion API marker missing: ' . $needle);
+    foreach (["'/api/data-management/universe-delete'", 'developmentRequestAllowed'] as $needle) $assert(str_contains($app, $needle), 'Universe deletion API route marker missing: ' . $needle);
+    $assert(str_contains($module, 'UniverseDeletionService'), 'Universe deletion service is not registered by the universe module.');
     $assert(str_contains($endpoint, '/api/data-management/universe-delete'), 'Universe deletion endpoint wrapper missing.');
     return 'Universe deletion has explicit UI confirmation, guarded development-only API route, and service wiring.';
 });
@@ -1923,6 +1940,31 @@ $run('Module registry executes a demonstration module through the shared context
     $equal('Hello, browser QA!', $greeting('browser QA'), 'Demo module service returned an unexpected value.');
     return 'Demo module booted and its injected service executed.';
 });
+$run('Player workflows boot and reuse the standard application module services', static function () use ($assert, $equal, $cleanup): string {
+    $dir = sys_get_temp_dir() . '/core-player-module-boot-' . bin2hex(random_bytes(6));
+    try {
+        $app = new Core\Application();
+        $config = ['storage' => ['path' => $dir . '/data'], 'logging' => ['path' => $dir . '/logs/core.log']];
+        $order = $app->bootDefaultModules($config);
+        $equal(['core.runtime', 'core.universe', 'core.characters', 'core.data-management', 'core.content'], $order, 'Unexpected player workflow module boot order.');
+        $assert($app->services()->get('core.storage') instanceof JsonStorage, 'Player workflow did not reuse module storage.');
+        $assert($app->services()->get('universe.service') instanceof UniverseService, 'Player workflow universe service was not booted.');
+        $assert($app->services()->get('character.service') instanceof CharacterService, 'Player workflow character service was not booted.');
+        $assert($app->services()->get('character.universe-assignment') instanceof Core\Modules\Characters\CharacterUniverseAssignmentService, 'Player workflow assignment service was not booted.');
+        $equal($order, $app->bootDefaultModules($config), 'Repeated default module boot should be idempotent.');
+        $action = (string)file_get_contents(CORE_ROOT . '/player/player-action.php');
+        foreach (['bootDefaultModules()', "get('core.storage')", "get('character.service')", "get('universe.service')", "get('character.universe-assignment')"] as $needle) {
+            $assert(str_contains($action, $needle), 'Player action does not use shared module service: ' . $needle);
+        }
+        foreach (['new \\Core\\Storage\\JsonStorage', 'new \\Core\\Modules\\Characters\\CharacterService', 'new \\Core\\Modules\\Universe\\UniverseService', 'new \\Core\\Modules\\Characters\\CharacterUniverseAssignmentService'] as $needle) {
+            $assert(!str_contains($action, $needle), 'Player action still constructs a domain service directly: ' . $needle);
+        }
+        return 'Player character creation and universe assignment use the shared runtime, universe, and character module services.';
+    } finally {
+        $cleanup($dir);
+    }
+});
+
 $run('Module registry rejects duplicate module identifiers', static function () use ($assert): string {
     $registry = new Core\Modules\ModuleRegistry(new Core\Modules\ModuleContext(new Core\Modules\ServiceContainer()));
     $registry->register(new Core\Modules\Demo\DemoModule());
@@ -2032,7 +2074,7 @@ $run('Player prototype uses Babylon.js and backend entity IDs', static function 
     $game = file_get_contents(dirname(__DIR__) . '/player/game.php');
     $assert(is_string($js), 'Player JavaScript could not be read.');
     $assert(is_string($game), 'Player gameplay page could not be read.');
-    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', 'mesh.metadata={entityId:system.id}', 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed', 'const boot = window.CORE_BOOT || {}'] as $needle) {
+    foreach (["BABYLON.Engine", "BABYLON.ArcRotateCamera", 'api(`navigation.php?universe_id=', "mesh.metadata={entityId:system.id,entityType:'system'}", 'api(`navigation-route.php?universe_id=', "api('character-travel.php')", 'new ResizeObserver', 'state.engine.resize()', '3D map initialization failed', 'const boot = window.CORE_BOOT || {}'] as $needle) {
         $assert(str_contains($js, $needle), 'Player JavaScript is missing current architecture marker: ' . $needle);
     }
     $assert(str_contains($game, "'universe' => \$playerUniverse") && str_contains($game, "'character' => \$selectedCharacter"), 'Gameplay page must inject the account-owned character and assigned universe.');
@@ -2116,6 +2158,264 @@ $run('Player character collection is account-scoped outside the trusted Workbenc
     $assert(is_string($application) && str_contains($application, "owner_account_id'] ?? '') === \$accountId"), 'Character listing does not filter records by the signed-in account.');
     $assert(is_string($security) && str_contains($security, 'ownsCharacter') && str_contains($security, 'ownsUniverse'), 'Central ownership checks are missing.');
     return 'Character collection responses are filtered to the signed-in account; universe navigation and lifecycle operations require an owned character.';
+});
+
+
+$run('Character preview wraps and rotates the complete imported GLB rig toward the camera', static function () use ($assert): string {
+    $creation = (string)file_get_contents(dirname(__DIR__) . '/player/character-preview.js');
+    $roster = (string)file_get_contents(dirname(__DIR__) . '/player/character-roster-preview.js');
+    foreach ([$creation, $roster] as $index => $js) {
+        $assert(str_contains($js, 'result.transformNodes || []'), 'Preview ' . $index . ' omits imported transform nodes.');
+        $assert(str_contains($js, 'new BABYLON.TransformNode('), 'Preview ' . $index . ' does not wrap the complete rig.');
+        $assert(str_contains($js, 'modelRoot.rotation.y += Math.PI'), 'Preview ' . $index . ' does not turn the known +Z model front toward its -Z camera.');
+    }
+    return 'Both preview modes rotate all imported GLB roots as one rig.';
+});
+$run('System overview orbit tubes and planets share one local inclined plane', static function () use ($assert): string {
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/system-view.js');
+    $assert(str_contains($js, 'BABYLON.MeshBuilder.CreateTube(`orbit-${index}`'), 'System orbit is not built from explicit path geometry.');
+    $assert(str_contains($js, 'window.CORE_ORBITS.layout'), 'System view does not use the shared orbital layout.');
+    $assert(!str_contains($js, 'plane.rotation'), 'System view still invents inclined orbital planes.');
+    $assert(!str_contains($js, 'orbit.rotation.x = Math.PI / 2'), 'System orbit has an independent plane rotation.');
+    return 'The orbit tube and animated planet use the shared coplanar orbital layout.';
+});
+$run('Character selection location preview aligns every planet with its inclined orbit', static function () use ($assert): string {
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/character-roster-preview.js');
+    $assert(str_contains($js, 'window.CORE_ORBITS.layout'), 'Location preview does not use the shared orbital layout.');
+    $assert(str_contains($js, 'BABYLON.MeshBuilder.CreateTube'), 'Location preview does not use explicit orbit path geometry.');
+    $assert(!str_contains($js, 'plane.rotation'), 'Location preview still invents inclined orbital planes.');
+    $assert(!str_contains($js, 'Math.sin(angle) * orbit * .42'), 'Location planet still uses a flattened elliptical path.');
+    return 'Location preview uses the same shared coplanar orbital layout as the system view.';
+});
+
+$run('Character roster portrait selects the exact Walk animation', static function () use ($assert): string {
+    $js = (string)file_get_contents(dirname(__DIR__) . '/player/character-roster-preview.js');
+    $assert(str_contains($js, "String(group.name || '').trim().toLowerCase() === 'walk'"), 'Portrait does not select the exact Walk clip.');
+    $assert(!str_contains($js, 'find((group) => /walk/i.test(group.name))'), 'Portrait still uses broad matching that can select Crouch_Walk.');
+    return 'The roster portrait selects Walk by exact clip name.';
+});
+
+$run('Character selection and system view load the shared orbital mechanics helper', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $helper = (string)file_get_contents($root . '/player/orbital-mechanics.js');
+    $selection = (string)file_get_contents($root . '/player/selection.php');
+    $deletion = (string)file_get_contents($root . '/app/Modules/UniverseDeletionService.php');
+    $game = (string)file_get_contents($root . '/player/game.php');
+    $assert(str_contains($helper, 'window.CORE_ORBITS'), 'Shared orbital helper is missing.');
+    $assert(str_contains($selection, '/orbital-mechanics.js'), 'Character selection does not load orbital mechanics.');
+    $assert(str_contains($game, '/orbital-mechanics.js'), 'Gameplay does not load orbital mechanics.');
+    return 'Both interfaces load the same shared orbital calculations.';
+});
+
+$run('Character creation persists and validates the selected appearance tint', static function () use ($assert, $equal): string {
+    $dir = sys_get_temp_dir() . '/core-api-appearance-' . bin2hex(random_bytes(6));
+    try {
+        $storage = new JsonStorage($dir);
+        $service = new CharacterService($storage);
+        $character = $service->create('', 'Tint QA Pilot', 'explorer', 'human', [], 'tint-qa-owner', null, ['tint' => '#b64e91']);
+        $equal('#b64e91', $character['appearance']['tint'] ?? null, 'Selected tint was not saved for an unassigned character.');
+        $universe = (new UniverseService($storage))->createOrLoad('core-api-appearance-tint-assigned');
+        $assigned = $service->create($universe['id'], 'Assigned Tint QA', 'explorer', 'human', [], 'tint-qa-owner', null, ['tint' => '#31a7d2']);
+        $equal('#31a7d2', $assigned['appearance']['tint'] ?? null, 'Selected tint was not saved for an assigned character.');
+        return 'Valid six-digit hex tints persist for both unassigned and universe-assigned character records.';
+    } finally {
+        if (is_dir($dir)) { $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST); foreach ($it as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname()); rmdir($dir); }
+    }
+});
+$run('Blank test world validates character, universe, current system, and generated world', static function () use ($assert): string {
+    $page = (string)file_get_contents(dirname(__DIR__) . '/player/world.php');
+    $client = (string)file_get_contents(dirname(__DIR__) . '/player/world.js');
+    $environment = (string)file_get_contents(dirname(__DIR__) . '/player/planetary-environment.js');
+    $game = (string)file_get_contents(dirname(__DIR__) . '/player/game.php');
+    foreach (['owner_account_id', 'CharacterLifecycleGuard::assertCanPerformGameplayAction', 'UniverseLifecycleGuard::assertCanPerformGameplayAction', '$systemId !== $currentSystemId', 'WorldGenerator())->generateForSystem'] as $needle) {
+        $assert(str_contains($page, $needle), 'Test-world server validation is missing: ' . $needle);
+    }
+    foreach (['keydown', 'keyup', 'camera.getDirection(BABYLON.Axis.Z)', 'speedWalk', 'SceneLoader.ImportMeshAsync', 'CORE_PLANETARY_ENVIRONMENT.create(scene)', 'CORE_PLANETARY_ENVIRONMENT.moveOnSurface'] as $needle) {
+        $assert(str_contains($client, $needle), 'Test-world client behavior is missing: ' . $needle);
+    }
+    $assert(str_contains($environment, 'core-planetary-terrain'), 'Spherical planetary terrain mesh integration is missing.');
+    $assert(str_contains($game, 'id="enterWorldButton"'), 'System inspector does not expose the test-world entry button.');
+    return 'The test world is seeded from a verified generated world, renders the spherical planetary terrain, and supports third-person WASD movement.';
+});
+$run('Planetary terrain uses broad landforms with expanded plains and bounded relief', static function () use ($assert): string {
+    $environment = (string)file_get_contents(dirname(__DIR__) . '/player/planetary-environment.js');
+    $generator = (string)file_get_contents(dirname(__DIR__) . '/app/Modules/Universe/PlanetaryTerrainGenerator.php');
+    $assert(str_contains($environment, 'let localPatchSizeKm = 512;'), 'Local terrain relief patch is not expanded to 512 km.');
+    $assert(str_contains($environment, 'const localPatchSegments = 320;'), 'Local terrain patch resolution is not 320 segments.');
+    $assert(str_contains($environment, 'normal.x * 80 + 41.7'), 'Broad regional landform field is missing.');
+    $assert(str_contains($environment, 'normal.x * 200 + 7.4'), 'Rolling regional landform field is missing.');
+    $assert(str_contains($environment, 'normal.x * 470 + 18.6'), 'Fine landform field is missing.');
+    $assert(str_contains($environment, "const detailStrength = terrain === 'mountains' ? 8.0 : (terrain === 'hills' ? 4.5 : 2.2);"), 'Terrain relief amplitudes do not provide visible plains, hills, and mountain variation.');
+    $assert(str_contains($environment, 'Math.cos(6 / planetRadius)'), 'Local terrain patch still recenters too frequently during player movement.');
+    $assert(str_contains($environment, 'const segments = 128;'), 'Distant planet fallback mesh is not using the lightweight tessellation.');
+    $assert(str_contains($environment, 'function hashTerrainSeed(seed)'), 'Persistent WLD-/SYS-prefixed terrain seeds must be hashed as full strings.');
+    $assert(str_contains($environment, 'const landform = 0.55 + broadDetail * 0.62'), 'Local patch relief must remain visible above the coarse sphere surface.');
+    $assert(str_contains($worldClient = (string)file_get_contents(dirname(__DIR__) . '/player/world.js'), 'camera.maxZ = Math.max(250000'), 'Planetary camera far plane is not extended beyond the local terrain horizon.');
+    $assert(str_contains($environment, '0.82'), 'Mountain classification threshold is not raised to preserve broad plains.');
+    $assert(str_contains($environment, 'Number(terrainParameters.relief_exaggeration) || 2.5, 1.0, 2.75'), 'Legacy relief exaggeration is not bounded to the gentler range.');
+    $assert(str_contains($generator, "'relief_exaggeration' => 2.5"), 'New terrain records do not persist the gentler relief setting.');
+    $assert(str_contains($environment, 'elevation *= reliefExaggeration;'), 'Terrain sampling does not share relief scaling between geometry, movement, spawn, and altitude.');
+    return 'A horizon-spanning 320-subdivision local patch uses broad, measurable landform relief, a lightweight distant sphere, and movement-throttled terrain updates.';
+});
+$run('Planetary character visual root is grounded independently of the movement root', static function () use ($assert): string {
+    $worldClient = (string)file_get_contents(dirname(__DIR__) . '/player/world.js');
+    $assert(str_contains($worldClient, 'let playerVisualRoot = null;'), 'Character visual-root transform is missing.');
+    $assert(str_contains($worldClient, 'playerVisualRoot.position.y -= Number.isFinite(bounds.min.y) ? bounds.min.y : 0;'), 'Character feet are not offset in local up space with finite-bound protection.');
+    $assert(str_contains($worldClient, 'importedRoots.forEach(node => { node.parent = playerVisualRoot; });'), 'Imported character nodes are not parented under the grounded visual root.');
+    $assert(!str_contains($worldClient, 'playerRoot.position.y -= Number.isFinite(bounds.min.y)'), 'World-space Y offset that is lost during planetary movement remains.');
+    return 'Character model bounds are normalized in local up-space, so the feet remain at the sampled planetary surface after root movement and rotation.';
+});
+$run('Planetary character orientation uses supported Babylon.js quaternion APIs', static function () use ($assert): string {
+    $worldClient = (string)file_get_contents(dirname(__DIR__) . '/player/world.js');
+    $assert(str_contains($worldClient, 'function alignUpToSurface(normal)'), 'Planetary surface alignment helper is missing.');
+    $assert(str_contains($worldClient, 'BABYLON.Quaternion.RotationAxis'), 'Surface alignment does not use a supported Babylon.js quaternion factory.');
+    $assert(!str_contains($worldClient, 'BABYLON.Quaternion.FromUnitVectors'), 'Unsupported Quaternion.FromUnitVectors call remains in the world client.');
+    return 'Player and remote avatars align their local up axis to the planetary surface normal using supported Babylon.js quaternion operations.';
+});
+$run('Selected character tint is rendered consistently in roster and test world', static function () use ($assert): string {
+    $selection = (string)file_get_contents(dirname(__DIR__) . '/player/selection.php');
+    $roster = (string)file_get_contents(dirname(__DIR__) . '/player/character-roster-preview.js');
+    $world = (string)file_get_contents(dirname(__DIR__) . '/player/world.js');
+    $assert(str_contains($selection, 'data-tint='), 'Roster card does not expose the saved tint.');
+    $assert(str_contains($roster, 'canvas.dataset.tint'), 'Roster preview does not apply the saved tint.');
+    $assert(str_contains($world, 'boot.character.appearance?.tint'), 'Test world does not apply the saved tint.');
+    return 'The saved character tint is carried into both selection preview and spawned character rendering.';
+});
+
+
+$run('Borderless interface contract removes component border declarations across all shared stylesheets', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $shared = (string)file_get_contents($root . '/assets/borderless.css');
+    $assert(str_contains($shared, 'border: 0 !important'), 'The central borderless contract is missing its universal reset.');
+    $assert(str_contains($shared, '*::before'), 'Pseudo-elements are not covered by the borderless contract.');
+    $assert(str_contains($shared, '::-webkit-slider-thumb'), 'Browser-native form-control parts are not covered.');
+    foreach (['assets/admin.css', 'assets/admin-player-account.css', 'player/player.css', 'player/world.css', 'player/system-view.css'] as $relative) {
+        $css = (string)file_get_contents($root . '/' . $relative);
+        $assert(preg_match('/(?<![a-z-])border(?:-(?:top|right|bottom|left|width|style|color|image))?\s*:/i', $css) !== 1, 'A component border declaration remains in ' . $relative . '.');
+    }
+    $assert(!str_contains((string)file_get_contents($root . '/player/player.css'), 'box-shadow:inset 0 -2px'), 'The current workflow step still draws a border-like inset stripe.');
+    return 'All shared UI stylesheets are free of component border declarations; one central contract handles browser defaults.';
+});
+
+$run('Every CORE HTML surface loads the cache-busted borderless stylesheet last', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    foreach (['index.php', 'player/index.php', 'player/account.php', 'player/selection.php', 'player/character-create.php', 'player/universe-create.php', 'player/game.php', 'player/world.php', 'admin/player-account.php'] as $relative) {
+        $page = (string)file_get_contents($root . '/' . $relative);
+        $globalPosition = strrpos($page, 'borderless.css?v=');
+        $lastStylesheetPosition = strrpos($page, 'rel="stylesheet"');
+        $assert($globalPosition !== false, 'The borderless stylesheet is not loaded by ' . $relative . '.');
+        $assert($lastStylesheetPosition !== false && $globalPosition > $lastStylesheetPosition, 'The borderless stylesheet is not the final stylesheet in ' . $relative . '.');
+    }
+    return 'All nine HTML surfaces load the versioned borderless stylesheet after their other CSS.';
+});
+
+$run('Standalone account administration uses external CSS and preserves keyboard focus indicators', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $page = (string)file_get_contents($root . '/admin/player-account.php');
+    $css = (string)file_get_contents($root . '/assets/admin-player-account.css');
+    $global = (string)file_get_contents($root . '/assets/borderless.css');
+    $assert(!str_contains($page, '<style>'), 'Standalone account administration still embeds its stylesheet.');
+    $assert(str_contains($page, 'admin-player-account.css?v='), 'Standalone account administration does not load its external stylesheet.');
+    $assert(str_contains($global, ':focus-visible'), 'The shared borderless stylesheet does not preserve keyboard focus visibility.');
+    $assert(str_contains($css, 'button:focus-visible'), 'Standalone account administration has no keyboard focus styling.');
+    return 'Standalone account styling is external and keyboard focus remains visible.';
+});
+
+
+$run('Colyseus 0.16 foundation preserves CORE identity and server-authoritative movement boundaries', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $package = json_decode((string)file_get_contents($root . '/multiplayer/package.json'), true);
+    $identity = (string)file_get_contents($root . '/multiplayer/src/contracts/MultiplayerIdentity.ts');
+    $room = (string)file_get_contents($root . '/multiplayer/src/contracts/RoomIdentity.ts');
+    $movement = (string)file_get_contents($root . '/multiplayer/src/contracts/MovementProtocol.ts');
+    $architecture = (string)file_get_contents($root . '/multiplayer/ARCHITECTURE.md');
+    $assert(is_array($package) && str_starts_with((string)($package['dependencies']['@colyseus/core'] ?? ''), '^0.16.'), 'Colyseus core dependency is not on the 0.16-compatible line.');
+    $assert(!isset($package['dependencies']['colyseus']) && !isset($package['dependencies']['@colyseus/auth']), 'Umbrella Colyseus/auth dependency would restore vulnerable OAuth dependencies.');
+    $assert(($package['overrides']['@colyseus/core']['nanoid'] ?? '') === '^3.3.18', 'NanoID override does not meet the patched 3.3.18 floor.');
+    $assert(str_contains($identity, 'universeSeed') && str_contains($identity, 'universeId'), 'Saved universe ID and deterministic seed are not separate identity claims.');
+    $assert(str_contains($room, 'locationId: string | null'), 'Room key does not account for CORE location-model readiness.');
+    $assert(str_contains($movement, 'Client-to-server movement intent') && str_contains($movement, 'AuthoritativePlayerTransform'), 'Movement protocol does not separate client input from server transforms.');
+    $assert(str_contains($architecture, 'Production joins require') && str_contains($architecture, 'HMAC-SHA256 grant'), 'Production authentication boundary is not documented.');
+    return 'The multiplayer contracts remain intact; the Colyseus room service is active while production joins remain blocked pending PHP grants.';
+});
+
+$run('Colyseus 0.16 server exposes protected universe room lifecycle and health checks', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $package = json_decode((string)file_get_contents($root . '/multiplayer/package.json'), true);
+    $server = (string)file_get_contents($root . '/multiplayer/src/server.ts');
+    $room = (string)file_get_contents($root . '/multiplayer/src/rooms/UniverseRoom.ts');
+    $config = (string)file_get_contents($root . '/multiplayer/src/config/runtime.ts');
+    $identity = (string)file_get_contents($root . '/multiplayer/src/contracts/RoomIdentity.ts');
+    $assert(($package['version'] ?? '') === '0.1.115', 'Multiplayer package version is not 0.1.115.');
+    $assert(str_starts_with((string)($package['dependencies']['@colyseus/core'] ?? ''), '^0.16.'), 'Colyseus core version is not 0.16-compatible.');
+    $assert(str_contains($server, 'new Server(') && str_contains($server, 'createServer(app)') && str_contains($server, 'server.listen(config.port, config.host)'), 'Colyseus process startup is missing.');
+    $assert(str_contains($server, 'new WebSocketTransport(') && str_contains($server, 'pingInterval: 10000') && str_contains($server, 'pingMaxRetries: 2'), 'WebSocket transport options are not configured on the transport instance.');
+    $assert(str_contains($server, 'filterBy(["universeId", "systemId", "locationId"])'), 'Room matchmaking keys are incomplete.');
+    foreach (['onCreate(', 'onAuth(', 'onJoin(', 'onLeave(', 'onDispose(', 'setMetadata('] as $needle) {
+        $assert(str_contains($room, $needle), 'Room lifecycle is missing ' . $needle . '.');
+    }
+    $assert(str_contains($room, 'playerPresence') && str_contains($room, 'client.sessionId'), 'Room does not track transient server-side presence.');
+    $assert(str_contains($room, 'setSimulationInterval') && str_contains($room, 'player-transforms') && str_contains($room, 'parseMovementInput'), 'Room does not simulate and broadcast server-authoritative movement.');
+    $assert(str_contains($config, "nodeEnvironment !== 'production'") && str_contains($config, 'isLoopbackHost') && str_contains($config, 'developmentToken.length >= 32'), 'Development guest mode is not sufficiently constrained.');
+    $assert(str_contains($identity, 'normalizeRoomIdentity') && str_contains($identity, 'JSON.stringify'), 'Room identity validation is missing.');
+    $assert(str_contains($server, '"/health"') && str_contains($server, '"php-hmac-grant"'), 'Health endpoint does not expose the expected service status.');
+    return 'The Colyseus process, system-level room matching, protected local development join mode, transient presence, and health endpoint are defined.';
+});
+
+$run('Babylon gameplay exposes authenticated Colyseus presence connection controls', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $page = (string)file_get_contents($root . '/player/game.php');
+    $client = (string)file_get_contents($root . '/player/player.js');
+    $assert(str_contains($page, 'colyseus.js@0.16.22'), 'Pinned Colyseus browser SDK is missing.');
+    $assert(str_contains($page, 'CORE_MULTIPLAYER_PUBLIC_URL') && str_contains($page, 'data-multiplayer-url'), 'Public multiplayer URL configuration is missing.');
+    $assert(str_contains($page, 'id="multiplayerConnectButton"') && str_contains($page, 'id="multiplayerStatus"'), 'Multiplayer controls are missing.');
+    $assert(str_contains($client, "api('multiplayer/token')") && str_contains($client, 'client.auth.token = grant.token'), 'PHP grant acquisition or SDK token assignment is missing.');
+    $assert(str_contains($client, "joinOrCreate('universe'") && str_contains($client, 'refreshMultiplayerSystemRoom'), 'Universe room join or system migration is missing.');
+    return 'The Babylon gameplay page can request a short-lived PHP grant, join its authorized universe/system room, and leave or migrate the session safely.';
+});
+
+
+$run('Planetary test world connects to a location-bound authoritative movement room', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $page = (string)file_get_contents($root . '/player/world.php');
+    $client = (string)file_get_contents($root . '/player/world.js');
+    $application = (string)file_get_contents($root . '/app/Application.php');
+    $assert(str_contains($page, 'colyseus.js@0.16.22') && str_contains($page, 'worldMultiplayerStatus'), 'World page is missing its multiplayer SDK or status.');
+    $assert(str_contains($client, "joinOrCreate('universe'") && str_contains($client, 'world_id: boot.world.id'), 'World client does not request and join a location-bound room.');
+    $assert(str_contains($client, "send('move'") && str_contains($client, 'player-transforms'), 'World client does not send movement input and receive authoritative transforms.');
+    $assert(str_contains($application, 'generateForSystem') && str_contains($application, "'locationId' => \$locationId"), 'PHP does not validate generated world membership in the authorization grant.');
+    return 'The world client joins a PHP-authorized world room and uses server-simulated movement transforms.';
+});
+
+$run('CORE 0.1.115 shared universe visits preserve home universe and expose independent system/world seeds', static function () use ($assert): string {
+    $root = dirname(__DIR__);
+    $application = (string)file_get_contents($root . '/app/Application.php');
+    $shared = (string)file_get_contents($root . '/app/Modules/Universe/SharedUniverseService.php');
+    $context = (string)file_get_contents($root . '/app/Modules/Characters/CharacterUniverseContext.php');
+    $systemGenerator = (string)file_get_contents($root . '/app/Modules/Universe/UniverseGenerator.php');
+    $worldGenerator = (string)file_get_contents($root . '/app/Modules/Universe/WorldGenerator.php');
+    $selection = (string)file_get_contents($root . '/player/selection.php');
+    $deletion = (string)file_get_contents($root . '/app/Modules/UniverseDeletionService.php');
+    $assert(str_contains($application, "'/api/universe/share'") && str_contains($application, "'/api/universe/visit'") && str_contains($application, "'/api/universe/leave'"), 'Shared-universe API routes are incomplete.');
+    $assert(str_contains($shared, 'code_hash') && str_contains($shared, 'home_location_snapshot') && str_contains($shared, 'active_universe_id'), 'Share-code hashing or reversible home-universe visit state is missing.');
+    $assert(str_contains($context, 'activeUniverseId') && str_contains($context, 'isVisiting'), 'Character active-universe resolution is missing.');
+    $assert(str_contains($systemGenerator, "\$systemSeed = 'SYS-'") && str_contains($systemGenerator, "'seed' => \$systemSeed") && str_contains($worldGenerator, "\$worldSeed = 'WLD-'") && str_contains($worldGenerator, "'seed' => \$worldSeed"), 'Hierarchical system/world seed generation is incomplete.');
+    $assert(str_contains($selection, 'sharedUniverseVisitForm') && str_contains($selection, 'shared-universe-share') && str_contains($selection, 'shared-universe-leave'), 'Character selection does not expose share, visit, and return controls.');
+    $assert(str_contains($deletion, 'activeVisitorsFor'), 'Universe deletion does not guard against active visitors.');
+    return 'Share-code visitation preserves permanent home identity and exposes independent procedural system/world seeds.';
+});
+
+
+
+$run('CORE 0.1.165 moon presentation frame follows the active camera orientation', static function () use ($assert): string {
+    $astronomy = (string)file_get_contents(CORE_ROOT . '/player/astronomical-environment.js');
+    $assert(str_contains($astronomy, 'const orbitForward = (this.orbitForward || BABYLON.Axis.Z).clone().normalize();'), 'Moon orbit must use the established planet-fixed forward axis.');
+    $assert(str_contains($astronomy, 'const orbitRight = (this.orbitRight || BABYLON.Axis.X).clone().normalize();'), 'Moon orbit must use the established planet-fixed right axis.');
+    $assert(str_contains($astronomy, 'moon.mesh.position.copyFrom(planetCenter.add(moonDirection.scale(orbitalRadius)))'), 'Moon position must remain planet-centered and independent of camera heading.');
+    $assert(str_contains($astronomy, 'if (moon.orbitMesh && !moon.orbitGeometryInitialized)'), 'Static moon orbit geometry must not be rebuilt every render frame.');
+    $assert(str_contains($astronomy, 'moon.orbitGeometryInitialized = true;'), 'Moon orbit geometry initialization must be tracked.');
+    $assert(!str_contains($astronomy, 'moonSkyBasis.forward.scale(Math.cos(orbitalAngle))'), 'Obsolete camera-relative moon placement must not return.');
+    return 'Moon placement remains anchored to the fixed planetary orbital frame; camera movement does not redefine orbital positions.';
 });
 
 $passed = count(array_filter($results, static fn(array $r): bool => $r['status'] === 'PASS'));

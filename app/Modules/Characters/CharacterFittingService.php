@@ -28,7 +28,7 @@ final class CharacterFittingService
         $module = $moduleCatalog[$moduleId];
         $result = [];
         $character = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $expectedRevision, $moduleId, $module, $items, &$result): array {
-            if (($character['universe_id'] ?? null) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) throw new RuntimeException('Character does not belong to the selected universe.');
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
             $revision = (int)($character['revision'] ?? 0);
             if ($revision !== $expectedRevision) throw new RuntimeException('Character revision conflict: expected ' . $expectedRevision . ', current revision is ' . $revision . '.');

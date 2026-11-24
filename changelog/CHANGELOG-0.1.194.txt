@@ -1,0 +1,6 @@
+CORE 0.1.194 — Legacy Geography Compatibility
+
+- Fixed terrain initialization for worlds whose saved planetary geography predates schema version 2.
+- Added a shared physical-radius resolver: use the saved geography radius when available; otherwise derive the established radius from the generated world's size code.
+- Terrain and climate generation now accept legacy geography records without rewriting or migrating the saved geography JSON.
+- Added regression coverage for schema-version-1 geography records.

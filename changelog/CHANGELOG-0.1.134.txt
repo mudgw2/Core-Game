@@ -1,0 +1,6 @@
+CORE 0.1.134
+- Expanded Character Creation > Appearance with an overall model tint picker, quick color presets, saturation slider, brightness slider, and reset control.
+- Saved tint, saturation, and brightness as a versioned appearance configuration on the character.
+- Applied saved appearance settings to character previews, the roster portrait, the local test-world avatar, and remote multiplayer avatars.
+- Documented the current GLB limitation: the supplied humanoid uses one mesh primitive and one material, so visible regions cannot yet be recolored independently.
+- Kept clothing and physical/body-shape customization out of this iteration.

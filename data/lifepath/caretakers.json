@@ -1,0 +1,31 @@
+[
+{
+	"caretakers": "Natural Parents",
+	"image":"",
+	"weight":3
+	},{
+	"caretakers": "Uncle",
+	"image":"",
+	"weight":2
+	},{
+	"caretakers": "Aunt",
+	"image":"",
+	"weight":2
+	},{
+	"caretakers": "Grandfather",
+	"image":"",
+	"weight":2
+	},{
+	"caretakers": "Family not related to you",
+	"image":"",
+	"weight":3
+	},{
+	"caretakers": "Institution, be it an orphanage, or corp habitat",
+	"image":"",
+	"weight":1
+	},{
+	"caretakers": "Unknown",
+	"image":"",
+	"weight":1
+	}
+]

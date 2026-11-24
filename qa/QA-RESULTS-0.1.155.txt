@@ -1,0 +1,10 @@
+CORE 0.1.155 QA RESULTS
+
+PHP regression suite: 150 passed, 0 failed.
+JavaScript syntax: player/world.js PASS; player/astronomical-environment.js PASS.
+PHP syntax: player/world.php PASS. The PHP regression suite also runs project-wide PHP syntax validation.
+ZIP integrity: checked after packaging.
+
+Not performed: browser visual testing, live multiplayer jump testing, and visual verification of stars at night. Jumping is local visual presentation only in this release.
+
+The user's prior 0.1.154 report of 162 tests passed is a separate user-run result and is not represented as the local test count for 0.1.155.

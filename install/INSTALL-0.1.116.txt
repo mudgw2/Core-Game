@@ -1,0 +1,30 @@
+CORE 0.1.116 — Automatic Shared-Universe Switching
+===================================================
+
+Install
+-------
+1. Back up the current application files.
+2. Extract this ZIP into the CORE application root, preserving the included
+   relative paths and allowing the four replacement files to overwrite.
+3. Do not replace or modify storage data.
+
+Behavior
+--------
+When a character already visiting a shared universe enters a valid share code
+for a different shared universe, CORE now switches the character directly to
+the newly selected universe. No manual return-to-home step is required.
+
+The destination share code and universe lifecycle are validated before the
+character record is changed. An invalid or inaccessible destination leaves
+the current visit unchanged.
+
+The character's permanent home universe and original home-location snapshot
+are preserved. The existing Return to home universe action remains available
+when the player wants to leave shared-universe play entirely.
+
+Files
+-----
+app/Modules/Universe/SharedUniverseService.php
+config/version.php
+tests/run.php
+changelog/CHANGELOG-INSTALL.txt

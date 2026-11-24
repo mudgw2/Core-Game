@@ -1,0 +1,22 @@
+CORE 0.1.139 QA RESULTS — RUNTIME HOTFIX
+
+- PHP automated test suite: 133 passed, 0 failed.
+- Browser-triggered API QA suite: 162 passed, 0 failed.
+- PHP syntax: PASS (project-wide PHP syntax check plus direct checks of changed PHP files).
+- JavaScript syntax: PASS (`node --check player/world.js`).
+- Babylon.js orientation contract: PASS; all player and remote-avatar surface alignment uses Quaternion.RotationAxis through alignUpToSurface().
+- Unsupported `BABYLON.Quaternion.FromUnitVectors` references: none.
+- Browser visual/interactive testing: NOT PERFORMED.
+
+Runtime correction: replaced unsupported Quaternion.FromUnitVectors calls in player/world.js with a local quaternion alignment helper. It handles already-aligned and antiparallel surface normals and is used for the local player and remote avatars.
+
+Install: extract the patch into the CORE project root, preserving paths. No storage, account, character, universe, backup, or log data is included or modified.
+
+Runtime stability follow-up:
+- PHP automated test suite after camera/spawn/movement regression coverage: 133 passed, 0 failed.
+- JavaScript syntax: PASS (`node --check player/world.js` and `node --check player/planetary-environment.js`).
+- Camera initialization now explicitly places the camera above the spawned character on the planetary surface.
+- Camera offset follows surface-normal changes while preserving the current orbit offset.
+- Removed the visible spawn-marker sphere.
+- Removed redundant terrain resampling from the per-frame movement loop.
+- Browser visual/interactive testing: NOT PERFORMED; confirm camera framing and movement in the installed browser.

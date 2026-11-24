@@ -22,6 +22,13 @@ $config = is_file($configFile) ? require $configFile : [];
     (string)($config['app']['environment'] ?? 'production')
 );
 
+if (!defined('CORE_REQUEST_ID')) {
+    define('CORE_REQUEST_ID', bin2hex(random_bytes(8)));
+}
+if (!headers_sent()) {
+    header('X-CORE-Request-ID: ' . CORE_REQUEST_ID);
+}
+
 date_default_timezone_set((string)($config['app']['timezone'] ?? 'UTC'));
 
 

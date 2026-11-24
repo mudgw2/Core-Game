@@ -1,0 +1,16 @@
+CORE 0.1.169 UPDATE MANIFEST
+
+Changed:
+- player/astronomical-environment.js
+- tests/run.php
+- config/version.php
+- PROJECT_STATE.md
+- CORE-DESIGN-PRINCIPLES.md
+- CORE-ROADMAP.md
+
+Added:
+- release/RELEASE-NOTES-0.1.169.md
+- install/INSTALL-0.1.169.txt
+- qa/QA-RESULTS-0.1.169.txt
+
+No player data, storage, accounts, secrets, logs, backups, or generated universe data included.

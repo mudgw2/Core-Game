@@ -1,0 +1,6 @@
+CORE 0.1.177
+- Permanently removed the wireframe ground grid from Constellation View.
+- Added data-driven moon bodies and parent-relative moon orbital paths to System View.
+- Corrected planetary moon diagnostic orbit initialization so the initial and updated tube paths use the same 65-point topology.
+- Automated checks cover grid removal, System View moon rendering/update wiring, and matching planetary orbit path topology.
+- Browser visual verification is still required for moon visibility and presentation.

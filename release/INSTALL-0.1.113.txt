@@ -1,0 +1,25 @@
+CORE 0.1.113 INSTALLATION
+
+1. Back up the current CORE source (not player storage) before applying.
+2. Extract this patch into the existing CORE application root, preserving paths.
+3. Keep the existing CORE_MULTIPLAYER_HMAC_SECRET configured identically for PHP and Node. Do not paste it into chat or source control.
+4. Keep CORE_MULTIPLAYER_PUBLIC_URL configured in the PHP web-server environment. The TLS reverse proxy must continue forwarding the configured WebSocket path to http://127.0.0.1:2567 with WebSocket Upgrade/Connection headers.
+5. Run the checks below. Restart PHP workers and the multiplayer service after deploying the source.
+6. Sign in and enter a generated planetary test world. If multiplayer is configured, the HUD should report a shared-world connection. Otherwise it explicitly reports local-only movement.
+7. Open the same generated world in a second authenticated browser session. Confirm both sessions join the same room and that server-reported transforms are received. Different generated worlds must not share a room.
+8. Move using WASD/arrow keys; walk speed is 3.2 units/second and Shift runs at 6.0 units/second. Confirm server-authoritative position changes and that reconnecting resets the session-only position to the current test spawn.
+
+Node checks from multiplayer/:
+npm install
+npm run build
+npm test
+npm audit
+
+PHP checks from the CORE root:
+php tests/run.php
+php -l app/Application.php
+php -l player/world.php
+
+Browser QA: open /api/qa.php and confirm all checks pass.
+
+No saved player positions are written by this release. Remote humanoid avatar rendering/interpolation is deferred to 0.1.114.

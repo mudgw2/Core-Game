@@ -1,0 +1,27 @@
+CORE 0.1.127 QA RESULTS
+
+Source baseline: CORE 0.1.126 (user-accepted, 161 browser QA tests)
+Patch: Constellation/System navigation hierarchy and direct share-code endpoint
+
+Automated validation performed against the patched source:
+- CORE PHP suite: 121 passed, 0 failed
+- Multiplayer Node test suite: 20 passed, 0 failed
+- PHP syntax: 5 changed PHP files passed
+- JavaScript syntax: 3 files passed
+- Direct WorldGenerator sample: generated labels explicitly read World 01-1, World 01-2, etc.
+- ZIP integrity: verified
+
+Scope validated by source-level tests:
+- Constellation View terminology; no Universe View label.
+- Constellation selector/toolbar hidden during System View.
+- Shared left navigation switches between Systems and Worlds.
+- Generated World labels explicitly identify Worlds.
+- Share-code client uses the direct PHP entry point, which dispatches to the existing authenticated application route.
+- Existing hierarchy and multiplayer tests continue to pass.
+
+Not performed:
+- Browser visual testing.
+- Live Apache request verification on noxgeo.com.
+- Live share-code create/rotate request against the deployed server.
+
+The 161-test result belongs to the previously accepted 0.1.126 baseline; it is not being claimed as a new 0.1.127 browser-suite result.

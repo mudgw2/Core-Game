@@ -1,0 +1,21 @@
+CORE 0.1.145 — Avatar Visibility and Planetary HUD Correction
+
+Installation:
+1. Back up the existing CORE application files.
+2. Extract this ZIP into the CORE application root, preserving directory paths.
+3. Replace only the files included in this patch.
+4. Hard-refresh the browser (Ctrl+F5).
+
+This is a focused planetary presentation correction. It does not replace player data,
+accounts, characters, universes, generated geography, backups, logs, or secrets.
+
+Changes:
+- Corrected Babylon.js orientation matrix column ordering for the skinned avatar.
+- Added restrained avatar self-illumination for visibility in shadow.
+- Increased planetary ambient fill and raised the night-sky floor above near-black.
+- Removed the redundant TEST WORLD banner from the 3D viewport.
+- Removed the map title strip and grouped the map with its coordinate readout.
+- Anchored the compact map HUD inside the 3D viewport with no reserved panel height.
+
+Browser visual/runtime QA has not been performed by the developer; verify avatar visibility,
+night terrain readability, and map placement in the installed browser.

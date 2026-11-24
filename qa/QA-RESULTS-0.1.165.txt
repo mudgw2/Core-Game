@@ -1,0 +1,19 @@
+CORE 0.1.165 Assistant QA
+Date: 2026-11-20
+Source: user-supplied admin.zip (CORE 0.1.164)
+
+Changes verified:
+- Moon presentation tangent frame is rebuilt from the active camera direction on each environment update.
+- Camera direction is projected onto the local planetary tangent plane.
+- Moon orbital phase, period, inclination, radius, generated records, and simulation-clock inputs are unchanged.
+- CLI regression tests verify the current-camera frame and reject the former frozen this.moonSkyBasis implementation.
+
+Results:
+- PHP CLI tests: 156 passed, 0 failed.
+- JavaScript syntax (node --check player/astronomical-environment.js): PASS.
+- PHP syntax (api/qa.php, tests/run.php, config/version.php): PASS.
+- ZIP integrity: PASS (9 project-relative files; archive test returned no errors).
+- Browser runtime / visual QA: NOT PERFORMED.
+- User runtime verification: PENDING.
+
+The runtime diagnostic that motivated this patch showed the camera looking almost directly along negative Z while the moon was almost directly along positive Z. This patch corrects the stale camera-relative presentation frame. It does not prove the moon is now visible; that requires testing in the installed browser.

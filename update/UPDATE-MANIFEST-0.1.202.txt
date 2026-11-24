@@ -1,0 +1,12 @@
+CORE 0.1.202 — Updated files
+
+config/version.php
+player/planetary-environment.js
+player/world.js
+tests/run.php
+release/RELEASE-NOTES-0.1.202.md
+qa/QA-RESULTS-0.1.202.txt
+
+Install by extracting this archive into the existing CORE application root and allowing these files to overwrite their matching paths. Back up the current source first. Do not replace storage/, player data, .git/, secrets, or existing universe/world records.
+
+Version: 0.1.202

@@ -1,0 +1,16 @@
+CORE 0.1.143 QA RESULTS
+
+Scope: Planetary movement orientation, coordinate-frame consistency, night-time readability, and map HUD cleanup.
+
+Automated checks against this exact release source:
+- PHP test suite: 137 passed, 0 failed.
+- PHP syntax: player/world.php passed.
+- PHP syntax: tests/run.php passed.
+- PHP syntax: config/version.php passed.
+- JavaScript syntax: player/world.js passed.
+- JavaScript syntax: player/planetary-environment.js passed.
+- JavaScript syntax: player/astronomical-environment.js passed.
+
+Browser QA:
+- Not performed in this build environment.
+- Required user verification: W/A/S/D and arrow keys move forward/back/left/right; character visibly turns to face movement; character remains upright relative to local terrain; night terrain is visible; map legend is absent; Current Location is directly beneath the map.

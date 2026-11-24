@@ -1,0 +1,58 @@
+<?php
+declare(strict_types=1);
+
+namespace Core\Http;
+
+final class Request
+{
+    public function __construct(
+        private string $method,
+        private string $path,
+        private array $queryParams = [],
+        private array $headers = [],
+        private string $body = ''
+    ) {}
+
+    public static function fromGlobals(): self
+    {
+        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+        $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+
+        // Remove the deployment directory when requests reach the front controller.
+        // SCRIPT_NAME identifies the public front controller's actual URL location.
+        $scriptName = str_replace('\\\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $frontControllerSuffix = '/public/index.php';
+
+        if (str_ends_with($scriptName, $frontControllerSuffix)) {
+            $basePath = substr($scriptName, 0, -strlen($frontControllerSuffix));
+            if ($basePath !== '' && ($path === $basePath || str_starts_with($path, $basePath . '/'))) {
+                $path = substr($path, strlen($basePath)) ?: '/';
+            }
+        }
+
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        if (!is_array($headers)) $headers = [];
+        if (isset($_SERVER['HTTP_X_CORE_CSRF']) && !isset($headers['X-CORE-CSRF'])) $headers['X-CORE-CSRF'] = (string)$_SERVER['HTTP_X_CORE_CSRF'];
+
+        return new self($method, rtrim($path, '/') ?: '/', $_GET, $headers, (string)file_get_contents('php://input'));
+    }
+
+    public function method(): string { return $this->method; }
+    public function path(): string { return $this->path; }
+    public function query(string $key, mixed $default = null): mixed { return $this->queryParams[$key] ?? $default; }
+    public function header(string $key): ?string
+    {
+        foreach ($this->headers as $name => $value) {
+            if (strcasecmp((string)$name, $key) === 0) return is_string($value) ? $value : null;
+        }
+        return null;
+    }
+
+    public function jsonBody(): array
+    {
+        if (trim($this->body) === '') return [];
+        $decoded = json_decode($this->body, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+}

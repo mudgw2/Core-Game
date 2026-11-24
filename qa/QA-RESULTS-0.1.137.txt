@@ -1,0 +1,10 @@
+CORE 0.1.137 QA RESULTS
+
+- PHP automated test suite: 129 passed, 0 failed.
+- Project PHP syntax gate: PASS (included in automated suite).
+- JavaScript syntax: PASS (`node --check player/world.js`).
+- JavaScript syntax: PASS (`node --check player/planetary-environment.js`).
+- Browser visual/interactive testing: NOT PERFORMED.
+- User installation QA: PENDING.
+
+Scope: persistent planetary geography loading and initial Babylon.js terrain integration.

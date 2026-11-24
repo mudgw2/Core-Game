@@ -1,0 +1,819 @@
+{
+  "ok": true,
+  "application": "CORE",
+  "version": "0.1.139",
+  "passed": 162,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Same seed produces identical baseline",
+      "status": "PASS",
+      "details": "Repeated generation matched exactly."
+    },
+    {
+      "name": "Seed whitespace is normalized",
+      "status": "PASS",
+      "details": "Trimmed and untrimmed seeds matched."
+    },
+    {
+      "name": "Different seeds produce different universe IDs",
+      "status": "PASS",
+      "details": "Distinct seeds produced distinct IDs."
+    },
+    {
+      "name": "Generated system structure and coordinates are valid",
+      "status": "PASS",
+      "details": "20 systems checked."
+    },
+    {
+      "name": "World profiles are deterministic, uniquely identified, and UWP-shaped",
+      "status": "PASS",
+      "details": "7 stable world profiles generated with unique IDs and valid UWP values."
+    },
+    {
+      "name": "Gameplay derives worlds at runtime without changing saved universe data",
+      "status": "PASS",
+      "details": "World profiles are derived for the player view and rendered without a storage migration."
+    },
+    {
+      "name": "Constellation navigation opens at the character Constellation and restores its parent after System View",
+      "status": "PASS",
+      "details": "Play opens the character Constellation; the System list is scoped to that Constellation; Back restores its Constellation View and Worlds remain in System View."
+    },
+    {
+      "name": "Create and reload preserve identity and baseline",
+      "status": "PASS",
+      "details": "Saved and reloaded in a temporary directory."
+    },
+    {
+      "name": "Unsafe storage paths are rejected",
+      "status": "PASS",
+      "details": "Traversal-like collection name rejected."
+    },
+    {
+      "name": "JSON writes are complete and readable after replacement",
+      "status": "PASS",
+      "details": "Large record and replacement both round-tripped exactly."
+    },
+    {
+      "name": "Writes use a per-record lock and leave no temporary files",
+      "status": "PASS",
+      "details": "Record lock exists and successful writes leave no temporary files."
+    },
+    {
+      "name": "Concurrent-style create attempts preserve the first stored record",
+      "status": "PASS",
+      "details": "Duplicate create returned the original record without overwriting it."
+    },
+    {
+      "name": "Universe state updates enforce revision checks",
+      "status": "PASS",
+      "details": "Current revision committed; stale revision rejected without changing saved state."
+    },
+    {
+      "name": "Universe state changes require a type",
+      "status": "PASS",
+      "details": "Missing change type rejected without modifying the universe."
+    },
+    {
+      "name": "Oversized universe state changes are rejected",
+      "status": "PASS",
+      "details": "Changes larger than 16 KB rejected without modifying the universe."
+    },
+    {
+      "name": "State changes are stored as versioned event records",
+      "status": "PASS",
+      "details": "Stored event has schema version, unique ID, type, payload, revision, and timestamp."
+    },
+    {
+      "name": "Invalid event type formats are rejected without mutation",
+      "status": "PASS",
+      "details": "Invalid event type rejected without changing saved state."
+    },
+    {
+      "name": "Corrupt JSON is rejected instead of silently accepted",
+      "status": "PASS",
+      "details": "Malformed JSON raises an explicit storage error."
+    },
+    {
+      "name": "note_added events update the notes projection",
+      "status": "PASS",
+      "details": "note_added created a derived note and recorded successful processing."
+    },
+    {
+      "name": "Invalid note_added payload aborts the transaction",
+      "status": "PASS",
+      "details": "Invalid note payload rejected with no committed state changes."
+    },
+    {
+      "name": "Unknown event types are recorded as unhandled",
+      "status": "PASS",
+      "details": "Valid future event preserved in history and explicitly marked unhandled."
+    },
+    {
+      "name": "system_explored events add a validated system to the exploration projection",
+      "status": "PASS",
+      "details": "A valid generated system was added to explored_systems with baseline details."
+    },
+    {
+      "name": "system_explored rejects system IDs outside the universe without mutation",
+      "status": "PASS",
+      "details": "Foreign system ID rejected and transaction left the universe unchanged."
+    },
+    {
+      "name": "re-exploring a system does not duplicate its exploration projection",
+      "status": "PASS",
+      "details": "Repeated exploration remains in history but does not duplicate the explored-system projection."
+    },
+    {
+      "name": "Character creation links a valid character to its universe",
+      "status": "PASS",
+      "details": "Character record contains a unique ID and valid universe link."
+    },
+    {
+      "name": "Character point-buy enforces its budget and applies species ability modifiers",
+      "status": "PASS",
+      "details": "Ten-point allocation, human flexible bonus, Android fixed adjustments, and over-budget rejection verified."
+    },
+    {
+      "name": "Character creation page exposes live point-buy and species adjustment controls",
+      "status": "PASS",
+      "details": "Character creation exposes point budget, final-score previews, and the flexible human ability choice."
+    },
+    {
+      "name": "Owned unassigned characters can be safely assigned once to a universe",
+      "status": "PASS",
+      "details": "Account ownership is checked, initial location and revision are committed once, and repeat assignment preserves the character record."
+    },
+    {
+      "name": "Character records persist and list only within their universe",
+      "status": "PASS",
+      "details": "Character persists and universe-scoped listing excludes other universes."
+    },
+    {
+      "name": "Character creation rejects a nonexistent universe",
+      "status": "PASS",
+      "details": "Unknown universe rejected without creating a character record."
+    },
+    {
+      "name": "Character name and role validation rejects invalid records",
+      "status": "PASS",
+      "details": "Too-short names and oversized roles are rejected without persistence."
+    },
+    {
+      "name": "Character listing rejects an unknown universe",
+      "status": "PASS",
+      "details": "Character listing requires an existing universe."
+    },
+    {
+      "name": "New characters start in the universe first system",
+      "status": "PASS",
+      "details": "Character starts in the first generated system with a location timestamp."
+    },
+    {
+      "name": "Character can move to another system in its universe",
+      "status": "PASS",
+      "details": "Location persisted and character revision advanced from 0 to 1."
+    },
+    {
+      "name": "Character cannot move to a system from another universe",
+      "status": "PASS",
+      "details": "Cross-universe destination rejected without modifying the character."
+    },
+    {
+      "name": "Character movement rejects stale revisions",
+      "status": "PASS",
+      "details": "Stale character movement rejected without overwriting the newer location."
+    },
+    {
+      "name": "Repeating a move to the current system is idempotent",
+      "status": "PASS",
+      "details": "Repeated same-destination move returns already_at_destination and leaves revision unchanged."
+    },
+    {
+      "name": "Character creation records its starting system as explored",
+      "status": "PASS",
+      "details": "Starting system appears once in character-specific exploration history."
+    },
+    {
+      "name": "Moving to a new system adds it to character exploration history",
+      "status": "PASS",
+      "details": "Moving to a new system records its ID, name, timestamp, and first-visit revision."
+    },
+    {
+      "name": "Returning to an explored system does not duplicate exploration history",
+      "status": "PASS",
+      "details": "Returning to a known system changes location but keeps one stable first-visit record per system."
+    },
+    {
+      "name": "Navigation graph connects every generated system",
+      "status": "PASS",
+      "details": "12 systems connected by 11 deterministic routes."
+    },
+    {
+      "name": "Navigation graph generation is deterministic",
+      "status": "PASS",
+      "details": "Repeated graph generation matched exactly."
+    },
+    {
+      "name": "Character can move to a directly connected system only",
+      "status": "PASS",
+      "details": "Connected neighbor accepted and revision advanced."
+    },
+    {
+      "name": "Character cannot jump across a route without a direct connection",
+      "status": "PASS",
+      "details": "Unconnected destination rejected without changing character state."
+    },
+    {
+      "name": "Shortest route includes both endpoints and valid connected hops",
+      "status": "PASS",
+      "details": "5 connected hop(s) returned from start to destination."
+    },
+    {
+      "name": "Route service plans between two valid saved systems",
+      "status": "PASS",
+      "details": "Shared route-planning service returned a valid multi-system route between two saved, valid system IDs."
+    },
+    {
+      "name": "Route planning from a system to itself returns zero hops",
+      "status": "PASS",
+      "details": "Same-system route contains one endpoint and zero hops."
+    },
+    {
+      "name": "Route planner rejects system IDs outside the graph",
+      "status": "PASS",
+      "details": "Unknown destination rejected by route planner."
+    },
+    {
+      "name": "Starting travel stores a route without moving the character",
+      "status": "PASS",
+      "details": "8 hop route saved; character remained at the starting system."
+    },
+    {
+      "name": "Travel next jump advances exactly one hop and records exploration",
+      "status": "PASS",
+      "details": "Exactly one jump executed; revision and exploration history updated."
+    },
+    {
+      "name": "Travel completes at the planned destination and cannot advance again",
+      "status": "PASS",
+      "details": "10 jump(s) completed; completed route cannot be replayed."
+    },
+    {
+      "name": "Travel rejects stale revisions without moving the character",
+      "status": "PASS",
+      "details": "Stale jump rejected without changing location or revision."
+    },
+    {
+      "name": "Travel rejects a route after manual movement changes the route origin",
+      "status": "PASS",
+      "details": "Manual movement cancels the previous route and it cannot be resumed."
+    },
+    {
+      "name": "System scan persists deterministic discoveries and increments revision once",
+      "status": "PASS",
+      "details": "1 deterministic discovery signal(s) persisted on the character record."
+    },
+    {
+      "name": "Repeated scan is idempotent and returns saved results",
+      "status": "PASS",
+      "details": "Repeated scan returned identical saved discoveries without advancing revision."
+    },
+    {
+      "name": "System scanning rejects stale revisions and characters from other universes",
+      "status": "PASS",
+      "details": "Stale revision and cross-universe scans rejected without persistence changes."
+    },
+    {
+      "name": "Discovery investigation persists a result and increments character revision",
+      "status": "PASS",
+      "details": "Investigation status, timestamp, outcome, and revision were persisted."
+    },
+    {
+      "name": "Repeated discovery investigation is idempotent",
+      "status": "PASS",
+      "details": "Repeat investigation returned the saved outcome without changing revision."
+    },
+    {
+      "name": "Discovery investigation requires the character to be in the discovery system",
+      "status": "PASS",
+      "details": "Remote investigation rejected without changing the saved character."
+    },
+    {
+      "name": "Discovery investigation rejects stale revisions and cross-universe characters",
+      "status": "PASS",
+      "details": "Stale and cross-universe requests rejected without discovery-state changes."
+    },
+    {
+      "name": "Investigating a signal awards and persists a typed inventory reward",
+      "status": "PASS",
+      "details": "A mineral investigation awards 2–5 raw ore and persists its total and linked ledger entry."
+    },
+    {
+      "name": "Repeating an investigation never duplicates inventory rewards",
+      "status": "PASS",
+      "details": "Repeated investigation returns the original reward without increasing inventory, ledger count, or revision."
+    },
+    {
+      "name": "Different discovery types award their corresponding resource categories",
+      "status": "PASS",
+      "details": "Derelict signals award salvage parts and unusual asteroids award rare ore; both are accumulated separately."
+    },
+    {
+      "name": "Crafting consumes materials, creates output, and increments revision",
+      "status": "PASS",
+      "details": "Two batches consumed six raw ore, produced two refined alloy, and persisted matching input/output ledger entries."
+    },
+    {
+      "name": "Crafting rejects insufficient materials without changing inventory",
+      "status": "PASS",
+      "details": "Insufficient input rejected atomically; inventory, ledger, and revision remained unchanged."
+    },
+    {
+      "name": "Crafting rejects stale revisions and invalid quantities",
+      "status": "PASS",
+      "details": "Stale revision and out-of-range batch quantity were rejected without changing saved state."
+    },
+    {
+      "name": "Workbench exposes crafting recipes, quantity controls, and result handling",
+      "status": "PASS",
+      "details": "Workbench contains recipe selection, bounded batch input, crafting action, status, and saved result refresh wiring."
+    },
+    {
+      "name": "Workbench displays character inventory totals and investigation reward details",
+      "status": "PASS",
+      "details": "Inventory totals, ledger event count, and per-discovery reward feedback are wired into the UI."
+    },
+    {
+      "name": "Workbench exposes investigation actions and result rendering",
+      "status": "PASS",
+      "details": "Saved signals expose investigation controls and display persistent investigation outcomes."
+    },
+    {
+      "name": "Workbench exposes accessible system-scan controls and saved discovery rendering",
+      "status": "PASS",
+      "details": "Scan action, status region, result rendering, and repeat-scan feedback are wired into the Workbench."
+    },
+    {
+      "name": "Character dashboard exposes status, travel, and distinct exploration summaries",
+      "status": "PASS",
+      "details": "Dashboard status fields and character-selection refresh hooks are present."
+    },
+    {
+      "name": "Dashboard source data changes after movement, travel completion, and global exploration",
+      "status": "PASS",
+      "details": "Character visit history, completed travel progress, and universe-wide exploration projection all update in persisted source data."
+    },
+    {
+      "name": "Travel next-jump control remains actionable and reports request failures",
+      "status": "PASS",
+      "details": "Next-jump control has a click handler, actionable state, and visible error feedback."
+    },
+    {
+      "name": "Global menu exposes all major Workbench areas with accessible tab relationships",
+      "status": "PASS",
+      "details": "Five major work areas have explicit tab/panel relationships and accessible labels."
+    },
+    {
+      "name": "Global menu supports click, arrow-key, Home, and End navigation",
+      "status": "PASS",
+      "details": "Tabs switch panels, update selected/focus state, and support standard keyboard navigation."
+    },
+    {
+      "name": "Overview dashboard is wired to current universe, character, location, and travel status",
+      "status": "PASS",
+      "details": "Overview tiles are updated alongside the existing character/travel dashboard and a default tab is initialized."
+    },
+    {
+      "name": "Ship fitting consumes materials, installs a module, and increments revision",
+      "status": "PASS",
+      "details": "Module, material consumption, ledger entries, revision, and persisted character agree."
+    },
+    {
+      "name": "Ship fitting rejects occupied slots without changing inventory",
+      "status": "PASS",
+      "details": "An occupied slot is rejected without further material consumption or revision changes."
+    },
+    {
+      "name": "Ship fitting rejects insufficient materials and stale revisions",
+      "status": "PASS",
+      "details": "Insufficient materials and stale revisions leave ship and inventory unchanged."
+    },
+    {
+      "name": "Workbench exposes ship fitting controls and persisted module slots",
+      "status": "PASS",
+      "details": "Workbench exposes module selection, installation action, status feedback, and all three fitting slots."
+    },
+    {
+      "name": "Permanent character deletion is rejected and preserves the complete character record",
+      "status": "PASS",
+      "details": "Permanent deletion is explicitly blocked; full character progress and universe remain unchanged."
+    },
+    {
+      "name": "Character deletion policy is consistent for missing, stale, and cross-universe requests",
+      "status": "PASS",
+      "details": "All permanent deletion requests are consistently blocked without changing existing records."
+    },
+    {
+      "name": "Workbench exposes retention-safe character lifecycle instead of permanent deletion",
+      "status": "PASS",
+      "details": "Workbench provides reversible lifecycle controls and clearly communicates the permanent-retention policy."
+    },
+    {
+      "name": "Character lifecycle disable/enable is reversible and preserves all progress",
+      "status": "PASS",
+      "details": "Disable and enable are reversible, revision checked, and preserve inventory/ledger."
+    },
+    {
+      "name": "Locked or disabled characters cannot perform gameplay mutations",
+      "status": "PASS",
+      "details": "Disabled and locked characters are blocked server-side; rejected scans do not mutate state."
+    },
+    {
+      "name": "Lifecycle changes are idempotent and reject stale revisions or invalid actions",
+      "status": "PASS",
+      "details": "No-op actions preserve revision; stale revisions and invalid actions are rejected safely."
+    },
+    {
+      "name": "Workbench exposes reversible lifecycle controls and API wiring",
+      "status": "PASS",
+      "details": "Workbench includes disable/enable and lock/unlock controls with lifecycle API request wiring."
+    },
+    {
+      "name": "Universe lifecycle disable/enable and lock/unlock are reversible and preserve saved universe state",
+      "status": "PASS",
+      "details": "Universe disable/enable and lock/unlock preserve generated baseline and event state."
+    },
+    {
+      "name": "Disabled or locked universes reject gameplay mutations server-side",
+      "status": "PASS",
+      "details": "Character creation, scans, and universe-state writes are blocked when universe is disabled or locked."
+    },
+    {
+      "name": "Universe lifecycle actions are idempotent and reject stale revisions or invalid actions",
+      "status": "PASS",
+      "details": "No-op actions preserve revision; stale revisions and invalid actions are rejected without mutation."
+    },
+    {
+      "name": "Workbench exposes universe lifecycle controls and API request wiring",
+      "status": "PASS",
+      "details": "Universe lifecycle controls, status display, and API wiring are present."
+    },
+    {
+      "name": "Data management inventory summarizes saved universes and characters without changing records",
+      "status": "PASS",
+      "details": "Inventory counts and identities matched; saved records remained unchanged."
+    },
+    {
+      "name": "Character deletion preview counts embedded gameplay data and remains read-only",
+      "status": "PASS",
+      "details": "Impact counts are correct and preview leaves the character unchanged."
+    },
+    {
+      "name": "Universe deletion preview is executable only with fresh revisions and reports dependent characters",
+      "status": "PASS",
+      "details": "Universe impact, expected revisions, and dependent IDs are shown; preview remains read-only."
+    },
+    {
+      "name": "Data management rejects unknown records and invalid scopes",
+      "status": "PASS",
+      "details": "Missing records and unsupported scopes are rejected."
+    },
+    {
+      "name": "Workbench exposes data inventory, cleanup previews, and guarded character removal",
+      "status": "PASS",
+      "details": "Inventory and read-only impact previews are present; permanent character removal is retired under the retention policy."
+    },
+    {
+      "name": "Universe backup snapshots include associated characters and checksum",
+      "status": "PASS",
+      "details": "Universe and one associated character backed up with SHA-256 checksum."
+    },
+    {
+      "name": "Universe backup restore recovers deleted records and verifies them",
+      "status": "PASS",
+      "details": "Deleted universe and character records restored exactly from snapshot."
+    },
+    {
+      "name": "Universe backup restore refuses conflicting live records",
+      "status": "PASS",
+      "details": "Restore refused conflicting record without overwriting it."
+    },
+    {
+      "name": "Backup UI and API wiring are present",
+      "status": "PASS",
+      "details": "Backup, list, and guarded restore controls are wired to server routes."
+    },
+    {
+      "name": "Universe deletion is blocked while permanent character records are associated",
+      "status": "PASS",
+      "details": "Universe removal is blocked before backup when associated permanent characters exist; all records remain unchanged."
+    },
+    {
+      "name": "Universe deletion rejects incorrect confirmation before creating a backup",
+      "status": "PASS",
+      "details": "Incorrect confirmation rejected before backup or mutation."
+    },
+    {
+      "name": "Universe deletion validates stale revisions and refuses dependent-character removal",
+      "status": "PASS",
+      "details": "Stale revisions are rejected when no dependents exist; dependent permanent characters block universe deletion without mutation."
+    },
+    {
+      "name": "Atomic universe deletion stages the universe and dependents as one verified set",
+      "status": "PASS",
+      "details": "Universe and both dependents were removed as one verified staged transaction; lock files were retained."
+    },
+    {
+      "name": "Atomic universe deletion aborts before moving records when the final guard rejects",
+      "status": "PASS",
+      "details": "Final guard rejection left both live records byte-equivalent at the decoded-record level and removed empty staging."
+    },
+    {
+      "name": "Character creation and universe deletion share the universe lock",
+      "status": "PASS",
+      "details": "Character creation serializes on the universe lock; deletion acquires universe then sorted character locks and rechecks the dependent set before staging. Storage records, backups, logs, and recovery transactions are denied direct HTTP access."
+    },
+    {
+      "name": "Universe deletion API and confirmation UI are wired",
+      "status": "PASS",
+      "details": "Universe deletion has explicit UI confirmation, guarded development-only API route, and service wiring."
+    },
+    {
+      "name": "Universe deletion selection is searchable and displays the exact ID phrase",
+      "status": "PASS",
+      "details": "Universe selector/search and visible, manually selectable exact confirmation phrase are present; unreliable copy button is absent."
+    },
+    {
+      "name": "Incorrect universe deletion confirmation gives visible live feedback",
+      "status": "PASS",
+      "details": "Mismatched confirmation and API failures are shown in a high-contrast live status; unsafe action remains disabled."
+    },
+    {
+      "name": "Universe deletion UI reports progress, failure, and requires a fresh preview after errors",
+      "status": "PASS",
+      "details": "Destructive operation has start/progress messages, actionable failure details, activity logging, and stale-preview invalidation."
+    },
+    {
+      "name": "Focused logging and deletion permission preflight are implemented",
+      "status": "PASS",
+      "details": "Central and focused logs are retained; deletion verifies that each existing lock can be opened and exclusively locked before creating a backup. Readable read-only lock files are supported without unlinking or changing their permissions."
+    },
+    {
+      "name": "Game item, recipe, discovery, and ship-module definitions are external JSON catalogs",
+      "status": "PASS",
+      "details": "All current gameplay definitions load from config/content JSON files."
+    },
+    {
+      "name": "Content API wrappers expose the editable JSON catalogs",
+      "status": "PASS",
+      "details": "Aggregate and individual read-only content API wrappers are present."
+    },
+    {
+      "name": "Complete character-record API is available for saved player state",
+      "status": "PASS",
+      "details": "A character can be read as one JSON API record including inventory, scans, exploration, ledger, and ship state."
+    },
+    {
+      "name": "Content manager validates references across all JSON catalogs",
+      "status": "PASS",
+      "details": "Invalid cross-catalog item reference rejected before save."
+    },
+    {
+      "name": "Content manager saves atomically and keeps verified previous version",
+      "status": "PASS",
+      "details": "Catalog revision incremented and prior JSON was backed up and verified."
+    },
+    {
+      "name": "Content manager rejects stale revision without overwriting newer edit",
+      "status": "PASS",
+      "details": "Stale revision rejected and current catalog preserved."
+    },
+    {
+      "name": "Item categories are a JSON-defined dropdown and arbitrary categories are rejected",
+      "status": "PASS",
+      "details": "Item category labels load from JSON; item forms use a required dropdown; every configured item category is allow-listed."
+    },
+    {
+      "name": "Required text characteristic validation rejects blank and whitespace-only values",
+      "status": "PASS",
+      "details": "Required text rejects empty and whitespace-only values during server-side catalog validation using an isolated in-memory schema."
+    },
+    {
+      "name": "Structured characteristic editor applies defaults and enforces required and length constraints",
+      "status": "PASS",
+      "details": "Default values, required fields, and text-length constraints are represented in the structured editor."
+    },
+    {
+      "name": "Item characteristic values persist through revision-checked save and reload",
+      "status": "PASS",
+      "details": "A typed characteristic survived an item-catalog save/reload, revision increment, and previous-version backup."
+    },
+    {
+      "name": "Item characteristic schema is JSON-defined and available through the content API",
+      "status": "PASS",
+      "details": "Category-specific characteristic definitions are loaded from JSON and exposed through the aggregate and dedicated API."
+    },
+    {
+      "name": "Item characteristic validation rejects unknown enum values and fields",
+      "status": "PASS",
+      "details": "Invalid characteristic choices and undefined fields are rejected before save."
+    },
+    {
+      "name": "Content Studio renders typed item characteristic fields from JSON schema",
+      "status": "PASS",
+      "details": "Item editor renders schema-driven fields and carries their typed values into the draft."
+    },
+    {
+      "name": "Characteristic schema manager exposes form controls and mutation endpoints",
+      "status": "PASS",
+      "details": "Form controls support category-specific field definitions and dedicated validation/save endpoints."
+    },
+    {
+      "name": "Characteristic schema manager validates existing item values before save",
+      "status": "PASS",
+      "details": "Existing item values are checked against proposed definitions and incompatible schema changes are rejected."
+    },
+    {
+      "name": "Characteristic schema changes use revision checks, atomic saves, and verified backups",
+      "status": "PASS",
+      "details": "Schema service uses revision checks, file locking, verified backups, atomic replacement, and logs."
+    },
+    {
+      "name": "Workbench exposes structured content management and revision-checked APIs",
+      "status": "PASS",
+      "details": "Workbench editor controls, API wrappers, and four JSON catalogs are present."
+    },
+    {
+      "name": "Module registry executes a demonstration module through the shared context",
+      "status": "PASS",
+      "details": "Demo module booted and its injected service executed."
+    },
+    {
+      "name": "Player workflows boot and reuse the standard application module services",
+      "status": "PASS",
+      "details": "Player character creation and universe assignment use the shared runtime, universe, and character module services."
+    },
+    {
+      "name": "Module registry rejects duplicate module identifiers",
+      "status": "PASS",
+      "details": "Duplicate module name rejected."
+    },
+    {
+      "name": "Module registry rejects missing dependencies",
+      "status": "PASS",
+      "details": "Missing dependency rejected before boot."
+    },
+    {
+      "name": "Module registry resolves dependency order independent of registration order",
+      "status": "PASS",
+      "details": "Dependencies boot before dependents even when registered in reverse order."
+    },
+    {
+      "name": "Module registry detects dependency cycles",
+      "status": "PASS",
+      "details": "Circular module dependencies rejected."
+    },
+    {
+      "name": "Service container rejects duplicate and missing service IDs",
+      "status": "PASS",
+      "details": "Duplicate and missing service IDs fail explicitly."
+    },
+    {
+      "name": "Player website, account access, and interactive map controls are present",
+      "status": "PASS",
+      "details": "Public site, account forms, portal gate, system details, and travel controls are present."
+    },
+    {
+      "name": "Player prototype is separate from the developer Workbench",
+      "status": "PASS",
+      "details": "Public landing page contains global game navigation, account access, and standard website content."
+    },
+    {
+      "name": "Player-facing terminology and account security notices match current behavior",
+      "status": "PASS",
+      "details": "Player-facing wording is consistent, the account security notice reflects implemented controls, and character creation remains a separate workflow."
+    },
+    {
+      "name": "Player prototype uses Babylon.js and backend entity IDs",
+      "status": "PASS",
+      "details": "Babylon.js renders primitive system markers mapped to stable backend IDs; gameplay receives the assigned universe and selected character from the authenticated portal and uses navigation/travel APIs."
+    },
+    {
+      "name": "Release version comes from one central version file",
+      "status": "PASS",
+      "details": "Workbench, health API metadata, and player portal read the single config/version.php source."
+    },
+    {
+      "name": "Player gameplay APIs enforce account ownership and CSRF protection",
+      "status": "PASS",
+      "details": "Unauthenticated and cross-account reads are denied; mutating requests require a valid session CSRF token."
+    },
+    {
+      "name": "Account archival preserves account identity and is idempotent",
+      "status": "PASS",
+      "details": "Account record and credential remain intact, sign-in is disabled, and repeated archival is idempotent."
+    },
+    {
+      "name": "Account administration exposes archive rather than permanent deletion",
+      "status": "PASS",
+      "details": "The administration UI archives accounts and preserves ownership references."
+    },
+    {
+      "name": "Gameplay client sends session CSRF token with write requests",
+      "status": "PASS",
+      "details": "Gameplay write requests include the session token in X-CORE-CSRF."
+    },
+    {
+      "name": "Player character collection is account-scoped outside the trusted Workbench",
+      "status": "PASS",
+      "details": "Character collection responses are filtered to the signed-in account; universe navigation and lifecycle operations require an owned character."
+    },
+    {
+      "name": "Character preview wraps and rotates the complete imported GLB rig toward the camera",
+      "status": "PASS",
+      "details": "Both preview modes rotate all imported GLB roots as one rig."
+    },
+    {
+      "name": "System overview orbit tubes and planets share one local inclined plane",
+      "status": "PASS",
+      "details": "The orbit tube and animated planet use the shared coplanar orbital layout."
+    },
+    {
+      "name": "Character selection location preview aligns every planet with its inclined orbit",
+      "status": "PASS",
+      "details": "Location preview uses the same shared coplanar orbital layout as the system view."
+    },
+    {
+      "name": "Character roster portrait selects the exact Walk animation",
+      "status": "PASS",
+      "details": "The roster portrait selects Walk by exact clip name."
+    },
+    {
+      "name": "Character selection and system view load the shared orbital mechanics helper",
+      "status": "PASS",
+      "details": "Both interfaces load the same shared orbital calculations."
+    },
+    {
+      "name": "Character creation persists and validates the selected appearance tint",
+      "status": "PASS",
+      "details": "Valid six-digit hex tints persist for both unassigned and universe-assigned character records."
+    },
+    {
+      "name": "Blank test world validates character, universe, current system, and generated world",
+      "status": "PASS",
+      "details": "The test world is seeded from a verified generated world, renders the spherical planetary terrain, and supports third-person WASD movement."
+    },
+    {
+      "name": "Planetary character orientation uses supported Babylon.js quaternion APIs",
+      "status": "PASS",
+      "details": "Player and remote avatars align their local up axis to the planetary surface normal using supported Babylon.js quaternion operations."
+    },
+    {
+      "name": "Selected character tint is rendered consistently in roster and test world",
+      "status": "PASS",
+      "details": "The saved character tint is carried into both selection preview and spawned character rendering."
+    },
+    {
+      "name": "Borderless interface contract removes component border declarations across all shared stylesheets",
+      "status": "PASS",
+      "details": "All shared UI stylesheets are free of component border declarations; one central contract handles browser defaults."
+    },
+    {
+      "name": "Every CORE HTML surface loads the cache-busted borderless stylesheet last",
+      "status": "PASS",
+      "details": "All nine HTML surfaces load the versioned borderless stylesheet after their other CSS."
+    },
+    {
+      "name": "Standalone account administration uses external CSS and preserves keyboard focus indicators",
+      "status": "PASS",
+      "details": "Standalone account styling is external and keyboard focus remains visible."
+    },
+    {
+      "name": "Colyseus 0.16 foundation preserves CORE identity and server-authoritative movement boundaries",
+      "status": "PASS",
+      "details": "The multiplayer contracts remain intact; the Colyseus room service is active while production joins remain blocked pending PHP grants."
+    },
+    {
+      "name": "Colyseus 0.16 server exposes protected universe room lifecycle and health checks",
+      "status": "PASS",
+      "details": "The Colyseus process, system-level room matching, protected local development join mode, transient presence, and health endpoint are defined."
+    },
+    {
+      "name": "Babylon gameplay exposes authenticated Colyseus presence connection controls",
+      "status": "PASS",
+      "details": "The Babylon gameplay page can request a short-lived PHP grant, join its authorized universe/system room, and leave or migrate the session safely."
+    },
+    {
+      "name": "Planetary test world connects to a location-bound authoritative movement room",
+      "status": "PASS",
+      "details": "The world client joins a PHP-authorized world room and uses server-simulated movement transforms."
+    },
+    {
+      "name": "CORE 0.1.115 shared universe visits preserve home universe and expose independent system/world seeds",
+      "status": "PASS",
+      "details": "Share-code visitation preserves permanent home identity and exposes independent procedural system/world seeds."
+    }
+  ]
+}

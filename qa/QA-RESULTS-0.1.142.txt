@@ -1,0 +1,11 @@
+CORE 0.1.142 — QA RESULTS
+
+Automated validation performed against the supplied 0.1.141 source archive:
+- php tests/run.php: 136 passed, 0 failed.
+- php -l player/world.php: passed.
+- php -l tests/run.php: passed.
+- php -l config/version.php: passed.
+- node --check player/world.js: passed.
+- Regression assertions cover same-key C/I close behavior, cross-panel switching, M toggle behavior, transparent/non-blocking map HUD styling, movement while map is visible, and map-center projection.
+
+Browser visual/runtime QA has not been performed in this environment. The user must verify actual browser interaction after installing this patch. Source-level tests do not substitute for browser testing.

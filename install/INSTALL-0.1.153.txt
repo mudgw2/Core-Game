@@ -1,0 +1,16 @@
+CORE 0.1.153 — Documentation and Development Continuity Update
+
+1. Back up the current CORE project before applying any patch.
+2. Extract this ZIP into the CORE project root, preserving the included relative paths.
+3. No storage migration is required. Do not replace or delete the existing storage directory.
+4. This update changes centralized version metadata, documentation, and the release-version assertions in tests only. It does not change gameplay behavior.
+
+Included project-relative files:
+- PROJECT_STATE.md
+- CORE-DESIGN-PRINCIPLES.md
+- CORE-ROADMAP.md
+- config/version.php
+- tests/run.php
+- release/RELEASE-NOTES-0.1.153.md
+- changelog/CHANGELOG-0.1.153.txt
+- qa/QA-RESULTS-0.1.153.txt

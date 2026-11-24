@@ -1,0 +1,21 @@
+CORE 0.1.118 QA
+===============
+
+PASS
+- PHP syntax checks for changed PHP files (version file and test runner).
+- Routing regression assertion updated to require /api/multiplayer/token as well
+  as the three shared-universe routes.
+- Source inspection confirms POST /api/multiplayer/token is registered in
+  app/Application.php and the client requests that route.
+
+Full CLI suite against the supplied source bundle: 111 passed, 3 failed.
+The three failures are pre-existing limitations of the supplied source bundle:
+its multiplayer/ service source directory is absent, causing two Colyseus
+foundation tests to fail, and its remote-avatar tint assertion fails. These
+are not changed by this routing-only patch. The user's 0.1.117 installation
+QA baseline was 160 tests passed.
+
+Live Apache routing has not been tested from this environment. After applying
+the patch, verify the POST endpoint in the browser; a JSON 401/403/503 response
+means routing reached the PHP app, while an Apache HTML 404 means the active
+VirtualHost/.htaccess rewrite is still not being applied.

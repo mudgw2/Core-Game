@@ -1,0 +1,9 @@
+CORE 0.1.168 QA RESULTS
+
+PHP automated suite: 157 passed, 0 failed.
+PHP syntax: PASS (covered by the automated suite).
+JavaScript syntax: PASS (node --check player/astronomical-environment.js).
+ZIP integrity: PASS (verified after packaging).
+Browser visual/runtime QA: NOT PERFORMED. User confirmation is required for visible moons above the planetary horizon.
+
+The automated checks verify the geometric-horizon calculation, self-lit moon material, dedicated rendering group, and diagnostics for scene membership, active-mesh selection, material readiness, and horizon clearance. They do not prove visible pixels in the running browser.

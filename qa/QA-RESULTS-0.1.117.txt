@@ -1,0 +1,17 @@
+CORE 0.1.117 local patch QA
+
+PASS: PHP syntax checks for changed PHP files.
+PASS: Node syntax check for player/shared-universe.js.
+PASS: Shared-universe route rewrite/client non-JSON regression test.
+PASS: Shared-universe automatic-switching service changes from 0.1.116 retained.
+PASS: 111 tests passed.
+
+3 tests remain failed in the supplied source snapshot:
+- Two Colyseus foundation tests cannot pass because the supplied source archive
+  does not contain the multiplayer/ directory (the tests attempt to read its
+  package and TypeScript files).
+- One pre-existing remote-avatar appearance-tint assertion fails in this
+  source snapshot.
+
+These failures are unrelated to the shared-universe API rewrite. No browser or
+live Apache test was possible in this environment.

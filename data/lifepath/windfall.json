@@ -1,0 +1,28 @@
+{
+    "windfall": [
+        {
+            "title": "Financial Boom",
+            "description": "You nearly double your worth"
+        },
+        {
+            "title": "Right Place, Right Time",
+            "description": "You managed to be at the right place and at the right time and someone owes you"
+        },
+        {
+            "title": "Local Renown",
+            "description": "Through your deeds you manage to make a name for yourself locally"
+        },
+        {
+            "title": "Long-Lost Kin",
+            "description": "You find a sibling you never knew you had"
+        },
+        {
+            "title": "New Companion",
+            "description": "You find yourself a pet"
+        },
+        {
+            "title": "Faraway Horizons",
+            "description": "The opportunity arises to travel to far distant lands for several months"
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+CORE 0.1.118 — Multiplayer Token API Routing Fix
+
+Install
+-------
+1. Back up the current CORE application files.
+2. Extract this ZIP into the CORE application root, preserving relative paths.
+3. Do not replace or modify storage, account, character, universe, or generated player data.
+4. Ensure Apache permits .htaccess overrides (AllowOverride FileInfo or All) for the CORE application directory. If routing is configured in the VirtualHost instead, add the equivalent rule shown below and keep existing rules intact.
+5. Reload the character-selection page and click Connect session.
+
+Routing change
+--------------
+The application router already defines POST /api/multiplayer/token, but the
+0.1.117 .htaccess rewrite covered only /api/universe/share, /visit, and /leave.
+This caused Apache to return its HTML 404 page before the request reached the
+PHP application router.
+
+The updated root .htaccess routes these paths to public/index.php:
+  /api/universe/share
+  /api/universe/visit
+  /api/universe/leave
+  /api/multiplayer/token
+
+Equivalent VirtualHost rule (adjust mount path if needed):
+  RewriteRule ^/core-game/api/(universe/(share|visit|leave)|multiplayer/token)/?$ /core-game/public/index.php [END,QSA]
+
+Keep legacy direct /api/*.php endpoints and the existing Matrix and
+/multiplayer WebSocket proxy rules unchanged.

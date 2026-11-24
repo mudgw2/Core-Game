@@ -1,0 +1,4 @@
+CORE 0.1.167 incremental patch
+
+Extract this ZIP over the existing CORE 0.1.166 installation, preserving folder paths and allowing changed files to be overwritten.
+Back up the installation first. This patch contains only changed/new files and does not include player data or storage.

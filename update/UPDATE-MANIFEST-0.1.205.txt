@@ -1,0 +1,15 @@
+CORE 0.1.205 — Updated files
+
+Extract into the existing CORE application root, preserving relative paths.
+
+Included files:
+- config/version.php
+- player/astronomical-environment.js
+- tests/run.php
+- changelog/CHANGELOG-0.1.205.txt
+- release/RELEASE-NOTES-0.1.205.md
+- qa/QA-RESULTS-0.1.205.txt
+- update/UPDATE-MANIFEST-0.1.205.txt
+
+No storage/, universe, character, account, geography, or terrain data is included.
+No database or world-data migration is required. Back up the application before installing.

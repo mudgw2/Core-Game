@@ -1,0 +1,13 @@
+CORE 0.1.144 — QA RESULTS
+
+Automated validation:
+- php tests/run.php: 138 passed, 0 failed.
+- node --check player/world.js: passed.
+- php -l config/version.php: passed.
+- php -l tests/run.php: passed.
+
+Regression coverage:
+- Confirms character orientation constructs its basis with BABYLON.Matrix.FromValues.
+- Confirms the unavailable BABYLON.Matrix.FromXYZAxes call is absent.
+
+Browser runtime QA: not performed. The reported startup error is addressed in source, but successful initialization must still be confirmed in the user's browser after installation.

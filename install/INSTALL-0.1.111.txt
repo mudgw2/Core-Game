@@ -1,0 +1,20 @@
+CORE 0.1.111 installation
+
+1. Back up the current application source (not player storage) before applying.
+2. Extract this patch into the existing CORE application root, preserving paths.
+3. Configure CORE_MULTIPLAYER_HMAC_SECRET in BOTH the PHP web-server environment and Node multiplayer service environment. Use the same random secret in both places; at least 32 characters. Generate with: openssl rand -hex 32
+4. Restart/reload PHP web service as required for environment changes.
+5. Restart the multiplayer service.
+6. Verify PHP application and Node service health.
+7. From an authenticated player session, POST JSON {"character_id":"<your-character-id>"} to /api/multiplayer/token with X-CORE-CSRF set to the page's session CSRF token. A successful response contains token and expires_at.
+8. Do not expose port 2567 publicly until TLS reverse-proxy and deployment security are configured.
+
+Node checks from multiplayer/:
+npm install
+npm run build
+npm test
+
+PHP check:
+php tests/run.php
+
+This release does not connect the Babylon.js client automatically. It provides the PHP grant issuance and Colyseus verification boundary.

@@ -1,0 +1,7 @@
+CORE 0.1.172 incremental update
+
+Extract the ZIP into the existing CORE application directory, preserving the folder paths and allowing the listed files to overwrite their existing versions.
+
+Then hard-refresh the Player Portal (Ctrl+F5) so the versioned player.js and CSS/JS assets are reloaded.
+
+This update changes the Constellation map renderer and centralized release version. It does not modify universe or character data.

@@ -1,0 +1,7 @@
+CORE 0.1.146
+- Changed A/D and left/right arrows from lateral strafing to character turning around the local planetary surface normal.
+- W/S and up/down now move along the character's persistent facing direction.
+- Character heading is transported across the spherical surface without being replaced by the movement vector.
+- Initial character heading is aligned to the camera's tangent forward direction.
+- Moved the transparent planetary map HUD to the upper-right, below the header, with a mobile adjustment.
+- Updated in-game movement and keybinding instructions.

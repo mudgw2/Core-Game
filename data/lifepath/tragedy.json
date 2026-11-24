@@ -1,0 +1,32 @@
+{
+    "tragedy": [
+        {
+            "title": "Total Loss",
+            "description": "You lost all your credits/possessions"
+        },
+        {
+            "title": "Dangerous Debt",
+            "description": "You made yourself indebted to someone or some group"
+        },
+        {
+            "title": "Stint Behind Bars",
+            "description": "You ended up imprisoned for several months"
+        },
+        {
+            "title": "Severe Injury",
+            "description": "You had a serious accident that left you incapacitated for several months"
+        },
+        {
+            "title": "Crippling Mishap",
+            "description": "You had a severe accident that left you incapacitated for several months"
+        },
+        {
+            "title": "Battle with Addiction",
+            "description": "You spent several months battling an addiction"
+        },
+        {
+            "title": "Loss of a Companion",
+            "description": "You lost a pet"
+        }
+    ]
+}

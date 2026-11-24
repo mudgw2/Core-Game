@@ -1,0 +1,100 @@
+{
+    "enlightenment": [
+        {
+            "title": "Physical Labor",
+            "description": "Heavy labor and little rest develop your muscles +1 STR"
+        },
+        {
+            "title": "Nimble Reflexes",
+            "description": "Running with a band of rogues or maybe at the circuit with the jugglers sharpen your reflexes +1 DEX"
+        },
+        {
+            "title": "Rugged Conditioning",
+            "description": "Training under a veteran or ex-mercenary, or time spent in harsh terrains, toughens you +1 CON"
+        },
+        {
+            "title": "Academic Pursuit",
+            "description": "Time spent at an university or with a scholar teaches valuable skills and how to apply rational thinking +1 INT"
+        },
+        {
+            "title": "Spiritual Guidance",
+            "description": "A sage or priest schools you in the benefits of faith and strength of mind +1 WIS"
+        },
+        {
+            "title": "Charismatic Presence",
+            "description": "You meet a very charismatic leader or powerful entertainer who teaches you the strength of assertiveness and charm +1 CHR"
+        },
+        {
+            "title": "New Strength Talent",
+            "description": "You are able to learn a new STR skill."
+        },
+        {
+            "title": "Strength Mastery",
+            "description": "Through lots of practice or much use, one of your STR skills improves."
+        },
+        {
+            "title": "New Agility Talent",
+            "description": "You are able to learn a new DEX skill."
+        },
+        {
+            "title": "Agility Mastery",
+            "description": "Through lots of practice or much use, one of your DEX skills improves."
+        },
+        {
+            "title": "New Stamina Talent",
+            "description": "You are able to learn a new CON skill."
+        },
+        {
+            "title": "Stamina Mastery",
+            "description": "Through lots of practice or much use, one of your CON skills improves."
+        },
+        {
+            "title": "New Awareness Talent",
+            "description": "You are able to learn a new WIS skill."
+        },
+        {
+            "title": "Awareness Mastery",
+            "description": "Through lots of practice or much use, one of your WIS skills improves."
+        },
+        {
+            "title": "New Knowledge Talent",
+            "description": "You are able to learn a new INT skill."
+        },
+        {
+            "title": "Knowledge Mastery",
+            "description": "Through lots of practice or much use, one of your INT skills improves."
+        },
+        {
+            "title": "New Social Talent",
+            "description": "You are able to learn a new CHR skill."
+        },
+        {
+            "title": "Social Mastery",
+            "description": "Through lots of practice or much use, one of your CHR skills improves."
+        },
+        {
+            "title": "Weapon Training",
+            "description": "You learn how to use a weapon."
+        },
+        {
+            "title": "Armor Proficiency",
+            "description": "You learn how to handle a type of armor or shield."
+        },
+        {
+            "title": "Skill Feat",
+            "description": "You gain a feat (for which you meet the prerequisites) which only improves skill(s)."
+        },
+        {
+            "title": "Basic Feat",
+            "description": "You learn a new Feat that has no prerequisites."
+        },
+        {
+            "title": "General Feat",
+            "description": "You learn a new General Feat for which you meet the prerequisites."
+        },
+        {
+            "title": "Advanced Feat",
+            "description": "You learn a new Feat for which you meet the prerequisites."
+        }
+    ]
+}

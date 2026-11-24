@@ -1,0 +1,16 @@
+CORE 0.1.141 — QA RESULTS
+
+Automated CLI test suite: PASS — 136 passed, 0 failed.
+PHP syntax: PASS — full project PHP syntax check is included in the CLI suite; explicit checks also passed for player/world.php, tests/run.php, and config/version.php.
+JavaScript syntax: PASS — player/world.js, player/planetary-environment.js, player/astronomical-environment.js.
+Browser visual/runtime QA: NOT PERFORMED. User verification required.
+
+Scope:
+- Spawn at map center (latitude 0°, longitude 0°).
+- Per-frame camera terrain-clearance correction.
+- Increased camera far clipping for astronomical sky objects.
+- Visible night starfield and presentation-only natural satellite.
+- Planetary map changed from modal dialog to floating HUD.
+- M/C/I keyboard controls regression coverage.
+
+The automated checks validate source contracts and syntax; they do not replace browser testing of camera collision, visual sky appearance, or actual keyboard interaction.

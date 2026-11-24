@@ -1,0 +1,16 @@
+CORE 0.1.161
+First-person camera and moon visibility correction
+
+- Added distinct third-person, close, and first-person camera modes.
+- Mouse-wheel zoom can enter first-person; zooming outward returns to close view.
+- F cycles third-person → close → first-person → third-person.
+- First-person camera follows eye height, hides the local character model, and bypasses third-person terrain clearance while active.
+- Reframed moons to a low local-horizon arc so they can appear in the default camera frustum.
+- Increased moon visual scale and emissive readability, marked moon meshes as always active/visible, and extended camera far clipping and widened the default field of view.
+- Preserved data-driven moon period/phase and the 0.1.160 jump animation behavior.
+
+QA
+- Assistant automated suite: 154 passed, 0 failed.
+- JavaScript syntax checks: passed.
+- PHP syntax checks: passed.
+- Browser runtime QA: not performed; user verification pending.

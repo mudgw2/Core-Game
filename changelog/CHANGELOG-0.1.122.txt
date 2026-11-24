@@ -1,0 +1,47 @@
+CORE 0.1.122 — Direct Multiplayer Token Endpoint
+
+Problem
+-------
+The real-time session clients requested the extensionless route
+/core-game/api/multiplayer/token. Although CORE registers that route and the
+.htaccess/VirtualHost rewrite attempts were added in prior releases, Apache
+continued returning its own HTML 404 in the user's deployment. That means the
+request was not reaching PHP at all; changing Request path normalization alone
+cannot resolve an inactive or non-matching rewrite.
+
+Fix
+---
+Add a concrete PHP endpoint at /api/multiplayer-token.php. It sets the canonical
+internal route to /api/multiplayer/token and dispatches through the existing
+public front controller. The existing application route continues to enforce
+the same account authentication, CSRF validation, character ownership, and
+short-lived grant rules.
+
+Both browser clients now call the concrete PHP endpoint:
+- Player Universe View multiplayer session
+- Planetary test-world multiplayer session
+
+This removes the token request's dependency on Apache rewrite rules or
+AllowOverride. The WebSocket endpoint and Colyseus service configuration are
+unchanged. No data migration or service restart is required.
+
+Files
+-----
+- api/multiplayer-token.php (new)
+- player/player.js
+- player/world.js
+- tests/run.php
+- config/version.php
+
+Install
+-------
+Extract the patch into the CORE application root, preserving paths. Do not
+replace storage, account, character, universe, logs, backups, secrets, or
+multiplayer service files. Reload the gameplay page before reconnecting.
+
+Verification
+------------
+A JSON response from /api/multiplayer-token.php (including HTTP 401 when
+signed out) confirms Apache executed the physical PHP endpoint and the request
+reached CORE. An HTML 404 at this new .php path would indicate a broader Apache
+filesystem/PHP handling issue, not a missing extensionless rewrite.

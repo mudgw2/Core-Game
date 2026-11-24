@@ -1,0 +1,9 @@
+CORE 0.1.141 PATCH INSTALLATION
+
+1. Back up the current application code.
+2. Extract this ZIP into the CORE application root, preserving the included relative paths.
+3. Allow the files to overwrite their matching application files.
+4. Do not replace or merge storage, player data, accounts, universes, characters, backups, logs, or secrets; none are included.
+5. Reload the planetary test world with a hard refresh so the 0.1.141 JavaScript and CSS assets are loaded.
+
+This is a focused code patch. It does not modify the live installation or GitHub.

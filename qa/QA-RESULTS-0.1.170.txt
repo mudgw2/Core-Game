@@ -1,0 +1,8 @@
+CORE 0.1.170 QA
+
+PHP automated tests: 159 passed, 0 failed.
+JavaScript syntax (node --check): PASS.
+PHP syntax: covered by project test runner; PASS.
+Package ZIP integrity: verified separately.
+Browser/WebGL visual verification: NOT PERFORMED.
+In-game moon marker and orbital path visibility: AWAITING USER CONFIRMATION.

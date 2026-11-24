@@ -1,0 +1,13 @@
+config/version.php
+player/game.php
+player/player.js
+player/system-view.js
+player/astronomical-environment.js
+tests/run.php
+qa/QA-RESULTS-0.1.180.txt
+release/RELEASE-NOTES-0.1.180.md
+changelog/CHANGELOG-0.1.180.txt
+install/INSTALL-0.1.180.txt
+update/UPDATE-0.1.180.txt
+update/FILES-0.1.180.txt
+PROJECT_STATE.md

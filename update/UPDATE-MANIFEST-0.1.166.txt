@@ -1,0 +1,16 @@
+CORE 0.1.166 incremental patch manifest
+
+Changed:
+- player/astronomical-environment.js — camera-view-aligned lunar presentation arc.
+- tests/run.php — regression checks for camera-forward bounded lunar arc.
+- config/version.php — release version 0.1.166.
+- PROJECT_STATE.md — current release and QA continuity.
+- CORE-DESIGN-PRINCIPLES.md — clarify camera-relative moon presentation limitation.
+- CORE-ROADMAP.md — record 0.1.166 corrective focus.
+
+Added:
+- install/INSTALL-0.1.166.txt
+- release/RELEASE-NOTES-0.1.166.md
+- qa/QA-RESULTS-0.1.166.txt
+
+No player data, universe data, accounts, secrets, logs, backups, or dependencies are included.

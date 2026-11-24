@@ -1,0 +1,7 @@
+CORE 0.1.180 installation
+1. Back up the existing CORE application directory.
+2. Extract this update ZIP over the existing CORE application root.
+3. Preserve existing storage/data and account records; this update does not require a database migration.
+4. Confirm Apache/PHP can write to storage/logs and storage/diagnostics (for retained diagnostics).
+5. Hard-refresh the browser to load the 0.1.180 cache-busted assets.
+6. Verify Universe, Constellation, System, and Planetary views.

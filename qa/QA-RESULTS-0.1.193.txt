@@ -1,0 +1,8 @@
+CORE 0.1.193 — Persistent Fractal Planetary Terrain
+
+Automated regression suite: PASS — 179 passed, 0 failed.
+PHP syntax checks: PASS — all project PHP files parsed successfully.
+JavaScript syntax check: PASS — player/planetary-environment.js parsed successfully.
+Terrain sampler smoke test: PASS — persistent terrain and climate payloads loaded; sampled spherical terrain produced ocean, plains, hills, and mountain classifications; authored volcano modification changed local elevation.
+
+Not performed: browser visual/runtime verification. The user should verify terrain appearance, spawn placement, camera clearance, walking across elevated terrain, and existing map/movement behavior in the installed environment.

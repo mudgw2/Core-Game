@@ -1,0 +1,20 @@
+CORE 0.1.151 QA RESULTS
+
+Automated test suite:
+- Command: php tests/run.php
+- Result: 144 passed, 0 failed.
+- Includes a runtime test proving clock advancement, persistent adjustments, reload continuity, and per-world isolation.
+- Includes source-contract checks for authenticated/CSRF-protected API registration, client synchronization, queued adjustments, and explicit eastward heading.
+
+Syntax checks:
+- PHP: app/Application.php, app/Simulation/SimulationClock.php, app/Http/PlayerApiSecurity.php, player/world.php, tests/run.php — all parsed successfully.
+- The PHP test suite also passed its project-wide PHP syntax test.
+- JavaScript: node --check passed for player/astronomical-environment.js, player/planetary-environment.js, and player/world.js.
+
+Not performed:
+- Browser-based visual/runtime QA.
+- Multi-client live-server synchronization test.
+- Server restart test on the user's installed environment.
+
+Historical comparison:
+- The user previously reported 162 tests passing for the 0.1.150 installation. This release's local test runner currently reports 144 tests; these are separate test-runner counts and are not directly interchangeable.

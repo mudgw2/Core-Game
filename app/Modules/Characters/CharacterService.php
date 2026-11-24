@@ -14,7 +14,7 @@ final class CharacterService
 {
     public function __construct(private JsonStorage $storage) {}
 
-    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = [], ?string $ownerAccountId = null, ?string $humanBonusAttribute = null): array
+    public function create(string $universeId, string $name, string $role = 'Explorer', string $speciesId = 'human', array $attributes = [], ?string $ownerAccountId = null, ?string $humanBonusAttribute = null, array $appearance = [], ?array $background = null): array
     {
         $universeId = trim($universeId);
         $name = trim($name);
@@ -29,8 +29,16 @@ final class CharacterService
         $speciesDefinition = null;
         foreach (($options['species'] ?? []) as $entry) { if (is_array($entry) && ($entry['id'] ?? null) === $speciesId) { $speciesDefinition = $entry; break; } }
         if ($speciesDefinition === null) throw new RuntimeException('Select a valid character species from the available options.');
+        $backgroundSnapshot = $background !== null ? self::validateBackgroundSnapshot($background, $speciesId) : null;
         $baseAttributes = $creation['base_attributes'];
         $validatedAttributes = $creation['attributes'];
+        $tint = strtolower(trim((string)($appearance['tint'] ?? '#61d8e8')));
+        if (!preg_match('/^#[0-9a-f]{6}$/', $tint)) $tint = '#61d8e8';
+        $saturation = filter_var($appearance['saturation'] ?? 100, FILTER_VALIDATE_INT);
+        if ($saturation === false || $saturation < 0 || $saturation > 200) $saturation = 100;
+        $brightness = filter_var($appearance['brightness'] ?? 100, FILTER_VALIDATE_INT);
+        if ($brightness === false || $brightness < 50 || $brightness > 150) $brightness = 100;
+        $savedAppearance = ['version' => 1, 'tint' => $tint, 'saturation' => $saturation, 'brightness' => $brightness];
         $role = (string)$roleDefinition['label'];
         if ($name === '') throw new RuntimeException('Character name cannot be empty.');
         $nameLength = preg_match_all('/./us', $name);
@@ -58,15 +66,18 @@ final class CharacterService
                 'ability_points_spent' => $creation['ability_points_spent'],
                 'ability_point_budget' => $creation['ability_point_budget'],
                 'human_bonus_attribute' => $creation['human_bonus_attribute'],
+                'appearance' => $savedAppearance,
+                'age' => $backgroundSnapshot['age'] ?? null,
+                'background' => $backgroundSnapshot,
                 'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created_unassigned'],
-                'location' => null, 'current_system_id' => null,
+                'location' => null, 'current_system_id' => null, 'current_constellation_id' => null,
                 'created_at' => $now, 'revision' => 0,
             ];
             return $this->storage->createIfAbsent('characters', $id, $record);
         }
         // Character creation shares the universe lock with universe deletion. This closes the race
         // where a new dependent character could appear after deletion enumerates its dependents.
-        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes, $baseAttributes, $creation, $ownerAccountId): array {
+        return $this->storage->withRecordLockOperation('universes', $universeId, function () use ($universeId, $name, $role, $roleDefinition, $speciesDefinition, $validatedAttributes, $baseAttributes, $creation, $savedAppearance, $ownerAccountId, $backgroundSnapshot): array {
             $universe = $this->storage->read('universes', $universeId);
             if ($universe === null || ($universe['id'] ?? null) !== $universeId) {
                 throw new RuntimeException('The selected universe does not exist.');
@@ -94,9 +105,14 @@ final class CharacterService
                 'ability_points_spent' => $creation['ability_points_spent'],
                 'ability_point_budget' => $creation['ability_point_budget'],
                 'human_bonus_attribute' => $creation['human_bonus_attribute'],
+                'appearance' => $savedAppearance,
+                'age' => $backgroundSnapshot['age'] ?? null,
+                'background' => $backgroundSnapshot,
                 'lifecycle' => ['enabled' => true, 'locked' => false, 'updated_at' => $now, 'last_action' => 'created'],
                 'current_system_id' => (string)$firstSystem['id'],
+                'current_constellation_id' => (string)($firstSystem['constellation_id'] ?? ''),
                 'location' => [
+                    'constellation_id' => (string)($firstSystem['constellation_id'] ?? ''),
                     'system_id' => (string)$firstSystem['id'],
                     'updated_at' => $now,
                 ],
@@ -113,6 +129,51 @@ final class CharacterService
             ];
             return $this->storage->createIfAbsent('characters', $id, $record);
         });
+    }
+
+    /** Validate the pre-game Lifepath snapshot before attaching it to a permanent character. */
+    private static function validateBackgroundSnapshot(array $background, string $speciesId): array
+    {
+        if (($background['locked'] ?? false) !== true) {
+            throw new RuntimeException('Lock the generated character history before saving the character.');
+        }
+        if (($background['species_key'] ?? null) !== $speciesId) {
+            throw new RuntimeException('The Lifepath species must match the character species.');
+        }
+        $age = filter_var($background['age'] ?? null, FILTER_VALIDATE_INT);
+        $seed = trim((string)($background['seed'] ?? ''));
+        $history = $background['history'] ?? null;
+        if ($age === false || $age < 0 || $seed === '' || strlen($seed) > 160 || !is_array($history) || $history === []) {
+            throw new RuntimeException('The locked Lifepath snapshot is incomplete.');
+        }
+        $careerPath = $background['career_path'] ?? null;
+        $allowedPaths = ['education', 'military', 'employment', 'independent'];
+        if ($careerPath !== null && (!is_array($careerPath) || !in_array($careerPath['id'] ?? '', $allowedPaths, true))) {
+            throw new RuntimeException('The selected Lifepath direction is invalid.');
+        }
+        $race = is_array($background['race'] ?? null) ? $background['race'] : [];
+        $maturationAge = filter_var($background['maturation_age'] ?? null, FILTER_VALIDATE_INT);
+        $maximumAge = filter_var($background['max_allowable_age'] ?? null, FILTER_VALIDATE_INT);
+        if ($maturationAge === false || $maximumAge === false || $age < $maturationAge || $age > $maximumAge) {
+            throw new RuntimeException('The Lifepath age is outside the species age limits.');
+        }
+        return [
+            'schema_version' => 1,
+            'locked' => true,
+            'locked_at' => gmdate('c'),
+            'generator' => 'CORE Lifepath',
+            'generator_version' => '1',
+            'species_key' => $speciesId,
+            'race' => ['key' => $speciesId, 'name' => (string)($race['name'] ?? $speciesId)],
+            'seed' => $seed,
+            'age' => (int)$age,
+            'maturation_age' => (int)$maturationAge,
+            'graduation_age' => (int)($background['graduation_age'] ?? 0),
+            'max_allowable_age' => (int)$maximumAge,
+            'career_path' => $careerPath,
+            'siblings' => is_array($background['siblings'] ?? null) ? array_values($background['siblings']) : [],
+            'history' => array_values($history),
+        ];
     }
 
     /** Move a character within its universe. Repeated same-destination requests are idempotent. */
@@ -142,7 +203,7 @@ final class CharacterService
         $navigation = NavigationGraph::build($systems);
         $movementStatus = 'moved';
         $result = $this->storage->transact('characters', $characterId, static function (array $character) use ($universeId, $systemId, $expectedRevision, $target, $systemsById, $navigation, &$movementStatus): array {
-            if (($character['universe_id'] ?? null) !== $universeId) {
+            if (CharacterUniverseContext::activeUniverseId($character) !== $universeId) {
                 throw new RuntimeException('Character does not belong to the selected universe.');
             }
             CharacterLifecycleGuard::assertCanPerformGameplayAction($character);
@@ -179,7 +240,8 @@ final class CharacterService
             }
             if (!$alreadyAtDestination) {
                 $character['current_system_id'] = $systemId;
-                $character['location'] = ['system_id' => $systemId, 'updated_at' => $now];
+                $character['current_constellation_id'] = (string)($target['constellation_id'] ?? '');
+                $character['location'] = ['constellation_id' => (string)($target['constellation_id'] ?? ''), 'system_id' => $systemId, 'updated_at' => $now];
                 $character['revision'] = $actualRevision + 1;
                 // Manual movement must not leave an old multi-hop route looking executable.
                 $routeProgress = $character['route_progress'] ?? null;

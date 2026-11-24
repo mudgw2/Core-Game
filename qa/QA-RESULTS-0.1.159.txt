@@ -1,0 +1,25 @@
+CORE 0.1.159 QA RESULTS
+
+Automated PHP regression suite: 153 passed, 0 failed.
+JavaScript syntax: PASS (player/world.js, player/astronomical-environment.js, player/planetary-environment.js).
+PHP syntax: PASS (WorldGenerator.php, tests/run.php, config/version.php; full test suite passed).
+Release version: PASS (0.1.159).
+ZIP integrity and contents: PASS (verified after packaging).
+Browser visual/runtime QA: NOT PERFORMED in the build environment.
+
+Implementation checks:
+- Fixed a direct runtime exception: the moon update referenced the removed identifier `moonAngle` after the orbital calculation was split into `orbitalAngle` and `phaseAngle`. Worlds with moons could therefore abort the astronomical update loop. Moon mesh rotation now uses the defined `phaseAngle`.
+- Moon placement now uses a stable local sky frame initialized from the entry camera heading and local surface normal. The former global X/Z orbital plane could put the moon behind terrain or outside the default camera frustum.
+- Moon visual diameter cap increased to 280 scene units and a restrained emissive component improves night-side readability.
+- The planetary camera field of view is widened to 1.15 radians to include the near-horizon moon arc.
+- Universe seed 1337 / Constellation 01 / System 01 receives deterministic test moons only on worlds that previously had none (World 01-3 and World 01-6). Existing moon records for World 01-1, 01-2, 01-4, and 01-5 are preserved.
+- The fixture override does not affect other universe seeds or systems.
+- No saved universe, character, account, or player state data is modified by this patch.
+
+Runtime verification required:
+- Enter World 01-1 and confirm its existing moon is visible near the initial sky view; pan the camera to follow it and confirm it moves over time.
+- Enter World 01-3 and World 01-6 and confirm the deterministic test moons are visible.
+- Confirm all four previously moon-bearing worlds retain their moons.
+- Confirm moon visibility in daylight and at night, and check that planetary movement/camera controls remain normal.
+
+Assistant-run QA is separate from user-reported results. The user's 162-test PASS was reported for 0.1.157; 0.1.158 has not been user-confirmed in the available conversation.

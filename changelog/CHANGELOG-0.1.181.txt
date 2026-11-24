@@ -1,0 +1,1 @@
+CORE 0.1.181: Replaced colored moon debug markers with pure-white emissive moons and added a screen-space white marker/label/orbit proof overlay above the planetary canvas. Added visible-moon-count diagnostics.

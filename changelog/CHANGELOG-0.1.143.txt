@@ -1,0 +1,9 @@
+CORE 0.1.143
+
+- Fixed character heading being overwritten by surface-only quaternion alignment each render frame.
+- Added tangent-frame orientation construction that preserves facing direction while following spherical terrain.
+- Corrected local coordinate conversion to share the global map's +X / 0°,0° origin convention.
+- Increased night-time ambient fill and terrain readability without removing directional stellar lighting.
+- Removed Water / Plains / Hills / Mountains / You map legend.
+- Kept Current Location directly beneath the floating map.
+- No universe generation, saved world data, or persistent player data changes.

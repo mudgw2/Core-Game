@@ -1,0 +1,17 @@
+CORE 0.1.161 — QA RESULTS
+
+Assistant-run automated tests
+- php tests/run.php: 154 passed, 0 failed.
+- node --check player/world.js: PASS.
+- node --check player/astronomical-environment.js: PASS.
+- php -l config/version.php: PASS.
+- php -l tests/run.php: PASS.
+- Full PHP syntax coverage is included in the automated suite and passed.
+
+Runtime verification
+- Not performed in a browser by the assistant.
+- Pending user confirmation: wheel zoom into first-person, F camera cycling, eye-height view without avatar clipping, exit back to third-person, moon visible on World 01-1 at night, and jump animation remains correct.
+
+Prior user-reported result
+- CORE 0.1.160: PASS — 162 tests passed in the user's installed environment.
+- User runtime-confirmed jump animation works in 0.1.160.

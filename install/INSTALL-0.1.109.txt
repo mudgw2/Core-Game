@@ -1,0 +1,54 @@
+CORE 0.1.109 — COLYSEUS SERVER AND ROOM LIFECYCLE
+
+Source baseline: CORE 0.1.108 — user-confirmed PASS, 156 tests passed.
+
+1. Back up the current CORE application source.
+2. Extract this patch into the CORE application root, preserving relative paths.
+3. Allow source files to overwrite their existing counterparts.
+4. Do not overwrite storage/, player records, account records, universe records,
+   backups, credentials, or logs. This patch contains none of those files.
+5. No PHP/Apache configuration, player data, universe data, or database migration
+   is required. Existing single-player gameplay is unchanged.
+
+COLYSEUS SERVICE SETUP
+
+6. Ensure Node.js 20+ and npm are installed on the host that will run the
+   multiplayer service.
+7. Open a terminal in CORE/multiplayer/ and run:
+       npm install
+       npm run build
+       npm test
+8. Copy .env.example to .env or configure the equivalent environment variables
+   through your process manager. The service does not load .env automatically.
+9. The default bind is 127.0.0.1:2567. Start with:
+       npm start
+10. Verify the service locally:
+       curl http://127.0.0.1:2567/health
+
+SECURITY IMPORTANT
+
+- Production room joins are rejected in 0.1.109. The PHP-issued signed grant
+  verifier is scheduled for 0.1.110.
+- Development guest access is disabled by default. For isolated local testing
+  only, it requires NODE_ENV other than production, loopback bind address,
+  CORE_MULTIPLAYER_ALLOW_DEV_GUESTS=true, and a 32+ character
+  CORE_MULTIPLAYER_DEV_TOKEN. A local Colyseus client must supply that token
+  using the SDK authentication token mechanism.
+- Never enable development guests on a public interface or expose this service
+  through a reverse proxy. Do not use the development token as a production
+  credential.
+- Do not configure Apache reverse proxy/WebSocket exposure yet.
+
+SCOPE
+
+- Registers the "universe" room matched by universeId, systemId, and locationId.
+- Current CORE characters only have a stable current system, so use
+  locationId="" for system-level matchmaking.
+- Tracks transient player presence in the server room process and updates room
+  metadata. This is not yet synchronized to clients or persisted.
+- Provides GET /health and configurable room capacity (default 16; range 1–64).
+- Does not connect Babylon.js, synchronize movement, write player records, or
+  change PHP authentication.
+
+No data migration is required. No GitHub push or live-server modification was
+performed while preparing this patch.

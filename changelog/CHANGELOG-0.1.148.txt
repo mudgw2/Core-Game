@@ -1,0 +1,3 @@
+CORE 0.1.148
+- Repositioned the planetary coordinates and local-time indicator below the top navigation banner, aligned vertically with the upper-right map HUD.
+- No gameplay, simulation, generation, or backend data behavior changed.

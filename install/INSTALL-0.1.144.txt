@@ -1,0 +1,14 @@
+CORE 0.1.144 — Babylon.js Matrix API Compatibility Hotfix
+
+Installation:
+1. Extract this ZIP into the CORE application root, preserving the folder paths.
+2. Allow the files to overwrite their matching files.
+3. Hard-refresh the browser (Ctrl+F5) before opening the test world.
+
+This hotfix replaces an unavailable Babylon.js Matrix.FromXYZAxes call with an
+explicit Matrix.FromValues basis matrix supported by the Babylon.js Matrix API.
+It addresses the initialization error:
+  BABYLON.Matrix.FromXYZAxes is not a function
+
+The patch does not replace player data, accounts, characters, universes, or
+persistent world data. No database or data migration is required.

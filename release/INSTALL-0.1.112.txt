@@ -1,0 +1,13 @@
+CORE 0.1.112 INSTALLATION
+
+1. Extract the patch into the existing CORE root, preserving paths.
+2. Keep the existing CORE_MULTIPLAYER_HMAC_SECRET configured identically for PHP and Node. Do not paste it into chat or source control.
+3. Configure CORE_MULTIPLAYER_PUBLIC_URL in the Apache/PHP environment to the browser-reachable WebSocket URL, for example: wss://your-host.example/multiplayer
+4. Configure the TLS reverse proxy to forward that path to http://127.0.0.1:2567 and preserve WebSocket Upgrade/Connection headers. Do not bind the Node service to a public interface.
+5. Restart Apache/PHP workers so the environment variable is available. Restart the Node service only if its own configuration changed.
+6. Sign in, enter gameplay, and use Connect session in the Multiplayer presence panel.
+7. Verify the session reports connected, then disconnect. Travel to another system while connected and verify the client migrates to the new system room.
+
+The connection currently synchronizes presence only. It does not yet synchronize player movement, transforms, combat, or saved game state.
+
+If CORE_MULTIPLAYER_PUBLIC_URL is not set, gameplay remains usable and the multiplayer button stays unavailable.

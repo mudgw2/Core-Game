@@ -1,0 +1,13 @@
+CORE 0.1.126 PATCH INSTALLATION
+
+1. Confirm the installed project is CORE 0.1.125.
+2. Make a normal backup of the application source before applying the patch.
+3. Extract this ZIP into the CORE project root, preserving the relative directory paths.
+4. Allow the files to overwrite their existing counterparts.
+5. Hard-refresh the browser so player.js, player.css, and system-view.css are reloaded with version 0.1.126 cache keys.
+6. Open Character Selection, choose Play, and verify that gameplay opens in Universe View at the character's current Constellation.
+7. Select a System from the Constellation list or 3D view, verify its Worlds appear in System View, then use Back to Universe View. Confirm the same Constellation and map camera context return.
+8. If testing shared-universe visits, verify that the visitor opens the host's active universe while retaining the permanent home-universe association.
+
+This is a source patch only. It does not include or modify account records, character records, generated universe data, backups, logs, credentials, or multiplayer node_modules.
+No server restart is required for the PHP/browser source changes. Clear browser cache or hard-refresh if old assets remain visible.

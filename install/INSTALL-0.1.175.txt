@@ -1,0 +1,16 @@
+CORE 0.1.175 — Installation
+
+1. Back up the current CORE directory.
+2. Extract this ZIP into the existing CORE installation, preserving the directory structure and allowing the included files to overwrite their previous versions.
+3. Confirm config/version.php reports 0.1.175.
+4. Open the existing gameplay URL by choosing Play for a character.
+5. Hard-refresh the browser (Ctrl+F5).
+
+Expected navigation:
+- Gameplay opens at Universe View and displays the generated Constellations.
+- Select a Constellation marker or select one in the sidebar and choose View Selected Constellation.
+- Constellation View displays that Constellation's Star Systems.
+- Select a Star System and choose View Selected System.
+- System View displays its orbital layout; Back to Constellation View returns one level; Back to Universe View returns to the Constellation map.
+
+Character Selection's orbital preview is labeled SYSTEM / LOCATION because it shows the character's current star system, not the entire Universe.

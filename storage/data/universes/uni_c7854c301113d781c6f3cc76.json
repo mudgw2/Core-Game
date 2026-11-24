@@ -1,0 +1,669 @@
+{
+    "id": "uni_c7854c301113d781c6f3cc76",
+    "seed": "tttttt",
+    "settings": {
+        "system_density": 50,
+        "anomaly_rate": 25,
+        "binary_star_rate": 30,
+        "nebula_presence": 35
+    },
+    "seed_fingerprint": "c7854c301113",
+    "generator_version": 3,
+    "hierarchy_version": 1,
+    "created_at": "2026-11-18T17:14:25+00:00",
+    "baseline": {
+        "id": "uni_c7854c301113d781c6f3cc76",
+        "seed": "tttttt",
+        "settings": {
+            "system_density": 50,
+            "anomaly_rate": 25,
+            "binary_star_rate": 30,
+            "nebula_presence": 35
+        },
+        "generator_version": 3,
+        "hierarchy_version": 1,
+        "seed_fingerprint": "c7854c301113",
+        "constellation_count": 5,
+        "system_count": 18,
+        "constellations": [
+            {
+                "id": "con_549337a06835369f",
+                "seed": "CON-96376606626DD1518AA074AE",
+                "name": "Constellation 01",
+                "ordinal": 1,
+                "x": -8350,
+                "y": 4240,
+                "system_count": 4,
+                "systems": [
+                    {
+                        "id": "sys_1caa07064af3d65c",
+                        "seed": "SYS-46E4D358AA4402A64E3C763A",
+                        "name": "System 01",
+                        "constellation_id": "con_549337a06835369f",
+                        "constellation_seed": "CON-96376606626DD1518AA074AE",
+                        "x": -2662,
+                        "y": -8202,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_ab6d1d4e985adc1d",
+                            "name": "Primary G-5C",
+                            "spectral_class": "G",
+                            "is_binary": true
+                        }
+                    },
+                    {
+                        "id": "sys_0e10024f7a423a2b",
+                        "seed": "SYS-3AEC8F3BBCDA56C81D8AED61",
+                        "name": "System 02",
+                        "constellation_id": "con_549337a06835369f",
+                        "constellation_seed": "CON-96376606626DD1518AA074AE",
+                        "x": -6400,
+                        "y": -9409,
+                        "classification": "anomalous",
+                        "star": {
+                            "id": "star_984b87e33858d9b0",
+                            "name": "Primary A-2B",
+                            "spectral_class": "A",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_8c5782428c86c886",
+                        "seed": "SYS-BA52D2834105116DFDF4059B",
+                        "name": "System 03",
+                        "constellation_id": "con_549337a06835369f",
+                        "constellation_seed": "CON-96376606626DD1518AA074AE",
+                        "x": 5926,
+                        "y": 3345,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_6f02ef60921c1ccc",
+                            "name": "Primary G-86",
+                            "spectral_class": "G",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_483cde69a414e61a",
+                        "seed": "SYS-3ED8B19C8F0FAD674A61605E",
+                        "name": "System 04",
+                        "constellation_id": "con_549337a06835369f",
+                        "constellation_seed": "CON-96376606626DD1518AA074AE",
+                        "x": 8492,
+                        "y": 6935,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_9887d21268f60fc9",
+                            "name": "Primary M-1A",
+                            "spectral_class": "M",
+                            "is_binary": true
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "con_39853bd22867f923",
+                "seed": "CON-01D5C2E5028E91FCB7BB5472",
+                "name": "Constellation 02",
+                "ordinal": 2,
+                "x": 4725,
+                "y": 5314,
+                "system_count": 4,
+                "systems": [
+                    {
+                        "id": "sys_08768c9ceaa61b31",
+                        "seed": "SYS-B226E5F391BA2280FF688027",
+                        "name": "System 05",
+                        "constellation_id": "con_39853bd22867f923",
+                        "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                        "x": -7834,
+                        "y": 5995,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_e496600a4f793f04",
+                            "name": "Primary M-31",
+                            "spectral_class": "M",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_994c3a58a347f97a",
+                        "seed": "SYS-8E7CEDB897408EDECBC8095E",
+                        "name": "System 06",
+                        "constellation_id": "con_39853bd22867f923",
+                        "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                        "x": 9243,
+                        "y": 4936,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_a575b17846e5204f",
+                            "name": "Primary G-7A",
+                            "spectral_class": "G",
+                            "is_binary": true
+                        }
+                    },
+                    {
+                        "id": "sys_af560c518a0b0180",
+                        "seed": "SYS-96893117C72759A391FF9AB2",
+                        "name": "System 07",
+                        "constellation_id": "con_39853bd22867f923",
+                        "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                        "x": -5116,
+                        "y": -6847,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_1f2b7b1a42dafb6e",
+                            "name": "Primary B-80",
+                            "spectral_class": "B",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_0787f81be0135ef2",
+                        "seed": "SYS-450012E690FF8608C2744574",
+                        "name": "System 08",
+                        "constellation_id": "con_39853bd22867f923",
+                        "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                        "x": -8073,
+                        "y": -6488,
+                        "classification": "anomalous",
+                        "star": {
+                            "id": "star_1f4b160a41e9586a",
+                            "name": "Primary F-F2",
+                            "spectral_class": "F",
+                            "is_binary": false
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "con_153e090a6384ac70",
+                "seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                "name": "Constellation 03",
+                "ordinal": 3,
+                "x": -4562,
+                "y": -7686,
+                "system_count": 4,
+                "systems": [
+                    {
+                        "id": "sys_3c21704229488dd9",
+                        "seed": "SYS-321557A7D4004BDE0ECC4332",
+                        "name": "System 09",
+                        "constellation_id": "con_153e090a6384ac70",
+                        "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                        "x": 5393,
+                        "y": -1263,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_5f0b2cf4d508031f",
+                            "name": "Primary B-D9",
+                            "spectral_class": "B",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_f239b090fc501da8",
+                        "seed": "SYS-ABB2444FA83136755B2A0B48",
+                        "name": "System 10",
+                        "constellation_id": "con_153e090a6384ac70",
+                        "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                        "x": -7994,
+                        "y": -4802,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_d8d95c7cb99f0fa2",
+                            "name": "Primary B-A8",
+                            "spectral_class": "B",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_46201373559c03ab",
+                        "seed": "SYS-F5DF3C41AC0B18C1E73EB9D0",
+                        "name": "System 11",
+                        "constellation_id": "con_153e090a6384ac70",
+                        "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                        "x": 7952,
+                        "y": -5021,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_34e759d791cf1486",
+                            "name": "Primary F-AB",
+                            "spectral_class": "F",
+                            "is_binary": true
+                        }
+                    },
+                    {
+                        "id": "sys_f187582ebd61dda7",
+                        "seed": "SYS-92B6EBEB63C44E26F257592F",
+                        "name": "System 12",
+                        "constellation_id": "con_153e090a6384ac70",
+                        "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                        "x": -8172,
+                        "y": -7427,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_d151b2e4f5d84e23",
+                            "name": "Primary G-A7",
+                            "spectral_class": "G",
+                            "is_binary": true
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "con_3bc8fb48deca1c9c",
+                "seed": "CON-E74B54787E8536304A2E7082",
+                "name": "Constellation 04",
+                "ordinal": 4,
+                "x": 5304,
+                "y": -5675,
+                "system_count": 3,
+                "systems": [
+                    {
+                        "id": "sys_e8871b3e89414f60",
+                        "seed": "SYS-9BCA8CD9B9F29E30D4972535",
+                        "name": "System 13",
+                        "constellation_id": "con_3bc8fb48deca1c9c",
+                        "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                        "x": 9525,
+                        "y": -3026,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_611eb8381ce3e392",
+                            "name": "Primary A-60",
+                            "spectral_class": "A",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_8a38c7f744d0e920",
+                        "seed": "SYS-31943B79BF0E28A53D4FB199",
+                        "name": "System 14",
+                        "constellation_id": "con_3bc8fb48deca1c9c",
+                        "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                        "x": 5383,
+                        "y": 1189,
+                        "classification": "binary",
+                        "star": {
+                            "id": "star_e51d5b3aa4a3592e",
+                            "name": "Primary A-20",
+                            "spectral_class": "A",
+                            "is_binary": true
+                        }
+                    },
+                    {
+                        "id": "sys_5cc1b3c85ccfa119",
+                        "seed": "SYS-DF16E4829C637971C8979ACF",
+                        "name": "System 15",
+                        "constellation_id": "con_3bc8fb48deca1c9c",
+                        "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                        "x": -6256,
+                        "y": -3978,
+                        "classification": "ordinary",
+                        "star": {
+                            "id": "star_b1bd3f57c17f2166",
+                            "name": "Primary O-19",
+                            "spectral_class": "O",
+                            "is_binary": false
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "con_92d8ef28135ce118",
+                "seed": "CON-D96319E9ED71D4EA0951234A",
+                "name": "Constellation 05",
+                "ordinal": 5,
+                "x": 7591,
+                "y": -8779,
+                "system_count": 3,
+                "systems": [
+                    {
+                        "id": "sys_561346d7ed72f343",
+                        "seed": "SYS-50973198EB85934106440BF1",
+                        "name": "System 16",
+                        "constellation_id": "con_92d8ef28135ce118",
+                        "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                        "x": -7966,
+                        "y": 8135,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_7ca4d61cc7c9fa23",
+                            "name": "Primary K-43",
+                            "spectral_class": "K",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_d9f662449d0fd0fa",
+                        "seed": "SYS-5E2D3AFAA82F2A4CA98111D3",
+                        "name": "System 17",
+                        "constellation_id": "con_92d8ef28135ce118",
+                        "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                        "x": 5796,
+                        "y": -4845,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_c08c931fe8ede21a",
+                            "name": "Primary K-FA",
+                            "spectral_class": "K",
+                            "is_binary": false
+                        }
+                    },
+                    {
+                        "id": "sys_3d33e8aa8b6b4abb",
+                        "seed": "SYS-85F35D023318EC0145F747DC",
+                        "name": "System 18",
+                        "constellation_id": "con_92d8ef28135ce118",
+                        "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                        "x": 5667,
+                        "y": 9560,
+                        "classification": "nebula-adjacent",
+                        "star": {
+                            "id": "star_a425c6ba5e485166",
+                            "name": "Primary G-BB",
+                            "spectral_class": "G",
+                            "is_binary": false
+                        }
+                    }
+                ]
+            }
+        ],
+        "systems": [
+            {
+                "id": "sys_1caa07064af3d65c",
+                "seed": "SYS-46E4D358AA4402A64E3C763A",
+                "name": "System 01",
+                "constellation_id": "con_549337a06835369f",
+                "constellation_seed": "CON-96376606626DD1518AA074AE",
+                "x": -2662,
+                "y": -8202,
+                "classification": "binary",
+                "star": {
+                    "id": "star_ab6d1d4e985adc1d",
+                    "name": "Primary G-5C",
+                    "spectral_class": "G",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_0e10024f7a423a2b",
+                "seed": "SYS-3AEC8F3BBCDA56C81D8AED61",
+                "name": "System 02",
+                "constellation_id": "con_549337a06835369f",
+                "constellation_seed": "CON-96376606626DD1518AA074AE",
+                "x": -6400,
+                "y": -9409,
+                "classification": "anomalous",
+                "star": {
+                    "id": "star_984b87e33858d9b0",
+                    "name": "Primary A-2B",
+                    "spectral_class": "A",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_8c5782428c86c886",
+                "seed": "SYS-BA52D2834105116DFDF4059B",
+                "name": "System 03",
+                "constellation_id": "con_549337a06835369f",
+                "constellation_seed": "CON-96376606626DD1518AA074AE",
+                "x": 5926,
+                "y": 3345,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_6f02ef60921c1ccc",
+                    "name": "Primary G-86",
+                    "spectral_class": "G",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_483cde69a414e61a",
+                "seed": "SYS-3ED8B19C8F0FAD674A61605E",
+                "name": "System 04",
+                "constellation_id": "con_549337a06835369f",
+                "constellation_seed": "CON-96376606626DD1518AA074AE",
+                "x": 8492,
+                "y": 6935,
+                "classification": "binary",
+                "star": {
+                    "id": "star_9887d21268f60fc9",
+                    "name": "Primary M-1A",
+                    "spectral_class": "M",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_08768c9ceaa61b31",
+                "seed": "SYS-B226E5F391BA2280FF688027",
+                "name": "System 05",
+                "constellation_id": "con_39853bd22867f923",
+                "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                "x": -7834,
+                "y": 5995,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_e496600a4f793f04",
+                    "name": "Primary M-31",
+                    "spectral_class": "M",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_994c3a58a347f97a",
+                "seed": "SYS-8E7CEDB897408EDECBC8095E",
+                "name": "System 06",
+                "constellation_id": "con_39853bd22867f923",
+                "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                "x": 9243,
+                "y": 4936,
+                "classification": "binary",
+                "star": {
+                    "id": "star_a575b17846e5204f",
+                    "name": "Primary G-7A",
+                    "spectral_class": "G",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_af560c518a0b0180",
+                "seed": "SYS-96893117C72759A391FF9AB2",
+                "name": "System 07",
+                "constellation_id": "con_39853bd22867f923",
+                "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                "x": -5116,
+                "y": -6847,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_1f2b7b1a42dafb6e",
+                    "name": "Primary B-80",
+                    "spectral_class": "B",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_0787f81be0135ef2",
+                "seed": "SYS-450012E690FF8608C2744574",
+                "name": "System 08",
+                "constellation_id": "con_39853bd22867f923",
+                "constellation_seed": "CON-01D5C2E5028E91FCB7BB5472",
+                "x": -8073,
+                "y": -6488,
+                "classification": "anomalous",
+                "star": {
+                    "id": "star_1f4b160a41e9586a",
+                    "name": "Primary F-F2",
+                    "spectral_class": "F",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_3c21704229488dd9",
+                "seed": "SYS-321557A7D4004BDE0ECC4332",
+                "name": "System 09",
+                "constellation_id": "con_153e090a6384ac70",
+                "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                "x": 5393,
+                "y": -1263,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_5f0b2cf4d508031f",
+                    "name": "Primary B-D9",
+                    "spectral_class": "B",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_f239b090fc501da8",
+                "seed": "SYS-ABB2444FA83136755B2A0B48",
+                "name": "System 10",
+                "constellation_id": "con_153e090a6384ac70",
+                "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                "x": -7994,
+                "y": -4802,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_d8d95c7cb99f0fa2",
+                    "name": "Primary B-A8",
+                    "spectral_class": "B",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_46201373559c03ab",
+                "seed": "SYS-F5DF3C41AC0B18C1E73EB9D0",
+                "name": "System 11",
+                "constellation_id": "con_153e090a6384ac70",
+                "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                "x": 7952,
+                "y": -5021,
+                "classification": "binary",
+                "star": {
+                    "id": "star_34e759d791cf1486",
+                    "name": "Primary F-AB",
+                    "spectral_class": "F",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_f187582ebd61dda7",
+                "seed": "SYS-92B6EBEB63C44E26F257592F",
+                "name": "System 12",
+                "constellation_id": "con_153e090a6384ac70",
+                "constellation_seed": "CON-F921EB4AEA61D66FE1B6D7A6",
+                "x": -8172,
+                "y": -7427,
+                "classification": "binary",
+                "star": {
+                    "id": "star_d151b2e4f5d84e23",
+                    "name": "Primary G-A7",
+                    "spectral_class": "G",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_e8871b3e89414f60",
+                "seed": "SYS-9BCA8CD9B9F29E30D4972535",
+                "name": "System 13",
+                "constellation_id": "con_3bc8fb48deca1c9c",
+                "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                "x": 9525,
+                "y": -3026,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_611eb8381ce3e392",
+                    "name": "Primary A-60",
+                    "spectral_class": "A",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_8a38c7f744d0e920",
+                "seed": "SYS-31943B79BF0E28A53D4FB199",
+                "name": "System 14",
+                "constellation_id": "con_3bc8fb48deca1c9c",
+                "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                "x": 5383,
+                "y": 1189,
+                "classification": "binary",
+                "star": {
+                    "id": "star_e51d5b3aa4a3592e",
+                    "name": "Primary A-20",
+                    "spectral_class": "A",
+                    "is_binary": true
+                }
+            },
+            {
+                "id": "sys_5cc1b3c85ccfa119",
+                "seed": "SYS-DF16E4829C637971C8979ACF",
+                "name": "System 15",
+                "constellation_id": "con_3bc8fb48deca1c9c",
+                "constellation_seed": "CON-E74B54787E8536304A2E7082",
+                "x": -6256,
+                "y": -3978,
+                "classification": "ordinary",
+                "star": {
+                    "id": "star_b1bd3f57c17f2166",
+                    "name": "Primary O-19",
+                    "spectral_class": "O",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_561346d7ed72f343",
+                "seed": "SYS-50973198EB85934106440BF1",
+                "name": "System 16",
+                "constellation_id": "con_92d8ef28135ce118",
+                "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                "x": -7966,
+                "y": 8135,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_7ca4d61cc7c9fa23",
+                    "name": "Primary K-43",
+                    "spectral_class": "K",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_d9f662449d0fd0fa",
+                "seed": "SYS-5E2D3AFAA82F2A4CA98111D3",
+                "name": "System 17",
+                "constellation_id": "con_92d8ef28135ce118",
+                "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                "x": 5796,
+                "y": -4845,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_c08c931fe8ede21a",
+                    "name": "Primary K-FA",
+                    "spectral_class": "K",
+                    "is_binary": false
+                }
+            },
+            {
+                "id": "sys_3d33e8aa8b6b4abb",
+                "seed": "SYS-85F35D023318EC0145F747DC",
+                "name": "System 18",
+                "constellation_id": "con_92d8ef28135ce118",
+                "constellation_seed": "CON-D96319E9ED71D4EA0951234A",
+                "x": 5667,
+                "y": 9560,
+                "classification": "nebula-adjacent",
+                "star": {
+                    "id": "star_a425c6ba5e485166",
+                    "name": "Primary G-BB",
+                    "spectral_class": "G",
+                    "is_binary": false
+                }
+            }
+        ]
+    },
+    "state": {
+        "schema_version": 1,
+        "revision": 0,
+        "changes": []
+    }
+}

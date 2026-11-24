@@ -1,0 +1,9 @@
+CORE 0.1.157 — Animation Blending and Screen-Space Night Sky
+
+- Enabled Babylon.js animation blending for locomotion and jump AnimationGroups, including takeoff, airborne, and landing transitions.
+- Replaced the world-space star sprite collection with a deterministic transparent DynamicTexture rendered through a dedicated background Layer. This avoids dependence on distant mesh placement, camera clipping, billboard orientation, and scene depth ordering.
+- Preserved the existing illumination-driven night visibility behavior; the screen-space layer fades in at night.
+- Added regression coverage for the background layer, deterministic star texture population and disposal, and animation blending.
+- Updated release version and project state, design principles, and roadmap documentation.
+
+QA: 152 automated tests passed; JavaScript and PHP syntax checks passed. Browser visual/runtime QA remains pending.

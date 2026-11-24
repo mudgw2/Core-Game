@@ -1,0 +1,25 @@
+CORE 0.1.180 QA RESULTS
+
+Assistant-run automated regression suite:
+  php tests/run.php
+  PASS: 169
+  FAIL: 0
+
+JavaScript syntax checks (Node --check):
+  player/player.js — PASS
+  player/system-view.js — PASS
+  player/astronomical-environment.js — PASS
+  player/diagnostics.js — PASS
+
+PHP syntax checks:
+  player/game.php — PASS
+  tests/run.php — PASS
+  Full project PHP syntax check is included in the automated suite — PASS
+
+ZIP integrity is checked before delivery.
+Browser visual verification was NOT performed. The user must verify:
+  - Universe labels are upright and readable without collisions.
+  - Constellation View shows readable system names and world counts.
+  - System View shows visible planet and moon labels.
+  - Planetary moons and their bright orbital paths are visible above the horizon.
+  - The previously reported dark upper-right sky obstruction is either gone or identifiable in the expanded diagnostics mesh projection/bounds/material report.

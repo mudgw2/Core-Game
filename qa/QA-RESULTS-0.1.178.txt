@@ -1,0 +1,30 @@
+CORE 0.1.178 QA RESULTS
+
+Source baseline: user-supplied admin(1).zip (CORE 0.1.177)
+Updated release: 0.1.178
+
+PHP syntax:
+- All project PHP files: PASS (covered by tests/run.php syntax test)
+- api/diagnostics-report.php: PASS
+- app/Core/Logger.php: PASS
+- bootstrap.php: PASS
+- player/game.php: PASS
+- player/world.php: PASS
+- tests/run.php: PASS
+
+JavaScript syntax (Node --check):
+- player/diagnostics.js: PASS
+- player/player.js: PASS
+- player/system-view.js: PASS
+- player/world.js: PASS
+
+Automated regression suite:
+- php tests/run.php
+- 165 passed, 0 failed
+
+ZIP integrity:
+- Verified with unzip -t after packaging.
+
+Not performed:
+- No live Apache/browser runtime test was available.
+- Browser Download Report / Submit to Server, actual storage permissions, and rendered scene diagnostics require verification in the installed CORE environment.

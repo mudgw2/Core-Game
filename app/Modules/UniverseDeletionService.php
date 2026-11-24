@@ -25,6 +25,8 @@ final class UniverseDeletionService
         $universe = $this->storage->read('universes', $universeId);
         if ($universe === null || ($universe['id'] ?? null) !== $universeId) throw new RuntimeException('Universe does not exist.');
         $characters = $this->charactersFor($universeId);
+        $activeVisitors = $this->activeVisitorsFor($universeId);
+        if ($activeVisitors !== []) throw new RuntimeException('Universe removal is blocked while characters from other accounts are visiting it. Visitors must return to their home universes first. No data was changed.');
         if ($characters !== []) {
             throw new RuntimeException('Universe removal is blocked because it has associated character records. Character records are permanent; disable or lock the universe instead, or reassign characters through an explicit future workflow. No data was changed.');
         }
@@ -64,6 +66,7 @@ final class UniverseDeletionService
             // CharacterService uses the same universe lock when creating characters, preventing a new
             // dependent character from appearing between the final dependency check and deletion.
             $transaction = $this->storage->deleteBatchAtomically($records, $transactionId, function () use ($universeId, $expectedCharacterIds, $universeSnapshot, $characterSnapshots, $backup): void {
+                if ($this->activeVisitorsFor($universeId) !== []) throw new RuntimeException('Universe deletion is blocked because a character joined this shared universe after the preview. No live records were removed.');
                 $currentUniverse = $this->storage->read('universes', $universeId);
                 $currentCharacters = $this->charactersFor($universeId);
                 $currentIds = array_map(static fn(array $c): string => (string)($c['id'] ?? ''), $currentCharacters);
@@ -138,6 +141,16 @@ final class UniverseDeletionService
 
         Logger::warning('Universe and associated characters permanently deleted', ['universe_id' => $universeId, 'deleted_characters' => count($characterSnapshots), 'backup_id' => $backup['backup_id'], 'transaction_id' => $transactionId, 'verified' => true]);
         return ['universe_id' => $universeId, 'deleted_characters' => count($characterSnapshots), 'backup' => $backup, 'transaction_id' => $transactionId, 'verified' => true];
+    }
+
+    private function activeVisitorsFor(string $universeId): array
+    {
+        $visitors = array_values(array_filter($this->storage->all('characters'), static fn(array $character): bool =>
+            (string)($character['active_universe_id'] ?? '') === $universeId
+            && (string)($character['universe_id'] ?? '') !== $universeId
+        ));
+        usort($visitors, static fn(array $a, array $b): int => strcmp((string)($a['id'] ?? ''), (string)($b['id'] ?? '')));
+        return $visitors;
     }
 
     private function charactersFor(string $universeId): array

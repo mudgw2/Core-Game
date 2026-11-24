@@ -1,0 +1,36 @@
+CORE 0.1.182 QA RESULTS
+
+Automated regression suite:
+  php tests/run.php
+  PASS: 170
+  FAIL: 0
+
+JavaScript syntax:
+  node --check player/astronomical-environment.js — PASS
+
+PHP syntax:
+  php -l config/version.php — PASS
+  php -l tests/run.php — PASS
+  Full-project PHP syntax is covered by the automated regression suite — PASS
+
+Source verification:
+  PASS — no screen-space SVG moon proof overlay remains in the renderer.
+  PASS — no camera-relative moonSkyBasis or live camera-forward moon placement remains.
+  PASS — moon meshes are positioned from the planet world origin and fixed orbital axes.
+  PASS — orbit tubes use the same world-space orbital basis and radius as the moon meshes.
+  PASS — moon positions advance from simulation elapsed time and generated orbital period.
+  PASS — diagnostics expose worldAnchored, cameraRelative, orbitalRadiusWorld, orbitCenter, and orbitPlaneNormal.
+
+ZIP integrity:
+  Pending final packaging verification.
+
+Browser visual verification:
+  NOT PERFORMED. User confirmation remains required.
+  Acceptance criteria:
+  - White 3D moon spheres are visible in the planetary sky.
+  - Rotating the camera moves the moons naturally across the viewport; moons do not remain screen-locked.
+  - The moons' world-space positions remain stable while only the camera is rotated.
+  - Bright complete 3D orbital tubes remain centered on the planet and aligned with their moons.
+  - Advancing simulation time moves each moon along its orbital tube.
+  - Diagnostics report worldAnchored=true and cameraRelative=false.
+  - Development depth bypass may show a far-side moon through the planet; this is an intentional temporary visibility mode.

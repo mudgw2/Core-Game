@@ -1,0 +1,52 @@
+{
+    "friend": [
+        {
+            "title": "Protective Elder",
+            "description": "Like a Big Brother or Sister to You - Someone that is older and looks after you, fussing over you at times"
+        },
+        {
+            "title": "The Protege",
+            "description": "Like a Kid Brother or Sister to You - Someone you look after as well as tease"
+        },
+        {
+            "title": "Sage Mentor",
+            "description": "Teacher or Mentor - A sage becomes a friend that instructs you in matters"
+        },
+        {
+            "title": "Trusted Colleague",
+            "description": "Partner or Co-worker - Someone you work with often becomes a close friend"
+        },
+        {
+            "title": "Platonic Ex",
+            "description": "An Old Lover - You said - I just want to be friends - and meant it"
+        },
+        {
+            "title": "Buried Hatchet",
+            "description": "Bygones become bygones and old rivalries become funny stories with an old enemy"
+        },
+        {
+            "title": "Surrogate Parent",
+            "description": "Like a Foster Parent to You - This friend regails you with advice as well as cares for you"
+        },
+        {
+            "title": "Blast from the Past",
+            "description": "Old Childhood Friend - You bump into someone you had not seen in years"
+        },
+        {
+            "title": "Kin and Comrade",
+            "description": "Relative - A relative becomes a friend as well as a relation"
+        },
+        {
+            "title": "Unexpected Allies",
+            "description": "Gang or Tribe - Somehow you earn the friendship of a gang or tribe of people"
+        },
+        {
+            "title": "Animal Companion",
+            "description": "Creature with Animal Intelligence - You befriend a badger or horse, or even a random Displacer Beast you can no longer find"
+        },
+        {
+            "title": "Sentient Bond",
+            "description": "Intelligent Creature - Maybe you ran into a Sphinx or a Wemic and managed to take the proverbial thorn out of the proverbial paw"
+        }
+    ]
+}

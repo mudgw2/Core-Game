@@ -1,0 +1,32 @@
+CORE 0.1.179 UPDATED FILES
+
+Source baseline: user-supplied admin(1).zip (CORE 0.1.177)
+Carries forward: CORE 0.1.178 persistent diagnostics subsystem
+
+Application/runtime:
+  api/diagnostics-report.php
+  app/Core/Logger.php
+  bootstrap.php
+  config/version.php
+  player/astronomical-environment.js
+  player/diagnostics.js
+  player/game.php
+  player/player.css
+  player/player.js
+  player/system-view.css
+  player/system-view.js
+  player/world.css
+  player/world.js
+  player/world.php
+
+Verification and project continuity:
+  tests/run.php
+  qa/QA-RESULTS-0.1.179.txt
+  PROJECT_STATE.md
+  changelog/CHANGELOG-0.1.179.txt
+  install/INSTALL-0.1.179.txt
+  release/RELEASE-NOTES-0.1.179.md
+  update/UPDATE-0.1.179.txt
+  update/FILES-0.1.179.txt
+
+This is an updated-files patch, not a complete installation.

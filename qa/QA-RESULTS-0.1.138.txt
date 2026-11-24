@@ -1,0 +1,10 @@
+CORE 0.1.138 QA RESULTS
+
+- PHP automated test suite: 129 passed, 0 failed.
+- PHP syntax: PASS for modified PHP files.
+- JavaScript syntax: PASS (`node --check player/world.js`).
+- JavaScript syntax: PASS (`node --check player/planetary-environment.js`).
+- Browser visual/interactive testing: NOT PERFORMED.
+- User installation QA: PENDING.
+
+Scope: full-map planetary terrain coverage, live hex tracking, M-key world map, Esc menu, C-key character information, I-key inventory panel, and revised gameplay HUD/header.

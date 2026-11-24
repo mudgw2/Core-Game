@@ -1,0 +1,45 @@
+CORE 0.1.139 PATCH MANIFEST
+
+Release: Spherical Planetary Environment
+Baseline: CORE 0.1.138
+
+Changed/new source files:
+- app/Modules/Universe/PlanetaryGeographyGenerator.php
+- player/planetary-environment.js
+- player/world.js
+- config/version.php
+- tests/run.php
+- multiplayer/src/contracts/MovementProtocol.ts
+- multiplayer/tests/movement.test.mjs
+
+New release records:
+- release/RELEASE-NOTES-0.1.139.md
+- changelog/CHANGELOG-0.1.139.txt
+- qa/QA-RESULTS-0.1.139.txt
+
+Moved documentation:
+- All root QA-RESULTS*.txt files are now under qa/.
+- All root CHANGELOG*.txt files are now under changelog/.
+- All root RELEASE-NOTES-*.md files are now under release/.
+- release/INSTALL-0.1.116.txt was updated to reference changelog/CHANGELOG-INSTALL.txt.
+
+Folder policy:
+- qa/ contains QA-RESULTS files.
+- changelog/ contains CHANGELOG files.
+- release/ contains release notes and installation/release documentation.
+
+Installation:
+1. Back up the current CORE code directory.
+2. Extract this patch into the CORE project root, preserving relative paths.
+3. Remove the obsolete root-level documentation paths listed in DELETE-FILES-0.1.139.txt after confirming the moved copies exist in their new folders.
+4. Do not replace or delete storage/, backups/, logs/, credentials, account data, character data, universe data, or existing saved geography records.
+5. Run: php tests/run.php
+
+This patch does not include or modify user storage, backups, logs, credentials, account records, character records, universe records, or generated player data.
+
+QA: PHP 132 passed / 0 failed; multiplayer Node 21 passed / 0 failed; TypeScript build and JavaScript syntax checks passed. Browser visual/interactive QA was not performed; user installation QA remains pending.
+
+0.1.139 runtime hotfix:
+- player/world.js: replace unsupported Quaternion.FromUnitVectors calls with supported surface alignment.
+- tests/run.php and api/qa.php: assert the supported quaternion contract.
+- changelog/CHANGELOG-0.1.139.txt: record the runtime correction.

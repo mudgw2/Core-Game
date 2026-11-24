@@ -1,0 +1,20 @@
+{
+  "childhood": [
+    {
+      "roll": 1,
+      "text": "Your family moved constantly across colony worlds, forcing you to adapt quickly to strange environments and local dialects."
+    },
+    {
+      "roll": 2,
+      "text": "You spent your early years tinkering with scrap tech in a cramped space station docking bay."
+    },
+    {
+      "roll": 3,
+      "text": "A corporate debt crisis disrupted your upbringing, teaching you early on how to hustle in the lower wards."
+    },
+    {
+      "roll": 4,
+      "text": "You attended a prestigious orbital academy, building early academic or tactical foundations."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+CORE 0.1.175 — Updated files
+
+config/version.php
+player/game.php
+player/player.js
+player/player.css
+player/selection.php
+tests/run.php
+release/RELEASE-NOTES-0.1.175.md
+install/INSTALL-0.1.175.txt
+qa/QA-RESULTS-0.1.175.txt
+update/UPDATE-MANIFEST-0.1.175.txt

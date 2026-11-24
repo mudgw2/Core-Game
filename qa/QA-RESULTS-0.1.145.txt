@@ -1,0 +1,19 @@
+CORE 0.1.145 QA RESULTS
+
+Automated project suite: PASS — 139 passed, 0 failed.
+PHP syntax:
+- player/world.php: PASS
+- tests/run.php: PASS
+JavaScript syntax:
+- player/world.js: PASS
+- player/astronomical-environment.js: PASS
+Browser visual/runtime QA: NOT PERFORMED.
+
+Focus:
+- Avatar orientation basis now uses Babylon Matrix.FromValues column ordering.
+- Avatar receives restrained emissive contribution.
+- Planetary ambient fill is increased for readable night terrain.
+- Test-world banner and map title strip removed.
+- Map and current-location readout are grouped in a compact viewport-anchored HUD.
+
+No persistent player or universe data is included in this patch.

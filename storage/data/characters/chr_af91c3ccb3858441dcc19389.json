@@ -1,0 +1,163 @@
+{
+    "id": "chr_af91c3ccb3858441dcc19389",
+    "schema_version": 1,
+    "universe_id": "uni_1a1a1f02c907bd0ba2d55b0f",
+    "owner_account_id": "usr_93fbb5f448571e59d696f9b5",
+    "name": "Bob",
+    "role": "Explorer",
+    "role_id": "explorer",
+    "species_id": "human",
+    "species": "Human",
+    "attributes": {
+        "strength": 9,
+        "dexterity": 7,
+        "constitution": 7,
+        "intelligence": 7,
+        "wisdom": 7,
+        "charisma": 7
+    },
+    "base_attributes": {
+        "strength": 7,
+        "dexterity": 7,
+        "constitution": 7,
+        "intelligence": 7,
+        "wisdom": 7,
+        "charisma": 7
+    },
+    "species_adjustments": {
+        "strength": 2
+    },
+    "ability_points_spent": -24,
+    "ability_point_budget": 10,
+    "human_bonus_attribute": "strength",
+    "appearance": {
+        "tint": "#61d8e8"
+    },
+    "age": 19,
+    "background": {
+        "schema_version": 1,
+        "locked": true,
+        "locked_at": "2026-11-18T15:52:32+00:00",
+        "generator": "CORE Lifepath",
+        "generator_version": "1",
+        "species_key": "human",
+        "race": {
+            "key": "human",
+            "name": "Human"
+        },
+        "seed": "8803e37b:19:human",
+        "age": 19,
+        "maturation_age": 13,
+        "graduation_age": 18,
+        "max_allowable_age": 85,
+        "career_path": {
+            "id": "education",
+            "label": "Formal Education",
+            "selected_at_age": 18
+        },
+        "siblings": [
+            {
+                "name": "Brandon",
+                "gender": "Male",
+                "relation": "Older",
+                "disposition": "Distant and indifferent."
+            },
+            {
+                "name": "Braden",
+                "gender": "Male",
+                "relation": "Younger",
+                "disposition": "Noticed by the Dark"
+            },
+            {
+                "name": "Roselba",
+                "gender": "Female",
+                "relation": "Twin / Same Age",
+                "disposition": "The Protege"
+            }
+        ],
+        "history": [
+            {
+                "age": 13,
+                "type": "upbringing",
+                "title": "Background & Upbringing",
+                "description": "Born into a human background at Mega City.<br>Raised by Family not related to you (Status: Alive).<br><p class=\"mb-1 text-white\"><strong>Siblings:</strong></p><ul class=\"mb-1 text-white ps-3\"><li>Brandon (Male, Older) \u2014 Disposition: Distant and indifferent.</li><li>Braden (Male, Younger) \u2014 Disposition: Noticed by the Dark</li><li>Roselba (Female, Twin / Same Age) \u2014 Disposition: The Protege</li></ul>Social Class & Style: High Nobility background with preferred clothing: Protective and padding clothing.<br>Environment: Apprenticed from an early age.<br>Distinguishing Mark: Noticable ticks such as repeated phrases or quck repeated movement.",
+                "is_graduation": false
+            },
+            {
+                "age": 13,
+                "type": "enemy",
+                "title": "Enemy",
+                "description": "You have raised the anger of a supernatural creature",
+                "is_graduation": false
+            },
+            {
+                "age": 14,
+                "type": "enlightenment",
+                "title": "Enlightenment",
+                "description": "Training under a veteran or ex-mercenary, or time spent in harsh terrains, toughens you +1 CON",
+                "is_graduation": false
+            },
+            {
+                "age": 15,
+                "type": "enemy",
+                "title": "Enemy",
+                "description": "Someone amongst the law really dislikes you",
+                "is_graduation": false
+            },
+            {
+                "age": 16,
+                "type": "windfall",
+                "title": "Windfall",
+                "description": "The opportunity arises to travel to far distant lands for several months",
+                "is_graduation": false
+            },
+            {
+                "age": 17,
+                "type": "friend",
+                "title": "Friend",
+                "description": "Partner or Co-worker - Someone you work with often becomes a close friend",
+                "is_graduation": false
+            },
+            {
+                "age": 18,
+                "type": "friend",
+                "title": "Friend",
+                "description": "Intelligent Creature - Maybe you ran into a Sphinx or a Wemic and managed to take the proverbial thorn out of the proverbial paw",
+                "is_graduation": true
+            },
+            {
+                "age": 19,
+                "type": "enlightenment",
+                "title": "Enlightenment",
+                "description": "Time spent at an university or with a scholar teaches valuable skills and how to apply rational thinking +1 INT",
+                "is_graduation": false
+            }
+        ]
+    },
+    "lifecycle": {
+        "enabled": false,
+        "locked": false,
+        "updated_at": "2026-11-18T16:23:51+00:00",
+        "last_action": "player_delete",
+        "archived": true
+    },
+    "location": {
+        "constellation_id": "con_ff37886980f2c89f",
+        "system_id": "sys_9ea70be9699466f9",
+        "updated_at": "2026-11-18T15:52:46+00:00"
+    },
+    "current_system_id": "sys_9ea70be9699466f9",
+    "current_constellation_id": "con_ff37886980f2c89f",
+    "created_at": "2026-11-18T15:52:32+00:00",
+    "revision": 2,
+    "exploration": {
+        "explored_systems": [
+            {
+                "system_id": "sys_9ea70be9699466f9",
+                "name": "System 01",
+                "first_visited_at": "2026-11-18T15:52:46+00:00",
+                "first_visited_revision": 1
+            }
+        ]
+    }
+}

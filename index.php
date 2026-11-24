@@ -14,6 +14,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CORE — Universe Workbench</title>
     <link rel="stylesheet" href="assets/admin.css?v=<?= htmlspecialchars($coreReleaseVersion, ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="assets/borderless.css?v=<?= rawurlencode($coreReleaseVersion) ?>">
 </head>
 <body>
 <main>
@@ -118,14 +119,14 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             </div>
             <h3>Character location</h3>
             <label for="characterSelect">Character</label>
-            <select id="characterSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Load characters first</option></select>
+            <select id="characterSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325"><option value="">Load characters first</option></select>
             <label for="characterSystemSelect">Move destination — one jump only</label>
             <select id="characterSystemSelect" aria-describedby="movementChoicesHelp"><option value="">Create / load a universe first</option></select>
             <p id="movementChoicesHelp" class="field-help" role="status" aria-live="polite"><strong>How movement works:</strong> This list contains only your current system and systems reachable in one jump. Distant systems are not selectable here. Use Plan a route below to find a path to any system; route planning does not move the character.</p>
             <h3>Plan a route</h3>
             <p>Choose any system in this universe to preview the shortest route. This list includes distant systems too. Planning does not move the character.</p>
             <label for="routeDestinationSelect">Route destination</label>
-            <select id="routeDestinationSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325;border:1px solid var(--line)"><option value="">Create / load a universe first</option></select>
+            <select id="routeDestinationSelect" style="width:100%;padding:9px 12px;min-height:44px;border-radius:8px;color:var(--text);background:#0b1325"><option value="">Create / load a universe first</option></select>
             <div class="actions"><button id="planRouteButton" type="button">Plan route</button><button id="startTravelButton" type="button" disabled>Start travel along route</button><button id="advanceTravelButton" type="button" class="secondary" disabled>Travel next jump</button></div>
             <p id="routeStatus" class="status" aria-live="polite">Choose a character and destination to preview a route.</p>
             <p id="travelProgressStatus" class="status" role="status" aria-live="polite">No travel route is active for the selected character.</p>
@@ -133,7 +134,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
             <label for="characterRevision">Expected character revision</label>
             <input id="characterRevision" type="number" min="0" step="1" value="0">
             <div class="actions"><button id="moveCharacterButton" type="button">Move character</button></div>
-            <section style="margin-top:16px;border-color:#526e94;background:#111f35">
+            <section style="margin-top:16px;background:#111f35">
                 <h3 style="margin-top:0">Character controls: disable or lock</h3>
                 <p><strong>Disable</strong> temporarily takes a character out of use while preserving all progress. <strong>Lock</strong> freezes gameplay changes while leaving the record visible. Both are reversible; neither deletes data. You can disable and lock independently.</p>
                 <p id="characterLifecycleStatus" class="status" role="status" aria-live="polite">Select a character to view its enabled/locked state.</p>
@@ -223,7 +224,7 @@ $coreReleaseVersion = require __DIR__ . '/config/version.php';
                 <textarea id="contentJsonEditor" rows="22" spellcheck="false" autocomplete="off" style="width:100%;min-height:360px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2" aria-describedby="contentEditorHelp"></textarea>
                 <div class="actions"><button id="contentUseJsonButton" type="button" class="secondary">Use JSON draft in editor</button><button id="contentRefreshJsonButton" type="button" class="secondary">Refresh JSON from structured draft</button></div>
             </details>
-            <hr style="margin:24px 0;border-color:#34445f">
+            <hr style="margin:24px 0">
             <section id="characteristicManager" aria-labelledby="characteristicManagerTitle">
                 <h3 id="characteristicManagerTitle">Item Characteristics Manager</h3>
                 <p>Define typed fields for each item category without editing JSON. Existing item values are checked before a schema can be saved. Schema changes are backed up and revision-checked.</p>

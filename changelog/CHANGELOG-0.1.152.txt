@@ -1,0 +1,4 @@
+CORE 0.1.152
+- Fixed multiplayer movement conversion: world-space tangent direction is projected onto local planetary east/north.
+- East/west now updates server map X (longitude axis); north/south updates server map Z (latitude axis).
+- Added regression coverage for the client-to-server axis contract.

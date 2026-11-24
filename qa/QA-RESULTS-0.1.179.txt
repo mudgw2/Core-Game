@@ -1,0 +1,21 @@
+CORE 0.1.179 QA RESULTS
+
+Assistant-run automated regression suite:
+  php tests/run.php
+  PASS: 169
+  FAIL: 0
+
+JavaScript syntax checks (Node --check):
+  player/player.js — PASS
+  player/system-view.js — PASS
+  player/astronomical-environment.js — PASS
+  player/world.js — PASS
+
+PHP syntax checks (php -l):
+  player/game.php — PASS
+  player/world.php — PASS
+  api/diagnostics-report.php — PASS
+  bootstrap.php — PASS
+  Full project PHP syntax check is included in the automated suite — PASS
+
+ZIP integrity is checked before delivery. Browser visual verification is NOT performed by these checks. The user must verify the Universe overview, constellation navigation, planetary moon/orbit visibility, starfield behavior, hover labels, and HUD layout in the installed browser.

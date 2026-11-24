@@ -1,0 +1,5 @@
+CORE 0.1.180
+- Upright Universe/Constellation labels; visible system names and world counts; improved map spacing and markers.
+- Removed redundant Back to Universe View button.
+- Added visible upright planet/moon labels in System View.
+- Enlarged and brightened planetary moons and orbit paths; retained diagnostics.

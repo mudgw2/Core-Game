@@ -28,6 +28,7 @@ final class DataManagementService
                 'id' => $id,
                 'name' => (string)($universe['name'] ?? $universe['seed'] ?? $id),
                 'seed' => (string)($universe['seed'] ?? ''),
+                'constellations' => count($universe['baseline']['constellations'] ?? []),
                 'systems' => count($universe['baseline']['systems'] ?? []),
                 'events' => count($universe['state']['changes'] ?? []),
                 'state_revision' => (int)($universe['state']['revision'] ?? 0),
@@ -59,7 +60,7 @@ final class DataManagementService
         usort($universeRows, static fn(array $a, array $b): int => strcmp($a['id'], $b['id']));
         usort($characterRows, static fn(array $a, array $b): int => strcmp($a['id'], $b['id']));
         return [
-            'summary' => ['universes' => count($universeRows), 'characters' => count($characterRows), 'systems' => array_sum(array_column($universeRows, 'systems')), 'events' => array_sum(array_column($universeRows, 'events'))],
+            'summary' => ['universes' => count($universeRows), 'characters' => count($characterRows), 'constellations' => array_sum(array_column($universeRows, 'constellations')), 'systems' => array_sum(array_column($universeRows, 'systems')), 'events' => array_sum(array_column($universeRows, 'events'))],
             'universes' => $universeRows,
             'characters' => $characterRows,
             'generated_at' => gmdate('c'),
@@ -99,7 +100,8 @@ final class DataManagementService
                 'expected_state_revision' => (int)($universe['state']['revision'] ?? 0),
                 'expected_lifecycle_revision' => (int)($universe['lifecycle']['revision'] ?? 0),
                 'expected_character_ids' => $characterIds,
-                'impact' => ['universe_records' => 1, 'systems' => count($universe['baseline']['systems'] ?? []), 'events' => count($universe['state']['changes'] ?? []), 'related_character_records' => count($characters)],
+                'impact' => ['universe_records' => 1, 'constellations' => count($universe['baseline']['constellations'] ?? []),
+                'systems' => count($universe['baseline']['systems'] ?? []), 'events' => count($universe['state']['changes'] ?? []), 'related_character_records' => count($characters)],
                 'warning' => 'Permanent deletion includes this universe and every character associated with it. CORE creates a checksum-verified backup first, deletes only the previewed records, verifies removal, and attempts rollback from the backup if deletion fails. The backup is retained after success. Keep an off-host backup too. No data was changed by this preview.',
             ];
         }

@@ -1,0 +1,20 @@
+CORE 0.1.117 installation
+
+Extract this patch into the CORE application root. Preserve the included
+relative paths and overwrite the listed application files. Do not replace
+storage, account, character, universe, or other player data.
+
+The root .htaccess contains a narrowly scoped rewrite for the shared-universe
+router endpoints. Apache must permit .htaccess overrides (at least FileInfo)
+for this directory. If your deployment intentionally disables .htaccess,
+apply the equivalent rewrite in the CORE VirtualHost:
+
+  RewriteRule ^/core-game/api/universe/(share|visit|leave)/?$ /core-game/public/index.php [END,QSA]
+
+Replace /core-game with the actual URL mount path if different. Keep existing
+API and Matrix proxy rules unchanged.
+
+After installation, reload Character Selection and try Create / rotate share
+code. A successful response displays the new 32-character code. If Apache
+still returns HTML, check the active VirtualHost rewrite configuration and
+confirm the route reaches public/index.php.

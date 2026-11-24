@@ -1,0 +1,21 @@
+CORE 0.1.146 — Character Turning & Map Positioning
+
+Install by extracting this patch into the CORE application root and preserving the included relative paths. Replace the listed files when prompted.
+
+After installation, hard-refresh the browser (Ctrl+F5) to load the 0.1.146 JavaScript and CSS.
+
+Controls:
+- W / Up: move forward
+- S / Down: move backward
+- A / Left: turn left
+- D / Right: turn right
+- Shift: run
+- Mouse drag: orbit camera
+- Mouse wheel: zoom
+- M: show/hide planetary map
+
+The map is positioned in the upper-right of the viewport, below the top header.
+
+This patch does not include or replace player data, accounts, characters, universes, generated geography, backups, logs, or secrets. It does not modify the live installation or GitHub repository.
+
+Automated checks do not substitute for browser interaction testing. Verify A/D turning and the map position in the installed browser build.

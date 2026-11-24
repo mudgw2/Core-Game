@@ -1,0 +1,18 @@
+CORE 0.1.122 QA RESULTS
+
+PASS: New direct PHP multiplayer-token endpoint syntax.
+PASS: PHP syntax check for all project PHP files.
+PASS: JavaScript syntax checks for player/player.js and player/world.js.
+PASS: Both real-time session clients use /api/multiplayer-token.php.
+PASS: Endpoint dispatches to the existing canonical /api/multiplayer/token route.
+PASS: Existing application authentication, CSRF, ownership, and grant logic remain the single implementation.
+PASS: Release version regression test.
+PASS: ZIP integrity (verified after packaging).
+
+Full supplied-source suite: 114 passed, 3 failed.
+The three failures are unchanged limitations of the supplied source archive:
+- Multiplayer package identity contract test cannot inspect omitted multiplayer source files.
+- Colyseus room test cannot inspect omitted multiplayer source files.
+- Existing remote-avatar tint assertion fails because the uploaded source archive
+  does not contain the required multiplayer room implementation.
+No new test failures were introduced by this patch.

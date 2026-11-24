@@ -1,0 +1,14 @@
+CORE 0.1.152 QA RESULTS
+
+Scope: multiplayer planetary movement axis conversion.
+
+PASS — PHP regression suite: 145 passed, 0 failed.
+PASS — Multiplayer Node test suite: 22 passed, 0 failed.
+PASS — PHP syntax: config/version.php and tests/run.php.
+PASS — JavaScript syntax: player/world.js and player/planetary-environment.js.
+PASS — Multiplayer TypeScript build and typecheck: included in npm test (npm test runs npm run build).
+PASS — ZIP integrity: verified after packaging.
+
+Runtime/browser verification: not performed. User should verify east/west changes longitude and north/south changes latitude in a connected shared world.
+
+Previous release 0.1.151 persistent clock implementation is included unchanged in this patch except for the release version and test expectation updates.

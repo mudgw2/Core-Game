@@ -1,2 +1,9 @@
 Options -Indexes
 DirectoryIndex index.php
+
+# Route application-router JSON endpoints through the front controller.
+# Legacy direct /api/*.php endpoints remain direct PHP scripts.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^api/(universe/(share|visit|leave)|multiplayer/token)/?$ public/index.php [QSA,L]
+</IfModule>

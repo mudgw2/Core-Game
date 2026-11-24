@@ -1,0 +1,13 @@
+CORE 0.1.106 PATCH INSTALLATION
+
+1. Back up your current CORE installation.
+2. Extract this ZIP into the CORE project root, preserving the included relative paths.
+3. Allow the files to overwrite their existing counterparts.
+4. No data migration or database operation is required.
+5. Review the public site, account pages, character selection/creation, universe creation, gameplay, system view, and test-world HUD. Interface components should no longer display decorative borders.
+6. Use keyboard navigation to confirm focused links, buttons, and form controls still have a visible focus indicator.
+7. Run the project's CLI QA suite: php tests/run.php
+8. Run the browser QA endpoint from the local development environment.
+
+This patch contains only application source, QA tests, and release documentation.
+It does not contain or replace storage/data, backups, logs, accounts, or character records.

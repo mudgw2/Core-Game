@@ -1,0 +1,11 @@
+CORE 0.1.179 — UPDATED FILES INSTALLATION
+
+1. Back up the current CORE application directory.
+2. Extract this ZIP into the existing CORE application root, preserving the directory structure and allowing the listed files to overwrite.
+3. Confirm Apache/PHP can write to storage/logs/ and storage/diagnostics/ (retained from 0.1.178).
+4. Hard-refresh the browser to load versioned CSS and JavaScript assets.
+5. Open gameplay: Universe View should show the full constellation overview. Select a constellation to enter Constellation View; use Back to Universe View there.
+6. Enter a planetary test world. Diagnostics is collapsed at the bottom-left; expand it when needed. Connection information remains at the bottom-right.
+7. Verify moons and orbital paths visually at night and rotate the camera to inspect the starfield. Automated checks cannot certify those browser-rendered results.
+
+This is an updated-files patch, not a complete CORE installation.
